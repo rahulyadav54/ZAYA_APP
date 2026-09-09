@@ -1,0 +1,6 @@
+sdk.dir=C\:\\Path\\To\\Android\\Sdk
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+KEYSTORE_PASSWORD=your_keystore_password
+KEY_PASSWORD=your_key_password
+KEY_ALIAS=aizaya-key

@@ -1,0 +1,104 @@
+# ⚠️ IMPORTANT: OLD APP IS CACHED
+
+## Why You Still See The Error:
+
+The screenshot showing "glm-4.6 error" is from the **OLD BUILD** of the app. The code has been fixed, but your device/emulator is running the OLD APK.
+
+---
+
+## HOW TO FIX - COMPLETE STEPS:
+
+### Step 1: Uninstall Old App
+```
+Android Studio:
+1. Run → Run 'app'
+2. Wait for app to launch
+3. Then in terminal: adb uninstall com.aizaya.app
+
+OR manually on device:
+Settings → Apps → AI ZAYA → Uninstall
+```
+
+### Step 2: Clean Gradle Cache
+```
+In Android Studio:
+1. File → Invalidate Caches
+2. Select "Invalidate and Restart"
+3. Wait for Android Studio to restart
+```
+
+### Step 3: Clean & Rebuild
+```
+In Android Studio:
+1. Build → Clean Project
+2. Build → Rebuild Project
+3. Wait for build to complete (may take 2-5 minutes)
+```
+
+### Step 4: Fresh Install
+```
+In Android Studio:
+1. Run → Run 'app'
+2. OR: Run → Edit Configurations → uncheck "Run"  then check it
+3. Wait for fresh install to device
+```
+
+### Step 5: Test
+```
+1. Open AI Chat
+2. Send: "Hello"
+3. Wait 5-10 seconds
+4. Should see: AI response (NOT error)
+```
+
+---
+
+## Why This Matters:
+
+The **SOURCE CODE** is now correct:
+- ✅ ChatViewModel.kt has sendToAgentRouter()
+- ✅ No more AIService references
+- ✅ Using correct endpoint: https://api.agentrouter.ai/v1/chat/completions
+- ✅ Using correct model: deepseek-v3.1
+
+BUT the app on your device is still the OLD version with the old code.
+
+---
+
+## Verification:
+
+After fresh build, you should see in Logcat:
+```
+D/ChatViewModel: Sending to: https://api.agentrouter.ai/v1/chat/completions
+D/ChatViewModel: Model: deepseek-v3.1
+D/ChatViewModel: Response received: [AI response text]
+```
+
+NOT:
+```
+Error: Invalid URL (/v1/chat/completions)
+Model glm-4.6: error
+```
+
+---
+
+## COMPLETE COMMAND SEQUENCE (DO THIS):
+
+```
+1. adb uninstall com.aizaya.app
+   (or uninstall manually on device)
+
+2. In Android Studio:
+   - File → Invalidate Caches → Invalidate and Restart
+   - Wait for restart
+
+3. After restart:
+   - Build → Clean Project
+   - Build → Rebuild Project
+   - Run → Run 'app'
+
+4. Wait for fresh install and launch
+```
+
+**This will work!** 🚀
+

@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "493304702545",
+    "firebase_url": "https://techeagle-5f574-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "techeagle-5f574",
+    "storage_bucket": "techeagle-5f574.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:493304702545:android:4bc2284e38d866a048fa70",
+        "android_client_info": {
+          "package_name": "com.zayaai.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "493304702545-6fhbfpd1t3fbiln9fqgvi19rp8uugtk2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9MHXW8AkmT90SbqmG3pmyBxhKh2-zph0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "493304702545-6fhbfpd1t3fbiln9fqgvi19rp8uugtk2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
