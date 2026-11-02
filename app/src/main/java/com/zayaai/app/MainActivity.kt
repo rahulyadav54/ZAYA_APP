@@ -1,6 +1,11 @@
 package com.zayaai.app
 
 import android.os.Bundle
+import android.app.Activity
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -149,6 +154,33 @@ fun MainAppScaffold(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // Intercept Back Press: back one by one through opened pages, then confirm exit on home
+    BackHandler(enabled = true) {
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else if (currentRoute != Screen.Home.route) {
+            val popped = navController.popBackStack()
+            if (!popped) {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Home.route) { inclusive = true }
+                }
+            }
+        } else {
+            showExitDialog = true
+        }
+    }
+
+    if (showExitDialog) {
+        AppExitDialog(
+            onDismiss = { showExitDialog = false },
+            onConfirmExit = {
+                showExitDialog = false
+                (context as? Activity)?.finishAffinity()
+            }
+        )
+    }
 
     val chatViewModel: ChatViewModel = viewModel()
     val textWriterViewModel: TextWriterViewModel = viewModel()
@@ -283,7 +315,14 @@ fun MainScreenContent(
                 RedesignTopBar(
                     currentRoute = currentRoute,
                     onOpenDrawer = onOpenDrawer,
-                    onBackClick = { navController.popBackStack() },
+                    onBackClick = {
+                        val popped = navController.popBackStack()
+                        if (!popped) {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) { inclusive = true }
+                            }
+                        }
+                    },
                     onNotificationClick = {
                         // Navigate to Announcements / History
                         navController.navigate(Screen.History.route)
@@ -640,4 +679,97 @@ private fun RedesignBottomNavItem(
             maxLines = 1
         )
     }
+}
+
+
+@Composable
+fun AppExitDialog(
+    onDismiss: () -> Unit,
+    onConfirmExit: () -> Unit
+) {
+    val isDark = LocalIsDarkTheme.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(22.dp),
+        containerColor = if (isDark) Color(0xFF131024) else Color.White,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isDark) Color(0xFF1E163B) else Color(0xFFF5F3FF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_zaya_brand_z),
+                        contentDescription = "AI ZAYA Logo",
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Exit AI ZAYA?",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp
+                        ),
+                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Powered by ZAYA CODE HUB",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = Color(0xFF7C3AED)
+                    )
+                }
+            }
+        },
+        text = {
+            Text(
+                text = "Are you sure you want to exit the application?",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirmExit,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "Exit",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isDark) Color(0xFF3B2F6E) else Color(0xFFE2E8F0)
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "Cancel",
+                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+        }
+    )
 }

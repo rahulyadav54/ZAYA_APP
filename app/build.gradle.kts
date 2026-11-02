@@ -24,9 +24,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = rootProject.file("aizaya-keystore.jks")
-            storePassword = localProperty("KEYSTORE_PASSWORD")
+            storePassword = localProperty("KEYSTORE_PASSWORD", "Aizaya@2026Secure")
             keyAlias = localProperty("KEY_ALIAS", "aizaya-key")
-            keyPassword = localProperty("KEY_PASSWORD")
+            keyPassword = localProperty("KEY_PASSWORD", "Aizaya@2026Secure")
         }
     }
 
@@ -34,9 +34,9 @@ android {
         applicationId = "com.zayaai.app"
         minSdk = 25
         targetSdk = 36
-        // Bump versionCode for Play Store uploads. Previous versions already used.
-        versionCode = 15
-        versionName = "2.2.5"
+        // Bump versionCode for Play Store uploads (Submission 11 was 2.2.4).
+        versionCode = 16
+        versionName = "2.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

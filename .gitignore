@@ -30,3 +30,6 @@ backend/.env
 .wrangler/
 cloudflare-worker/node_modules/
 cloudflare-worker/.wrangler/
+
+*.aab
+*.pem
