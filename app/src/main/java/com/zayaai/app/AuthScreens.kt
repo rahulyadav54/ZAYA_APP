@@ -47,10 +47,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import com.zayaai.app.ui.theme.LocalIsDarkTheme
 
 /**
- * Centered Brand Header: Geometric Z Logo + AI ZAYA + ALL-IN-ONE AI TOOLS
+ * Centered Brand Header: App Logo + AI ZAYA + ALL-IN-ONE AI TOOLS + Powered by ZAYA CODE HUB
  */
 @Composable
 fun BrandHeader(isDark: Boolean) {
@@ -60,26 +62,26 @@ fun BrandHeader(isDark: Boolean) {
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .size(72.dp)
+                .clip(RoundedCornerShape(20.dp))
                 .background(if (isDark) Color(0xFF1E163B) else Color(0xFFF5F3FF))
                 .border(
                     1.dp,
                     if (isDark) Color(0xFF3B2F6E) else Color(0xFFDDD6FE),
-                    RoundedCornerShape(16.dp)
+                    RoundedCornerShape(20.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_zaya_brand_z),
                 contentDescription = "AI ZAYA Logo",
-                modifier = Modifier.size(42.dp)
+                modifier = Modifier.size(54.dp)
             )
         }
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = "AI ZAYA",
-            fontSize = 22.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 2.sp,
             color = if (isDark) Color.White else Color(0xFF0F172A)
@@ -87,12 +89,94 @@ fun BrandHeader(isDark: Boolean) {
         Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = "ALL-IN-ONE AI TOOLS",
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 2.sp,
             color = if (isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED)
         )
+        Spacer(modifier = Modifier.height(5.dp))
+        Text(
+            text = "Powered by ZAYA CODE HUB",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.sp,
+            color = if (isDark) Color(0xFFA78BFA).copy(alpha = 0.85f) else Color(0xFF6D28D9)
+        )
     }
+}
+
+/**
+ * Diagnostic dialog shown if Google Sign-In needs SHA-1 added to Firebase Console
+ */
+@Composable
+fun GoogleSignInConfigDialog(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val sha1 = "1C:61:6C:8F:7A:AF:B0:2D:4D:B7:A5:63:BA:64:49:80:45:DE:DC:B9"
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Google Sign-In Setup Required",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Color(0xFF0F172A)
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Firebase requires your app's SHA-1 signing fingerprint to be registered for Google OAuth:",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = Color(0xFF475569)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    color = Color(0xFFF1F5F9),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = sha1,
+                        modifier = Modifier.padding(10.dp),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        ),
+                        color = Color(0xFF6D28D9)
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "How to enable:\n1. Open Firebase Console (techeagle-5f574)\n2. Project Settings → com.zayaai.app\n3. Click 'Add fingerprint' and paste this SHA-1\n4. Re-open the app — Google Sign-In will connect!",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                    color = Color(0xFF64748B)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(sha1))
+                    Toast.makeText(context, "SHA-1 fingerprint copied to clipboard!", Toast.LENGTH_SHORT).show()
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Copy SHA-1", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Dismiss", color = Color(0xFF64748B))
+            }
+        }
+    )
 }
 
 /**
@@ -304,6 +388,7 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(true) }
+    var showSha1Dialog by remember { mutableStateOf(false) }
 
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
@@ -312,8 +397,9 @@ fun LoginScreen(
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        val data = result.data
+        if (data != null) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             try {
                 val account = task.getResult(ApiException::class.java)
                 if (account != null) {
@@ -325,11 +411,37 @@ fun LoginScreen(
                             Toast.makeText(context, "Google Sign-In failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
                         }
                     }
+                } else {
+                    Toast.makeText(context, "No Google account selected", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: ApiException) {
+                when (e.statusCode) {
+                    10 -> { // DEVELOPER_ERROR (SHA-1 fingerprint not in Firebase Console)
+                        showSha1Dialog = true
+                    }
+                    12501 -> { // SIGN_IN_CANCELLED by user
+                        Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
+                    }
+                    7 -> { // NETWORK_ERROR
+                        Toast.makeText(context, "Network error. Please check your internet connection.", Toast.LENGTH_LONG).show()
+                    }
+                    12500 -> { // SIGN_IN_FAILED
+                        Toast.makeText(context, "Google Sign-In failed (Code 12500). Please check Firebase support email & configuration.", Toast.LENGTH_LONG).show()
+                    }
+                    else -> {
+                        Toast.makeText(context, "Google Sign-In (${e.statusCode}): ${e.localizedMessage ?: "Please try again"}", Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Google Sign-In error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
+        } else {
+            Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    if (showSha1Dialog) {
+        GoogleSignInConfigDialog(onDismiss = { showSha1Dialog = false })
     }
 
     Box(
@@ -540,7 +652,19 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Powered by ZAYA CODE HUB",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp
+                ),
+                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -562,6 +686,7 @@ fun RegistrationScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var showSha1Dialog by remember { mutableStateOf(false) }
 
     val nameFocus = remember { FocusRequester() }
     val emailFocus = remember { FocusRequester() }
@@ -572,8 +697,9 @@ fun RegistrationScreen(
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        val data = result.data
+        if (data != null) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             try {
                 val account = task.getResult(ApiException::class.java)
                 if (account != null) {
@@ -585,11 +711,37 @@ fun RegistrationScreen(
                             Toast.makeText(context, "Google Sign-In failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
                         }
                     }
+                } else {
+                    Toast.makeText(context, "No Google account selected", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: ApiException) {
+                when (e.statusCode) {
+                    10 -> { // DEVELOPER_ERROR
+                        showSha1Dialog = true
+                    }
+                    12501 -> { // SIGN_IN_CANCELLED by user
+                        Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
+                    }
+                    7 -> { // NETWORK_ERROR
+                        Toast.makeText(context, "Network error. Please check your internet connection.", Toast.LENGTH_LONG).show()
+                    }
+                    12500 -> { // SIGN_IN_FAILED
+                        Toast.makeText(context, "Google Sign-In failed (Code 12500). Please check Firebase configuration.", Toast.LENGTH_LONG).show()
+                    }
+                    else -> {
+                        Toast.makeText(context, "Google Sign-In (${e.statusCode}): ${e.localizedMessage ?: "Please try again"}", Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Google Sign-In error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
+        } else {
+            Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    if (showSha1Dialog) {
+        GoogleSignInConfigDialog(onDismiss = { showSha1Dialog = false })
     }
 
     // Password criteria evaluation
@@ -920,7 +1072,19 @@ fun RegistrationScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Powered by ZAYA CODE HUB",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp
+                ),
+                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

@@ -54,18 +54,18 @@ fun SplashScreen(onSplashComplete: () -> Unit) {
                 .padding(horizontal = 24.dp)
                 .scale(scale.value)
         ) {
-            // Distinctive Geometric Z Brandmark
+            // Distinctive Brandmark with the custom app icon
             Box(
                 modifier = Modifier
-                    .size(88.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(24.dp))
                     .background(Color(0xFFF5F3FF)),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_zaya_brand_z),
                     contentDescription = "AI ZAYA Brand Logo",
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier.size(76.dp)
                 )
             }
 
@@ -74,7 +74,7 @@ fun SplashScreen(onSplashComplete: () -> Unit) {
             // AI ZAYA Wordmark
             Text(
                 text = "AI ZAYA",
-                fontSize = 26.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 3.sp,
                 color = Color(0xFF0F172A)
@@ -89,6 +89,31 @@ fun SplashScreen(onSplashComplete: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.5.sp,
                 color = Color(0xFF7C3AED)
+            )
+        }
+
+        // Powered by ZAYA CODE HUB footer
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "POWERED BY",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp,
+                color = Color(0xFF94A3B8)
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = "ZAYA CODE HUB",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.5.sp,
+                color = Color(0xFF6D28D9)
             )
         }
     }

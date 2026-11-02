@@ -219,6 +219,18 @@ fun OnboardingScreen(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Powered by ZAYA CODE HUB",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = Color(0xFF94A3B8)
+                )
             }
         }
     }

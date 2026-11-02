@@ -105,6 +105,17 @@ fun DrawerContent(
             colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
             modifier = Modifier.padding(horizontal = 14.dp)
         )
+        Spacer(modifier = Modifier.height(14.dp))
+        Text(
+            text = "Powered by ZAYA CODE HUB",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 11.sp,
+                letterSpacing = 1.sp
+            ),
+            color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
         Spacer(modifier = Modifier.height(20.dp))
     }
 }

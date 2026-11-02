@@ -1,6 +1,8 @@
 ﻿package com.zayaai.app
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -38,15 +40,15 @@ fun AboutScreen(paddingValues: PaddingValues) {
         // App Logo & Header
         Box(
             modifier = Modifier
-                .size(100.dp)
-                .background(Brush.linearGradient(listOf(NeonPurple, NeonCyan)), CircleShape),
+                .size(96.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color(0xFFF5F3FF)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                Icons.Rounded.AutoAwesome,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(50.dp)
+            Image(
+                painter = painterResource(id = R.drawable.ic_zaya_brand_z),
+                contentDescription = "AI ZAYA Brand Logo",
+                modifier = Modifier.size(76.dp)
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -59,9 +61,21 @@ fun AboutScreen(paddingValues: PaddingValues) {
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            "Intelligent Productivity & Learning",
-            style = MaterialTheme.typography.bodyMedium,
-            color = NeonCyan
+            "ALL-IN-ONE AI TOOLS",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            ),
+            color = NeonPurple
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            "Powered by ZAYA CODE HUB",
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp
+            ),
+            color = NeonPurple
         )
 
         Spacer(modifier = Modifier.height(32.dp))

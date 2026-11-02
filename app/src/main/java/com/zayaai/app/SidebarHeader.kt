@@ -111,6 +111,16 @@ fun SidebarHeader(userName: String, userEmail: String) {
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
                 color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
             )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Powered by ZAYA CODE HUB",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.8.sp
+                ),
+                color = if (isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED)
+            )
         }
     }
 }
