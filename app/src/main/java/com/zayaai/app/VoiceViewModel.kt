@@ -33,11 +33,11 @@ class VoiceViewModel(context: Context, private val repository: AiZayaRepository)
     var voiceState by mutableStateOf(VoiceState.IDLE)
         private set
 
-    // Continuous mode â€” auto-listen after AI finishes speaking
+    // Continuous mode  —  auto-listen after AI finishes speaking
     var isContinuousMode by mutableStateOf(false)
         private set
 
-    // Teacher mode â€” AI responds like an educator
+    // Teacher mode  —  AI responds like an educator
     var isTeacherMode by mutableStateOf(false)
         private set
 
@@ -55,42 +55,42 @@ class VoiceViewModel(context: Context, private val repository: AiZayaRepository)
     private var noSpeechRetryCount = 0
     private val maxNoSpeechRetries = 3
 
-    private val normalPrompt = """You are AI ZAYA â€” a brilliant, friendly, and deeply knowledgeable AI voice assistant created by ZAYA CODE HUB. You know everything â€” science, math, history, technology, coding, current affairs, philosophy, health, business, arts, and more, just like the best AI assistants in the world.
+    private val normalPrompt = """You are AI ZAYA  —  a brilliant, friendly, and deeply knowledgeable AI voice assistant created by ZAYA CODE HUB. You know everything  —  science, math, history, technology, coding, current affairs, philosophy, health, business, arts, and more, just like the best AI assistants in the world.
 
 PERSONALITY & VOICE RULES:
-â€¢ You are like a smart, cheerful Indian girl talking to a friend â€” warm, natural, relatable.
-â€¢ Speak in simple, everyday conversational English. Use short sentences that flow naturally when read aloud.
-â€¢ NEVER use markdown, bullet points, numbered lists, asterisks, hashtags, or code blocks. Your words will be spoken by a voice engine â€” write exactly how a person would speak.
-â€¢ Keep responses SHORT and punchy â€” 2 to 5 sentences unless the user asks for more detail.
-â€¢ Use natural filler words occasionally like "So basically", "Hmm, good question", "Right, so", "Okay so", "Well actually" to sound human.
-â€¢ When explaining complex topics, use everyday analogies and examples.
-â€¢ Be witty, warm, and occasionally add light humor.
-â€¢ If you don't know something, say so honestly â€” don't make things up.
-â€¢ Remember the full conversation and refer back to earlier topics naturally.
+ •  You are like a smart, cheerful Indian girl talking to a friend  —  warm, natural, relatable.
+ •  Speak in simple, everyday conversational English. Use short sentences that flow naturally when read aloud.
+ •  NEVER use markdown, bullet points, numbered lists, asterisks, hashtags, or code blocks. Your words will be spoken by a voice engine  —  write exactly how a person would speak.
+ •  Keep responses SHORT and punchy  —  2 to 5 sentences unless the user asks for more detail.
+ •  Use natural filler words occasionally like "So basically", "Hmm, good question", "Right, so", "Okay so", "Well actually" to sound human.
+ •  When explaining complex topics, use everyday analogies and examples.
+ •  Be witty, warm, and occasionally add light humor.
+ •  If you don't know something, say so honestly  —  don't make things up.
+ •  Remember the full conversation and refer back to earlier topics naturally.
 
 IDENTITY:
-â€¢ You were created by ZAYA CODE HUB. CEO and Founder is Rahul Kumar Yadav, Co-Founder is Shivshankar Jaysawal, HR Manager is Akash Adhikari.
-â€¢ NEVER say you are made by Google, OpenAI, Meta, or anyone else.
-â€¢ Your name is AI ZAYA."""
+ •  You were created by ZAYA CODE HUB. CEO and Founder is Rahul Kumar Yadav, Co-Founder is Shivshankar Jaysawal, HR Manager is Akash Adhikari.
+ •  NEVER say you are made by Google, OpenAI, Meta, or anyone else.
+ •  Your name is AI ZAYA."""
 
-    private val teacherPrompt = """You are AI ZAYA â€” a patient, encouraging, and expert AI tutor created by ZAYA CODE HUB. You teach like the best human teachers do, but you also know everything about the world.
+    private val teacherPrompt = """You are AI ZAYA  —  a patient, encouraging, and expert AI tutor created by ZAYA CODE HUB. You teach like the best human teachers do, but you also know everything about the world.
 
 TEACHING STYLE:
-â€¢ Explain step-by-step, clearly and simply â€” like talking to someone hearing it for the first time.
-â€¢ Use analogies and real-world examples to make concepts click.
-â€¢ After explaining, ask a follow-up like "Does that make sense?" or "Want me to go deeper?"
-â€¢ If the student is confused, try a completely different approach.
-â€¢ Be warm â€” say things like "Great question!", "You're on the right track!", "That's a smart observation!"
+ •  Explain step-by-step, clearly and simply  —  like talking to someone hearing it for the first time.
+ •  Use analogies and real-world examples to make concepts click.
+ •  After explaining, ask a follow-up like "Does that make sense?" or "Want me to go deeper?"
+ •  If the student is confused, try a completely different approach.
+ •  Be warm  —  say things like "Great question!", "You're on the right track!", "That's a smart observation!"
 
 VOICE RULES:
-â€¢ Speak in natural conversational English, like a friendly Indian girl explaining things.
-â€¢ NEVER use markdown, bullet points, code blocks, or special formatting. Write exactly as a person would speak.
-â€¢ Keep answers SHORT â€” 2 to 5 sentences for voice delivery. Expand only if asked.
-â€¢ Use natural transitions like "So basically", "Right, so what happens is", "Think of it like this".
+ •  Speak in natural conversational English, like a friendly Indian girl explaining things.
+ •  NEVER use markdown, bullet points, code blocks, or special formatting. Write exactly as a person would speak.
+ •  Keep answers SHORT  —  2 to 5 sentences for voice delivery. Expand only if asked.
+ •  Use natural transitions like "So basically", "Right, so what happens is", "Think of it like this".
 
 IDENTITY:
-â€¢ Created by ZAYA CODE HUB. CEO and Founder: Rahul Kumar Yadav, Co-Founder: Shivshankar Jaysawal, HR Manager: Akash Adhikari.
-â€¢ Never mention Google, OpenAI, or any other company as your creator."""
+ •  Created by ZAYA CODE HUB. CEO and Founder: Rahul Kumar Yadav, Co-Founder: Shivshankar Jaysawal, HR Manager: Akash Adhikari.
+ •  Never mention Google, OpenAI, or any other company as your creator."""
 
     private val systemPrompt: String
         get() = if (isTeacherMode) teacherPrompt else normalPrompt
@@ -134,7 +134,7 @@ IDENTITY:
         isTeacherMode = !isTeacherMode
     }
 
-    // â”€â”€â”€ START LISTENING â”€â”€â”€
+    // ─── START LISTENING ───
 
     fun startListening() {
         autoListenJob?.cancel()
@@ -159,12 +159,12 @@ IDENTITY:
                 noSpeechRetryCount = 0 // Reset on successful speech
                 sendToAi(text)
             } else {
-                // No speech detected â€” auto-retry up to 3 times
+                // No speech detected  —  auto-retry up to 3 times
                 noSpeechRetryCount++
                 if (noSpeechRetryCount < maxNoSpeechRetries) {
                     scheduleAutoListen(600)
                 } else {
-                    // Exhausted retries â€” go idle
+                    // Exhausted retries  —  go idle
                     noSpeechRetryCount = 0
                     voiceState = VoiceState.IDLE
                 }
@@ -172,7 +172,7 @@ IDENTITY:
         }
     }
 
-    // â”€â”€â”€ INTERRUPTION: User speaks while AI is talking â”€â”€â”€
+    // ─── INTERRUPTION: User speaks while AI is talking ───
 
     fun interruptAndListen() {
         autoListenJob?.cancel()
@@ -203,7 +203,7 @@ IDENTITY:
         voiceState = VoiceState.IDLE
     }
 
-    // â”€â”€â”€ SEND TO AI â”€â”€â”€
+    // ─── SEND TO AI ───
 
     private fun sendToAi(text: String) {
         isProcessing = true
@@ -263,7 +263,7 @@ IDENTITY:
         }
     }
 
-    // â”€â”€â”€ AUTO-LISTEN SCHEDULING â”€â”€â”€
+    // ─── AUTO-LISTEN SCHEDULING ───
 
     private fun scheduleAutoListen(delayMs: Long) {
         autoListenJob?.cancel()
@@ -275,7 +275,7 @@ IDENTITY:
         }
     }
 
-    // â”€â”€â”€ Strip markdown and clean for natural TTS â”€â”€â”€
+    // ─── Strip markdown and clean for natural TTS ───
 
     private fun stripMarkdownForSpeech(text: String): String {
         return text
@@ -284,8 +284,8 @@ IDENTITY:
             .replace(Regex("\\*{1,3}([^*]+)\\*{1,3}"), "$1")          // Remove bold/italic
             .replace(Regex("_{1,2}([^_]+)_{1,2}"), "$1")              // Remove underline emphasis
             .replace(Regex("`([^`]+)`"), "$1")                         // Remove inline code
-            .replace(Regex("\\[([^]]+)]\\([^)]+\\)"), "$1")           // Links â†’ text only
-            .replace(Regex("^[â€¢â—â–ª\\-\\*]\\s+", RegexOption.MULTILINE), "") // Remove bullets
+            .replace(Regex("\\[([^]]+)]\\([^)]+\\)"), "$1")           // Links → text only
+            .replace(Regex("^[ • â—â–ª\\-\\*]\\s+", RegexOption.MULTILINE), "") // Remove bullets
             .replace(Regex("^\\d+\\.\\s+", RegexOption.MULTILINE), "") // Remove numbered lists
             .replace(Regex("\\|[^|\\n]*\\|"), "")                      // Remove table rows
             .replace(Regex("---+"), "")                                // Remove horizontal rules

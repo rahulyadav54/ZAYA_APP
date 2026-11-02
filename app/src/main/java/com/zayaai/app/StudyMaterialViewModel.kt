@@ -36,7 +36,7 @@ class StudyMaterialViewModel(
     private val firestore = Firebase.firestore
     private val auth = Firebase.auth
 
-    // â”€â”€â”€ State â”€â”€â”€
+    // ─── State ───
     var isProcessing by mutableStateOf(false)
         private set
     var processingStep by mutableStateOf("")
@@ -87,7 +87,7 @@ class StudyMaterialViewModel(
 
     fun clearError() { errorMessage = null }
 
-    // â”€â”€â”€ Load Materials â”€â”€â”€
+    // ─── Load Materials ───
     fun loadMaterials() {
         viewModelScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
@@ -97,7 +97,7 @@ class StudyMaterialViewModel(
         }
     }
 
-    // â”€â”€â”€ Text Extraction â”€â”€â”€
+    // ─── Text Extraction ───
 
     fun extractTextFromPdf(context: Context, uri: Uri) {
         viewModelScope.launch {
@@ -190,7 +190,7 @@ class StudyMaterialViewModel(
         extractedText = text
     }
 
-    // â”€â”€â”€ Full AI Processing Pipeline â”€â”€â”€
+    // ─── Full AI Processing Pipeline ───
 
     fun processStudyMaterial(title: String, fileType: String) {
         if (extractedText.isBlank()) {
@@ -267,11 +267,11 @@ class StudyMaterialViewModel(
             // Update local record with Firestore ID
             db.studyMaterialDao().insertMaterial(entity.copy(id = localId, firestoreId = ref.id))
         } catch (_: Exception) {
-            // Non-critical â€” local copy is the source of truth
+            // Non-critical  —  local copy is the source of truth
         }
     }
 
-    // â”€â”€â”€ AI Generation Functions â”€â”€â”€
+    // ─── AI Generation Functions ───
 
     private suspend fun generateQuestions(materialId: Long, text: String) {
         val prompt = """Analyze the following educational content and generate the most important questions with answers.
@@ -441,9 +441,9 @@ $text"""
     private suspend fun generateSummary(materialId: Long, text: String) {
         val prompt = """Summarize the following educational content into clear bullet points for students.
 Include:
-â€¢ Key concepts
-â€¢ Important definitions
-â€¢ Main takeaways
+ •  Key concepts
+ •  Important definitions
+ •  Main takeaways
 
 Keep it concise and student-friendly.
 
@@ -469,7 +469,7 @@ $text"""
         }
     }
 
-    // â”€â”€â”€ Load Generated Content for a Material â”€â”€â”€
+    // ─── Load Generated Content for a Material ───
 
     fun loadContentForMaterial(materialId: Long) {
         currentMaterialId = materialId
@@ -508,7 +508,7 @@ $text"""
         }
     }
 
-    // â”€â”€â”€ Quiz Logic with Adaptive Difficulty â”€â”€â”€
+    // ─── Quiz Logic with Adaptive Difficulty ───
 
     fun startQuiz() {
         currentQuizIndex = 0
@@ -592,7 +592,7 @@ $text"""
         }
     }
 
-    // â”€â”€â”€ AI Tutor Chat â”€â”€â”€
+    // ─── AI Tutor Chat ───
 
     fun sendTutorMessage() {
         val msg = tutorInput.trim()
@@ -623,7 +623,7 @@ Student's Question: $msg"""
         }
     }
 
-    // â”€â”€â”€ Delete Material â”€â”€â”€
+    // ─── Delete Material ───
 
     fun deleteMaterial(material: StudyMaterialEntity) {
         viewModelScope.launch {
@@ -641,7 +641,7 @@ Student's Question: $msg"""
         }
     }
 
-    // â”€â”€â”€ Reset for new upload â”€â”€â”€
+    // ─── Reset for new upload ───
 
     fun resetForNewUpload() {
         extractedText = ""
@@ -658,7 +658,7 @@ Student's Question: $msg"""
         quizScore = 0
     }
 
-    // â”€â”€â”€ Helper: Extract JSON array from AI response â”€â”€â”€
+    // ─── Helper: Extract JSON array from AI response ───
 
     private fun extractJsonArray(raw: String): String {
         // Remove markdown code fences if present

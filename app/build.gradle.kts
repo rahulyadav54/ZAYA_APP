@@ -35,16 +35,22 @@ android {
         minSdk = 25
         targetSdk = 36
         // Bump versionCode for Play Store uploads. Previous versions already used.
-        versionCode = 9
-        versionName = "2.2.3"
+        versionCode = 15
+        versionName = "2.2.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "OPENROUTER_API_KEY", "\"${localProperty("OPENROUTER_API_KEY")}\"")
-        buildConfigField("String", "GROQ_API_KEY", "\"${localProperty("GROQ_API_KEY")}\"")
+        // Permanent production Cloudflare Worker URL
+        buildConfigField("String", "BACKEND_URL", "\"https://aizaya-api.zayacodehub-aizaya.workers.dev/\"")
     }
 
     buildTypes {
+        debug {
+            // Development/Debug: Production worker default
+            buildConfigField("String", "BACKEND_URL", "\"${localProperty("BACKEND_URL", "https://aizaya-api.zayacodehub-aizaya.workers.dev/")}\"")
+            buildConfigField("String", "OPENROUTER_API_KEY", "\"${localProperty("OPENROUTER_API_KEY")}\"")
+            buildConfigField("String", "GROQ_API_KEY", "\"${localProperty("GROQ_API_KEY")}\"")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -53,6 +59,10 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+            // Production Release: Strictly connects to public HTTPS backend; NO API keys packaged
+            buildConfigField("String", "BACKEND_URL", "\"https://aizaya-api.zayacodehub-aizaya.workers.dev/\"")
+            buildConfigField("String", "OPENROUTER_API_KEY", "\"\"")
+            buildConfigField("String", "GROQ_API_KEY", "\"\"")
         }
     }
     compileOptions {

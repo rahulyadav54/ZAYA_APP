@@ -18,15 +18,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.automirrored.rounded.Logout
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,10 +38,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.zayaai.app.ui.theme.AIZAYATheme
-import com.zayaai.app.ui.theme.ThemeMode
-import com.zayaai.app.ui.theme.NeonPurple
-import com.zayaai.app.ui.theme.NeonCyan
+import com.zayaai.app.ui.theme.*
 import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.launch
 
@@ -112,8 +111,8 @@ class MainActivity : AppCompatActivity() {
                                 val database = remember { AiZayaDatabase.getDatabase(context) }
                                 val repository = remember { AiZayaRepository(database) }
                                 val viewModelFactory = remember { ViewModelFactory(repository) }
-                                
-                                AuthenticatedApp(
+
+                                MainAppScaffold(
                                     authViewModel = authViewModel,
                                     userRole = role,
                                     viewModelFactory = viewModelFactory,
@@ -129,20 +128,19 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
-fun AuthenticatedApp(
+fun MainAppScaffold(
     authViewModel: AuthViewModel,
     userRole: String,
     viewModelFactory: ViewModelFactory,
     securityViewModel: SecurityViewModel
 ) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    
+
     val chatViewModel: ChatViewModel = viewModel()
     val textWriterViewModel: TextWriterViewModel = viewModel()
     val voiceViewModel: VoiceViewModel = viewModel(factory = object : ViewModelProvider.Factory {
@@ -159,8 +157,9 @@ fun AuthenticatedApp(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = Color.Transparent,
-                drawerTonalElevation = 0.dp
+                drawerContainerColor = if (LocalIsDarkTheme.current) Color(0xFF0B0C16) else Color(0xFFF8F9FE),
+                drawerTonalElevation = 0.dp,
+                modifier = Modifier.width(320.dp)
             ) {
                 DrawerContent(
                     userName = authViewModel.displayName,
@@ -208,13 +207,24 @@ fun AuthenticatedApp(
 
 @Composable
 fun LoadingScreen() {
+    val isDark = LocalIsDarkTheme.current
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0xFF0F0F1A)),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (isDark) DarkBackground else LightBackground),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(color = Color(0xFF00E5FF))
+        CircularProgressIndicator(color = PrimaryPurple)
     }
 }
+
+// ─── 5-Tab Bottom Bar Definition (Matches Reference Mockup) ───
+data class RedesignBottomTab(
+    val title: String,
+    val icon: ImageVector,
+    val route: String,
+    val isCenterButton: Boolean = false
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -235,85 +245,57 @@ fun MainScreenContent(
     authViewModel: AuthViewModel,
     viewModelFactory: ViewModelFactory
 ) {
-    val bottomBarScreens = if (userRole == "admin") emptyList() else listOf(Screen.Home, Screen.Voice, Screen.History, Screen.Settings)
-    val showBottomBar = currentRoute in bottomBarScreens.map { it.route }
+    val isDark = LocalIsDarkTheme.current
+
+    // Bottom Navigation Tabs (Reference Mockup: Home, Tools, Chat, History, Profile)
+    val bottomTabs = remember {
+        listOf(
+            RedesignBottomTab("Home", Icons.Rounded.Home, Screen.Home.route),
+            RedesignBottomTab("Tools", Icons.Rounded.GridView, Screen.StudentTools.route),
+            RedesignBottomTab("Voice", Icons.Rounded.Mic, Screen.Voice.route, isCenterButton = true),
+            RedesignBottomTab("History", Icons.Rounded.History, Screen.History.route),
+            RedesignBottomTab("Profile", Icons.Rounded.Person, Screen.Settings.route)
+        )
+    }
+
+    val showBottomBar = currentRoute in bottomTabs.map { it.route } ||
+            currentRoute == Screen.StudentTools.route ||
+            currentRoute == Screen.Voice.route ||
+            currentRoute == Screen.AIChat.route
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    // use theme-aware background colors so light/dark both look correct
-                    colors = listOf(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.surface)
-                )
-            )
+            .background(if (isDark) DarkBackground else LightBackground)
     ) {
         Scaffold(
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = when(currentRoute) {
-                                Screen.AIChat.route -> "AI Chat"
-                                Screen.Voice.route -> "Voice Assistant"
-                                Screen.TextWriter.route -> "Text Writer"
-                                Screen.StudentTools.route -> "Student Tools"
-                                Screen.AdminDashboard.route -> "Admin Dashboard"
-                                Screen.WebBrowser.route -> "ZAYA EDU"
-                                else -> "AI ZAYA"
-                            },
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    },
-                    navigationIcon = {
-                        if (currentRoute == Screen.Home.route || currentRoute == Screen.AdminDashboard.route) {
-                            IconButton(onClick = onOpenDrawer) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onBackground)
-                            }
-                        } else {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
-                            }
-                        }
-                    },
-                    actions = {
-                        if (currentRoute == Screen.Home.route || currentRoute == Screen.AdminDashboard.route) {
-                            IconButton(onClick = onSignOut) {
-                                Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = "Sign Out", tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+                // Top App Bar directly matching reference image
+                RedesignTopBar(
+                    currentRoute = currentRoute,
+                    onOpenDrawer = onOpenDrawer,
+                    onBackClick = { navController.popBackStack() },
+                    onNotificationClick = {
+                        // Navigate to Announcements / History
+                        navController.navigate(Screen.History.route)
+                    }
                 )
             },
             bottomBar = {
-                if (showBottomBar) {
-                    ProfessionalBottomBar(
-                        navController = navController,
+                if (showBottomBar && userRole != "admin") {
+                    RedesignBottomBar(
+                        tabs = bottomTabs,
                         currentRoute = currentRoute,
-                        screens = bottomBarScreens
-                    )
-                }
-            },
-            floatingActionButton = {
-                if (currentRoute == Screen.Home.route && userRole != "admin") {
-                    FloatingActionButton(
-                        onClick = { navController.navigate(Screen.AIChat.route) },
-                        containerColor = Color.Transparent,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp),
-                        modifier = Modifier.size(70.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Brush.linearGradient(listOf(NeonPurple, NeonCyan)), CircleShape)
-                                .border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.AutoMirrored.Rounded.Chat, contentDescription = "AI Chat", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(32.dp))
+                        onTabSelected = { tab ->
+                            if (currentRoute != tab.route) {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
                         }
-                    }
+                    )
                 }
             },
             containerColor = Color.Transparent
@@ -333,13 +315,21 @@ fun MainScreenContent(
                 viewModelFactory = viewModelFactory,
                 onProfileUpdate = onProfileUpdate,
                 onToolClick = { tool ->
-                    val route = when(tool.title) {
+                    val route = when(tool.title.trim()) {
                         "AI Chat" -> Screen.AIChat.route
                         "Text Writer" -> Screen.TextWriter.route
                         "Image Gen" -> Screen.ImageGenerator.route
                         "Code Gen" -> Screen.CodeGenerator.route
                         "Quiz Gen" -> Screen.QuizGenerator.route
+                        "Doc Analyzer" -> Screen.DocumentAnalyzer.route
                         "Student Tools" -> Screen.StudentTools.route
+                        "Scientific Calculator" -> Screen.Calculator.route
+                        "Unit Converter" -> Screen.UnitConverter.route
+                        "Word Counter" -> Screen.WordCounter.route
+                        "Dictionary" -> Screen.Dictionary.route
+                        "Study Planner" -> Screen.StudyPlanner.route
+                        "Notes" -> Screen.Notes.route
+                        "To-Do List" -> Screen.ToDo.route
                         "Zaya Edu" -> Screen.WebBrowser.route
                         "Brain Games" -> Screen.BrainGames.route
                         "Startup Idea" -> Screen.StartupIdea.route
@@ -357,61 +347,247 @@ fun MainScreenContent(
     }
 }
 
+// ─── Top App Bar Matching Reference Mockup ───
 @Composable
-fun ProfessionalBottomBar(
-    navController: androidx.navigation.NavHostController,
+private fun RedesignTopBar(
     currentRoute: String?,
-    screens: List<Screen>
+    onOpenDrawer: () -> Unit,
+    onBackClick: () -> Unit,
+    onNotificationClick: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val isHome = currentRoute == Screen.Home.route || currentRoute == null
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Left Icon: Hamburger Menu on Home, Back Arrow on Sub-screens
+        IconButton(
+            onClick = if (isHome) onOpenDrawer else onBackClick,
+            modifier = Modifier.size(38.dp)
+        ) {
+            Icon(
+                imageVector = if (isHome) Icons.Rounded.Menu else Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = if (isHome) "Menu" else "Back",
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // Center: AI ZAYA Title + 👑 Pro Pill Badge
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "AI ZAYA",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 19.sp,
+                    letterSpacing = 1.sp
+                ),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            // 👑 Pro Badge Pill
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (isDark) Color(0xFF231C38) else Color(0xFFF3E8FF),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isDark) ProGold.copy(alpha = 0.4f) else PrimaryPurple.copy(alpha = 0.25f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text("👑", fontSize = 11.sp)
+                    Text(
+                        text = "Pro",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) ProGold else PrimaryPurple
+                    )
+                }
+            }
+        }
+
+        // Right Icon: Notification Bell
+        IconButton(
+            onClick = onNotificationClick,
+            modifier = Modifier.size(38.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.NotificationsNone,
+                contentDescription = "Notifications",
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+// ─── 5-Item Modern Bottom Navigation Bar With Elevated Center Voice Assistant ───
+@Composable
+private fun RedesignBottomBar(
+    tabs: List<RedesignBottomTab>,
+    currentRoute: String?,
+    onTabSelected: (RedesignBottomTab) -> Unit
+) {
+    val isDark = LocalIsDarkTheme.current
+
     Surface(
         modifier = Modifier
-            .padding(horizontal = 24.dp, vertical = 20.dp)
             .fillMaxWidth()
-            .height(72.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(24.dp),
-        tonalElevation = 8.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+            .navigationBarsPadding(),
+        color = if (isDark) Color(0xFF101122) else Color(0xFFFFFFFF),
+        shadowElevation = if (isDark) 0.dp else 12.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isDark) DarkBorder else LightBorder
+        ),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            screens.forEach { screen ->
-                val isSelected = currentRoute == screen.route
-                BottomNavItem(
-                    screen = screen,
-                    isSelected = isSelected,
-                    onClick = {
-                        if (!isSelected) {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    }
-                )
+            tabs.forEach { tab ->
+                val isSelected = when (tab.route) {
+                    Screen.Home.route -> currentRoute == Screen.Home.route || currentRoute == null
+                    Screen.StudentTools.route -> currentRoute == Screen.StudentTools.route
+                    Screen.Voice.route -> currentRoute == Screen.Voice.route
+                    Screen.History.route -> currentRoute == Screen.History.route
+                    Screen.Settings.route -> currentRoute == Screen.Settings.route
+                    else -> currentRoute == tab.route
+                }
+
+                if (tab.isCenterButton) {
+                    RedesignCenterVoiceButton(
+                        tab = tab,
+                        isSelected = isSelected,
+                        onClick = { onTabSelected(tab) }
+                    )
+                } else {
+                    RedesignBottomNavItem(
+                        tab = tab,
+                        isSelected = isSelected,
+                        onClick = { onTabSelected(tab) }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun BottomNavItem(
-    screen: Screen,
+private fun RedesignCenterVoiceButton(
+    tab: RedesignBottomTab,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.06f else 1.0f,
+        label = "voice_scale"
+    )
+
+    Column(
+        modifier = Modifier
+            .offset(y = (-6).dp)
+            .scale(scale)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Elevated Glowing Mic Button (Slightly larger, prominent in the center)
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .shadow(
+                    elevation = if (isSelected) 10.dp else 6.dp,
+                    shape = CircleShape,
+                    spotColor = Color(0xFF7C3AED).copy(alpha = if (isSelected) 0.7f else 0.45f)
+                )
+                .background(
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFF7C3AED), Color(0xFF6366F1), Color(0xFF38BDF8))
+                    ),
+                    shape = CircleShape
+                )
+                .border(
+                    width = if (isSelected) 2.5.dp else 2.dp,
+                    color = if (isSelected) Color(0xFF38BDF8) else if (isDark) Color(0xFF1E1F35) else Color.White,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = tab.icon,
+                contentDescription = tab.title,
+                tint = Color.White,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = tab.title,
+            color = if (isSelected) Color(0xFF7C3AED) else if (isDark) DarkTextSecondary else LightTextSecondary,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 11.sp
+            ),
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun RedesignBottomNavItem(
+    tab: RedesignBottomTab,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val isDark = LocalIsDarkTheme.current
+
+    val pillColor by animateColorAsState(
+        targetValue = if (isSelected) {
+            if (isDark) DarkBottomBarSelected else LightBottomBarSelected
+        } else {
+            Color.Transparent
+        },
+        label = "nav_pill"
+    )
+
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "color"
+        targetValue = if (isSelected) {
+            if (isDark) DarkBottomBarSelectedIcon else LightBottomBarSelectedIcon
+        } else {
+            if (isDark) DarkTextSecondary else LightTextSecondary
+        },
+        label = "nav_content"
     )
 
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.1f else 1.0f,
-        label = "scale"
+        targetValue = if (isSelected) 1.05f else 1.0f,
+        label = "nav_scale"
     )
 
     Column(
@@ -422,33 +598,37 @@ fun BottomNavItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(8.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
             .scale(scale),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = screen.icon,
-            contentDescription = screen.title,
-            tint = contentColor,
-            modifier = Modifier.size(24.dp)
-        )
-        if (isSelected) {
-            Text(
-                text = screen.title,
-                color = contentColor,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp
-                ),
-                maxLines = 1
-            )
-            Box(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .size(4.dp)
-                    .background(contentColor, CircleShape)
+        // Icon with Pill Container when selected
+        Box(
+            modifier = Modifier
+                .size(width = 44.dp, height = 30.dp)
+                .background(pillColor, RoundedCornerShape(15.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = tab.icon,
+                contentDescription = tab.title,
+                tint = contentColor,
+                modifier = Modifier.size(22.dp)
             )
         }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Label
+        Text(
+            text = tab.title,
+            color = contentColor,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 10.5.sp
+            ),
+            maxLines = 1
+        )
     }
 }

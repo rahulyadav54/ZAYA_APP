@@ -65,21 +65,21 @@ class PromptEngineerViewModel : ViewModel() {
                     append("- Pro: Highly refined, structured, with technical details, role assignment, output format, and specific constraints (multi-paragraph)\n\n")
 
                     if (selectedCategory == "Image Generation") {
-                        append("IMAGE PROMPT SPECIFICS â€” Include in Advanced & Pro:\n")
+                        append("IMAGE PROMPT SPECIFICS  —  Include in Advanced & Pro:\n")
                         append("- Subject description, art style (realistic/cinematic/anime/3D)\n")
                         append("- Lighting, camera angle, lens type\n")
                         append("- Colors, mood, atmosphere\n")
                         append("- Background details\n")
                         append("- Quality tags: 4K, ultra-detailed, photorealistic, masterpiece\n\n")
                     } else if (selectedCategory == "Text / Writing" || selectedCategory == "Marketing / Ads") {
-                        append("TEXT PROMPT SPECIFICS â€” Include in Advanced & Pro:\n")
+                        append("TEXT PROMPT SPECIFICS  —  Include in Advanced & Pro:\n")
                         append("- Role assignment (e.g., 'Act as an expert...')\n")
                         append("- Output format and structure\n")
                         append("- Tone, voice, and style instructions\n")
                         append("- Word count / length constraints\n")
                         append("- Target audience\n\n")
                     } else if (selectedCategory == "Code Generation") {
-                        append("CODE PROMPT SPECIFICS â€” Include in Advanced & Pro:\n")
+                        append("CODE PROMPT SPECIFICS  —  Include in Advanced & Pro:\n")
                         append("- Programming language and framework\n")
                         append("- Architecture pattern\n")
                         append("- Error handling requirements\n")
@@ -135,7 +135,7 @@ class PromptEngineerViewModel : ViewModel() {
                     append("- Add missing details (style, clarity, constraints)\n")
                     append("- Improve structure and wording\n")
                     append("- Make it more specific and powerful\n\n")
-                    append("OUTPUT FORMAT â€” Use these EXACT section headers:\n")
+                    append("OUTPUT FORMAT  —  Use these EXACT section headers:\n")
                     append("  === BASIC PROMPT ===\n")
                     append("  (The original prompt cleaned up and clarified)\n")
                     append("  === ADVANCED PROMPT ===\n")

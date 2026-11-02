@@ -19,7 +19,7 @@ class TextToSpeechManager(context: Context) {
 
     private var onSpeechDone: (() -> Unit)? = null
 
-    // Default locale â€” Indian English for a natural Indian accent
+    // Default locale  —  Indian English for a natural Indian accent
     private val indianEnglish = Locale("en", "IN")
 
     init {
@@ -62,13 +62,13 @@ class TextToSpeechManager(context: Context) {
 
     /**
      * Attempt to select the best female / natural-sounding voice.
-     * Priority: Indian English female â†’ any English female â†’ any Indian English â†’ default.
+     * Priority: Indian English female → any English female → any Indian English → default.
      */
     private fun selectBestFemaleVoice() {
         try {
             val voices = tts?.voices ?: return
 
-            // Score each voice â€” higher is better
+            // Score each voice  —  higher is better
             val scored = voices
                 .filter { !it.isNetworkConnectionRequired || it.features.isEmpty() }
                 .map { voice ->
@@ -85,7 +85,7 @@ class TextToSpeechManager(context: Context) {
 
                     // Prefer female-sounding voices (heuristic: common keywords in voice names)
                     if (name.contains("female") || name.contains("woman")) score += 50
-                    // Many TTS engines use letters â€” voices with higher letters (e.g. voice 2, 3) are often female
+                    // Many TTS engines use letters  —  voices with higher letters (e.g. voice 2, 3) are often female
                     if (name.contains("#female") || name.contains("ishi") || name.contains("lekha") ||
                         name.contains("aditi") || name.contains("raveena") || name.contains("priya") ||
                         name.contains("neerja") || name.contains("sapna")) score += 60
@@ -119,7 +119,7 @@ class TextToSpeechManager(context: Context) {
         if (!isInitialized) return
         onSpeechDone = onComplete
 
-        // Auto-detect language: Devanagari â†’ Hindi, otherwise Indian English
+        // Auto-detect language: Devanagari → Hindi, otherwise Indian English
         val locale = if (text.any { it in '\u0900'..'\u097F' }) {
             Locale("hi", "IN")
         } else {
@@ -140,7 +140,7 @@ class TextToSpeechManager(context: Context) {
 
     /**
      * Clean text so it sounds natural when spoken aloud.
-     * Do NOT insert newlines â€” that causes choppy stop-start speech.
+     * Do NOT insert newlines  —  that causes choppy stop-start speech.
      * Let the TTS engine handle sentence pauses naturally.
      */
     private fun cleanForSpeech(text: String): String {
@@ -159,7 +159,7 @@ class TextToSpeechManager(context: Context) {
             .replace("Prof.", "Professor")
             // Replace symbols that sound awkward
             .replace("...", ", ")
-            .replace("â€”", ", ")
+            .replace(" — ", ", ")
             .replace(" - ", ", ")
             .replace("(", ", ")
             .replace(")", ", ")

@@ -2,7 +2,7 @@
 Write-Host "=== Verifying Signing Configuration ===" -ForegroundColor Green
 
 # Check keystore file exists
-$keystorePath = "C:\Users\AKASH ADHIKARI\AndroidStudioProjects\AIZAYA\aizaya-keystore.jks"
+$keystorePath = Join-Path $PSScriptRoot "aizaya-keystore.jks"
 Write-Host "Keystore path: $keystorePath"
 Write-Host "Keystore exists: $(Test-Path $keystorePath)"
 
@@ -22,7 +22,7 @@ if (Test-Path $keystorePath) {
 }
 
 # Check build.gradle.kts configuration
-$buildGradlePath = "C:\Users\AKASH ADHIKARI\AndroidStudioProjects\AIZAYA\app\build.gradle.kts"
+$buildGradlePath = Join-Path $PSScriptRoot "app\build.gradle.kts"
 Write-Host "`n=== Checking build.gradle.kts ===" -ForegroundColor Green
 if (Test-Path $buildGradlePath) {
     $content = Get-Content $buildGradlePath -Raw

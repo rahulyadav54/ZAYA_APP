@@ -65,7 +65,7 @@ object VoiceAnimations {
                 cyan.copy(alpha = 0.08f)
             ),
             glowColor = cyan.copy(alpha = 0.35f),
-            statusText = "Listeningâ€¦",
+            statusText = "Listening...",
             particleSpeed = 0.8f
         )
 
@@ -85,7 +85,7 @@ object VoiceAnimations {
                 purple.copy(alpha = 0.08f)
             ),
             glowColor = purple.copy(alpha = 0.25f),
-            statusText = "Thinkingâ€¦",
+            statusText = "Thinking...",
             particleSpeed = 0.8f
         )
 
@@ -105,7 +105,7 @@ object VoiceAnimations {
                 green.copy(alpha = 0.06f)
             ),
             glowColor = green.copy(alpha = 0.2f),
-            statusText = "Speakingâ€¦",
+            statusText = "Speaking...",
             particleSpeed = 0.6f
         )
     }

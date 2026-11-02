@@ -130,7 +130,7 @@ data class FirestoreArticle(
     val author: String = ""
 )
 
-// â”€â”€â”€ AI Learning Feature Firestore Models â”€â”€â”€
+// ─── AI Learning Feature Firestore Models ───
 
 data class FirestoreStudyMaterial(
     val id: String = "",

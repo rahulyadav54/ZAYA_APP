@@ -214,7 +214,7 @@ fun NavigationGraph(
         composable(Screen.WordCounter.route) { TextToolsScreen(paddingValues = paddingValues) }
         composable(Screen.TextFormatter.route) { TextToolsScreen(paddingValues = paddingValues) }
 
-        // â”€â”€â”€ AI Learning Features â”€â”€â”€
+        // ─── AI Learning Features ───
         composable(Screen.UploadStudyMaterial.route) {
             LaunchedEffect(Unit) { studyMaterialViewModel.resetForNewUpload() }
             UploadStudyMaterialScreen(

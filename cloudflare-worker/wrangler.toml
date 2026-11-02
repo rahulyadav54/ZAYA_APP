@@ -1,0 +1,11 @@
+name = "aizaya-api"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NEMOTRON_MODEL_ID = "nvidia/nemotron-3-ultra-550b-a55b:free"
+NEMOTRON_FALLBACK_MODEL_ID = "nvidia/nemotron-3-ultra-550b-a55b:free"
+
+APP_NAME = "AI ZAYA"
+

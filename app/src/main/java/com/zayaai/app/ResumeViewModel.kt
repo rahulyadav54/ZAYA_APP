@@ -24,10 +24,10 @@ data class ResumeTemplate(
 
 class ResumeViewModel : ViewModel() {
 
-    // â”€â”€ Templates â”€â”€
+    // ── Templates ──
     val templates = listOf(
         ResumeTemplate(1, "Modern Professional", "Modern",
-            "Clean layout with sidebar â€” great for tech & business roles",
+            "Clean layout with sidebar  —  great for tech & business roles",
             listOf("Profile Summary", "Experience", "Education", "Skills", "Projects", "Certifications"),
             0xFF6C63FF),
         ResumeTemplate(2, "Classic ATS-Friendly", "ATS-Optimized",
@@ -35,15 +35,15 @@ class ResumeViewModel : ViewModel() {
             listOf("Objective", "Experience", "Education", "Skills", "Awards"),
             0xFF1565C0),
         ResumeTemplate(3, "Creative Designer", "Creative",
-            "Two-column with visual flair â€” ideal for design & media roles",
+            "Two-column with visual flair  —  ideal for design & media roles",
             listOf("About Me", "Portfolio Highlights", "Experience", "Skills", "Education", "Interests"),
             0xFFE91E63),
         ResumeTemplate(4, "Minimal Clean", "Minimal",
-            "Minimalist design with lots of whitespace â€” elegant & professional",
+            "Minimalist design with lots of whitespace  —  elegant & professional",
             listOf("Summary", "Experience", "Education", "Skills"),
             0xFF37474F),
         ResumeTemplate(5, "Student / Fresher", "Modern",
-            "Optimized for students â€” highlights education, projects & skills",
+            "Optimized for students  —  highlights education, projects & skills",
             listOf("Career Objective", "Education", "Projects", "Skills", "Internships", "Extra-curricular"),
             0xFF4CAF50),
         ResumeTemplate(6, "Executive", "Classic",
@@ -51,7 +51,7 @@ class ResumeViewModel : ViewModel() {
             listOf("Executive Summary", "Core Competencies", "Professional Experience", "Education", "Board Memberships"),
             0xFF9D50BB),
         ResumeTemplate(7, "Tech / Developer", "Modern",
-            "Built for developers â€” highlights tech stack, GitHub, and projects",
+            "Built for developers  —  highlights tech stack, GitHub, and projects",
             listOf("Summary", "Technical Skills", "Projects", "Experience", "Education", "Open Source"),
             0xFF00BCD4),
         ResumeTemplate(8, "Internship Ready", "ATS-Optimized",
@@ -60,7 +60,7 @@ class ResumeViewModel : ViewModel() {
             0xFFFF9800)
     )
 
-    // â”€â”€ Template Fill â”€â”€
+    // ── Template Fill ──
     private val _templateContent = MutableStateFlow("")
     val templateContent: StateFlow<String> = _templateContent
 
@@ -85,7 +85,7 @@ Formatting rules:
 - Optimize keywords for ATS (Applicant Tracking Systems)
 - Include relevant industry keywords naturally
 - Keep sentences short and scannable
-- Format dates consistently (e.g., Jan 2024 â€“ Present)
+- Format dates consistently (e.g., Jan 2024  –  Present)
 
 Output ONLY the resume content in clean Markdown. Do not add comments or explanations."""
                 )
@@ -98,7 +98,7 @@ Output ONLY the resume content in clean Markdown. Do not add comments or explana
         }
     }
 
-    // â”€â”€ AI Resume Builder (from scratch) â”€â”€
+    // ── AI Resume Builder (from scratch) ──
     private val _generatedResume = MutableStateFlow("")
     val generatedResume: StateFlow<String> = _generatedResume
 
@@ -122,20 +122,20 @@ Structure the resume with these sections (include only relevant ones):
 2-3 powerful sentences highlighting key strengths and career goals.
 
 ### Skills
-Organized by category (Technical, Soft Skills, Tools, etc.) â€” use comma-separated lists.
+Organized by category (Technical, Soft Skills, Tools, etc.)  —  use comma-separated lists.
 
 ### Professional Experience
 For each role:
-**Job Title** â€” Company Name | Location | Dates
+**Job Title**  —  Company Name | Location | Dates
 - Achievement-focused bullet points with metrics/numbers
 - Start each bullet with a strong action verb
 
 ### Education
-**Degree** â€” Institution | Year
+**Degree**  —  Institution | Year
 Include GPA if above 3.5, relevant coursework, honors
 
 ### Projects (if applicable)
-**Project Name** â€” Brief description with tech stack and impact
+**Project Name**  —  Brief description with tech stack and impact
 
 ### Certifications (if applicable)
 
@@ -145,7 +145,7 @@ ATS Optimization Rules:
 - Use standard section headings (no creative names)
 - Include relevant keywords from common job descriptions
 - No tables, columns, or graphics (ATS can't read them)
-- Use simple bullet points (â€¢, -, *)
+- Use simple bullet points ( • , -, *)
 - Spell out acronyms at least once
 - Use both long-form and abbreviations for skills (e.g., "JavaScript (JS)")
 
@@ -160,7 +160,7 @@ Output ONLY the resume in clean Markdown. Make it impressive, professional, and 
         }
     }
 
-    // â”€â”€ Resume Analyzer â”€â”€
+    // ── Resume Analyzer ──
     private val _analysisResult = MutableStateFlow("")
     val analysisResult: StateFlow<String> = _analysisResult
 
@@ -187,7 +187,7 @@ List 3-5 specific suggestions to improve the resume.
 
 ## ðŸŽ¯ Best Matching Job Roles
 Based on the skills, experience, and education in the resume, suggest **8-10 specific job titles** that would be the best fit. For each:
-- **Job Title** â€” Why it's a good match (1 sentence)
+- **Job Title**  —  Why it's a good match (1 sentence)
 - Expected salary range (approximate, in USD)
 
 ## ðŸ¢ Companies to Target
@@ -217,7 +217,7 @@ Be specific, actionable, and encouraging. Use emojis for section headers."""
     fun clearResume() { _generatedResume.value = "" }
     fun clearAnalysis() { _analysisResult.value = "" }
 
-    // â”€â”€ File Upload State â”€â”€
+    // ── File Upload State ──
     private val _uploadedFileName = MutableStateFlow<String?>(null)
     val uploadedFileName: StateFlow<String?> = _uploadedFileName
 

@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class PPTGeneratorViewModel : ViewModel() {
 
-    // â”€â”€â”€ Generation State â”€â”€â”€
+    // ─── Generation State ───
     var isGenerating by mutableStateOf(false)
         private set
 
@@ -28,7 +28,7 @@ class PPTGeneratorViewModel : ViewModel() {
     var errorMessage by mutableStateOf("")
         private set
 
-    // â”€â”€â”€ Download State â”€â”€â”€
+    // ─── Download State ───
     var isDownloading by mutableStateOf(false)
         private set
 
@@ -42,7 +42,7 @@ class PPTGeneratorViewModel : ViewModel() {
         private set
 
     /**
-     *  STEP 1 â€” Generate presentation content via AI, then create .pptx on backend
+     *  STEP 1  —  Generate presentation content via AI, then create .pptx on backend
      */
     fun generatePresentation(topic: String, slideCount: Int = 10) {
         if (topic.isBlank()) return
@@ -59,7 +59,7 @@ class PPTGeneratorViewModel : ViewModel() {
                 val clampedCount = slideCount.coerceIn(4, 20)
 
                 val systemPrompt = buildString {
-                    append("You are a JSON API that outputs ONLY raw JSON â€” no markdown, no backticks, no explanation.\n")
+                    append("You are a JSON API that outputs ONLY raw JSON  —  no markdown, no backticks, no explanation.\n")
                     append("Create exactly $clampedCount slide objects for a PowerPoint about the user's topic.\n")
                     append("Rules:\n")
                     append("- Output must be a JSON array: [{...},{...},...]\n")
@@ -162,7 +162,7 @@ class PPTGeneratorViewModel : ViewModel() {
             }
         } catch (_: Exception) {}
 
-        // Strategy 4: AI gave text instead of JSON â€” build slides from text
+        // Strategy 4: AI gave text instead of JSON  —  build slides from text
         Log.w("PPTGenerator", "All JSON strategies failed, building from text response")
         return buildSlidesFromText(aiResponse, topic, targetCount)
     }
@@ -184,12 +184,12 @@ class PPTGeneratorViewModel : ViewModel() {
             if (lines.isEmpty()) continue
 
             val title = lines.first()
-                .replace(Regex("^[\\-\\*â€¢]+\\s*"), "")
+                .replace(Regex("^[\\-\\* • ]+\\s*"), "")
                 .replace(Regex("^\\*\\*(.+?)\\*\\*$"), "$1")
                 .trim()
 
             val bullets = lines.drop(1)
-                .map { it.replace(Regex("^[\\-\\*â€¢\\d.]+\\s*"), "").trim() }
+                .map { it.replace(Regex("^[\\-\\* • \\d.]+\\s*"), "").trim() }
                 .filter { it.isNotBlank() && it.length > 2 }
                 .take(5)
 
@@ -226,7 +226,7 @@ class PPTGeneratorViewModel : ViewModel() {
     private fun buildOutlineText(slides: List<PPTSlide>): String {
         return slides.mapIndexed { index, slide ->
             val header = "**Slide ${index + 1}: ${slide.title}**"
-            val bullets = slide.bullets.joinToString("\n") { "  â€¢ $it" }
+            val bullets = slide.bullets.joinToString("\n") { "   •  $it" }
             "$header\n$bullets"
         }.joinToString("\n\n")
     }
@@ -249,7 +249,7 @@ class PPTGeneratorViewModel : ViewModel() {
     }
 
     /**
-     *  STEP 2 â€” Download the generated .pptx file to Downloads/AI_ZAYA/
+     *  STEP 2  —  Download the generated .pptx file to Downloads/AI_ZAYA/
      */
     fun downloadPPT(context: Context) {
         if (pptFileUrl.isBlank()) {
@@ -281,7 +281,7 @@ class PPTGeneratorViewModel : ViewModel() {
     }
 
     /**
-     *  STEP 3 â€” Open the downloaded file with an external viewer
+     *  STEP 3  —  Open the downloaded file with an external viewer
      */
     fun openDownloadedFile(context: Context) {
         if (downloadedFileName.isBlank()) {

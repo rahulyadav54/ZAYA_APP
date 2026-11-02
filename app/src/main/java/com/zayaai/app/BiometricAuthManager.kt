@@ -59,7 +59,7 @@ class BiometricAuthManager(private val context: Context) {
 
             override fun onAuthenticationFailed() {
                 super.onAuthenticationFailed()
-                // Don't call onError here â€” the system prompt handles retry automatically
+                // Don't call onError here  —  the system prompt handles retry automatically
             }
         }
 

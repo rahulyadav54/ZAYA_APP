@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-// ...existing imports...
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -20,83 +19,98 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zayaai.app.ui.theme.*
+import com.zayaai.app.ui.theme.LocalIsDarkTheme
 
 @Composable
 fun SidebarHeader(userName: String, userEmail: String) {
     val isDark = LocalIsDarkTheme.current
+    val displayName = if (userName.isBlank() || userName.equals("User", ignoreCase = true)) "Rahul" else userName
+    val displayEmail = if (userEmail.isBlank()) "rahul@zayaai.com" else userEmail
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(
-                if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
-                else MaterialTheme.colorScheme.surface
+                if (isDark) Color(0xFF141527)
+                else Color(0xFFFFFFFF)
             )
             .border(
-                1.dp,
-                if (isDark) Brush.linearGradient(listOf(NeonPurple.copy(alpha = 0.5f), NeonCyan.copy(alpha = 0.5f)))
-                else Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), MaterialTheme.colorScheme.secondary.copy(alpha = 0.06f))),
-                RoundedCornerShape(24.dp)
+                width = 1.dp,
+                color = if (isDark) Color(0xFF232544) else Color(0xFFE2E8F0),
+                shape = RoundedCornerShape(20.dp)
             )
-            .padding(20.dp)
+            .padding(18.dp)
     ) {
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // User Avatar with purple-cyan gradient ring
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(52.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(NeonPurple, NeonCyan))),
+                        .background(
+                            Brush.linearGradient(
+                                listOf(Color(0xFF7C3AED), Color(0xFF38BDF8))
+                            )
+                        )
+                        .padding(2.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF141527) else Color.White),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (userName.isNotEmpty() && userName != "User") {
-                        Text(
-                            text = userName.take(1).uppercase(),
-                            color = Color.White,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    } else {
-                        Icon(
-                            Icons.Rounded.Person,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
                     Text(
-                        text = "AI ZAYA",
+                        text = displayName.take(1).uppercase(),
+                        color = Color(0xFF7C3AED),
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 1.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
                     )
+                }
+
+                // Pro Badge
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isDark) Color(0xFF2D2316) else Color(0xFFFEF3C7)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "👑", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Premium User",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = NeonCyan
+                        text = "Pro Member",
+                        color = Color(0xFFD97706),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             Text(
-                text = userName.ifEmpty { "User" },
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
+                text = displayName,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                ),
+                color = if (isDark) Color.White else Color(0xFF0F172A)
             )
-            if (userEmail.isNotBlank()) {
-                Text(
-                    text = userEmail,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f)
-                )
-            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = displayEmail,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+            )
         }
     }
 }
-

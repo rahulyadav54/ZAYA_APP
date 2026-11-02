@@ -391,7 +391,7 @@ fun QuizDialog(
                                             maxLines = 2
                                         )
                                         Text(
-                                            text = "${question.options.size} options â€¢ Correct: ${question.correctAnswerIndex + 1}",
+                                            text = "${question.options.size} options  •  Correct: ${question.correctAnswerIndex + 1}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )

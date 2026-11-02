@@ -27,6 +27,7 @@ class ViewModelFactory(private val repository: AiZayaRepository) : ViewModelProv
             modelClass.isAssignableFrom(BookmarkViewModel::class.java) -> BookmarkViewModel(repository) as T
             modelClass.isAssignableFrom(StudyArticlesViewModel::class.java) -> StudyArticlesViewModel(repository) as T
             modelClass.isAssignableFrom(DictionaryViewModel::class.java) -> DictionaryViewModel() as T
+            modelClass.isAssignableFrom(TextWriterViewModel::class.java) -> TextWriterViewModel() as T
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

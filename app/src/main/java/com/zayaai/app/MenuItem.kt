@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,11 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zayaai.app.ui.theme.*
+import com.zayaai.app.ui.theme.LocalIsDarkTheme
 
 @Composable
 fun MenuItem(
@@ -24,35 +24,27 @@ fun MenuItem(
     onClick: () -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
-    
-    val background = if (isSelected) {
-        if (isDark) {
-            Brush.horizontalGradient(listOf(NeonPurple.copy(alpha = 0.2f), Color.Transparent))
-        } else {
-            Brush.horizontalGradient(listOf(NeonPurple.copy(alpha = 0.15f), Color.Transparent))
-        }
+
+    val backgroundColor = if (isSelected) {
+        if (isDark) Color(0xFF271F47) else Color(0xFFEDE9FE)
     } else {
-        Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+        Color.Transparent
     }
 
-    val iconColor = if (isSelected) NeonCyan else {
-        if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF4A4A5E)
-    }
-    
-    val textColor = if (isSelected) {
-        MaterialTheme.colorScheme.onBackground
+    val contentColor = if (isSelected) {
+        Color(0xFF7C3AED)
     } else {
-        if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF1F1F2E)
+        if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
     }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(background)
+            .padding(horizontal = 14.dp, vertical = 3.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
             .clickable { onClick() }
-            .padding(16.dp)
+            .padding(horizontal = 14.dp, vertical = 11.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -60,19 +52,19 @@ fun MenuItem(
         ) {
             Icon(
                 imageVector = screen.icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(24.dp)
+                contentDescription = screen.title,
+                tint = contentColor,
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Text(
                 text = screen.title,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    fontSize = 14.sp
                 ),
-                color = textColor
+                color = if (isSelected) Color(0xFF7C3AED) else if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
             )
         }
     }
 }
-

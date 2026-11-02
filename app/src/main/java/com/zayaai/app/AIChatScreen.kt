@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.Manifest
 import android.content.Context
@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.*
@@ -146,7 +147,13 @@ fun ChatScreen(viewModel: ChatViewModel, paddingValues: PaddingValues) {
         ) {
             // Empty state
             if (viewModel.messages.isEmpty() && !viewModel.isTyping) {
-                item { EmptyChatState() }
+                item {
+                    EmptyChatState(
+                        onSuggestionClick = { prompt ->
+                            viewModel.sendMessage(prompt)
+                        }
+                    )
+                }
             }
 
             items(viewModel.messages, key = { it.timestamp }) { message ->
@@ -319,37 +326,110 @@ private fun ChatHeader(
 // ─── Empty Chat State ───
 
 @Composable
-private fun EmptyChatState() {
+private fun EmptyChatState(onSuggestionClick: (String) -> Unit = {}) {
+    val isDark = LocalIsDarkTheme.current
+    val suggestions = listOf(
+        "💡 Help me study for exams",
+        "💻 Write a Python script",
+        "✍️ Draft a professional email",
+        "🔬 Explain quantum physics simply"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 80.dp),
+            .padding(vertical = 36.dp, horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(80.dp)
+                .size(68.dp)
+                .clip(CircleShape)
                 .background(
-                    Brush.linearGradient(listOf(NeonPurple.copy(alpha = 0.3f), NeonCyan.copy(alpha = 0.3f))),
-                    CircleShape
-                ),
+                    Brush.linearGradient(
+                        listOf(Color(0xFF7C3AED), Color(0xFF6366F1), Color(0xFF38BDF8))
+                    )
+                )
+                .padding(2.dp)
+                .clip(CircleShape)
+                .background(if (isDark) Color(0xFF141527) else Color.White),
             contentAlignment = Alignment.Center
         ) {
-            Text("Z", color = NeonCyan, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp)
+            Icon(
+                imageVector = Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                tint = Color(0xFF7C3AED),
+                modifier = Modifier.size(32.dp)
+            )
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
         Text(
-            "Hello! I'm ZAYA",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground
+            "Hello! I'm ZAYA 👋",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            ),
+            color = if (isDark) Color.White else Color(0xFF0F172A)
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Ask me anything, upload an image or document 📎",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            "Your Futuristic AI Assistant for study, code, and productivity.",
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
             textAlign = TextAlign.Center
         )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            "TRY ASKING",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.1.sp,
+                fontSize = 11.sp
+            ),
+            color = Color(0xFF7C3AED)
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        suggestions.forEach { suggestion ->
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (isDark) Color(0xFF141527) else Color(0xFFFFFFFF),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isDark) Color(0xFF232544) else Color(0xFFE2E8F0)
+                ),
+                shadowElevation = if (isDark) 0.dp else 1.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onSuggestionClick(suggestion.substringAfter(" ")) }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = suggestion,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp
+                        ),
+                        color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                        contentDescription = null,
+                        tint = Color(0xFF7C3AED),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -411,15 +491,12 @@ fun ChatMessageBubble(message: Message, onSpeakMessage: (String) -> Unit = {}) {
                     modifier = Modifier
                         .background(
                             if (isUser) {
-                                if (isDark)
-                                    Brush.linearGradient(listOf(NeonPurple.copy(alpha = 0.6f), NeonCyan.copy(alpha = 0.4f)))
-                                else
-                                    Brush.linearGradient(listOf(NeonPurple.copy(alpha = 0.85f), NeonCyan.copy(alpha = 0.7f)))
+                                Brush.linearGradient(listOf(Color(0xFF7C3AED), Color(0xFF6366F1)))
                             } else {
                                 if (isDark)
-                                    Brush.linearGradient(listOf(MaterialTheme.colorScheme.surface, Color(0xFF252538)))
+                                    Brush.linearGradient(listOf(Color(0xFF141527), Color(0xFF141527)))
                                 else
-                                    Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), MaterialTheme.colorScheme.surface))
+                                    Brush.linearGradient(listOf(Color(0xFFFFFFFF), Color(0xFFFFFFFF)))
                             }
                         )
                         .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -678,6 +755,7 @@ private fun ChatInputBar(
     hasAttachment: Boolean = false
 ) {
     val isDark = LocalIsDarkTheme.current
+    val lastSendClickTime = remember { mutableStateOf(0L) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -769,7 +847,13 @@ private fun ChatInputBar(
             exit = scaleOut() + fadeOut()
         ) {
             IconButton(
-                onClick = onSend,
+                onClick = {
+                    val now = System.currentTimeMillis()
+                    if (now - lastSendClickTime.value > 750) {
+                        lastSendClickTime.value = now
+                        onSend()
+                    }
+                },
                 enabled = (inputText.isNotBlank() || hasAttachment) && !isTyping,
                 modifier = Modifier
                     .size(44.dp)

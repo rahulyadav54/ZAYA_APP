@@ -33,7 +33,7 @@ class CalculatorEngine {
                     continue
                 }
                 c == '\u03C0' -> {
-                    // Ï€ constant â€” insert its numeric value as a token
+                    // Ï€ constant  —  insert its numeric value as a token
                     result.add(PI.toString())
                     i++
                     continue

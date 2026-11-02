@@ -52,7 +52,7 @@ interface GroqApiService {
     ): Response<GroqResponseBody>
 }
 
-// â”€â”€â”€ Groq Service (Free, Fast, Unlimited) â”€â”€â”€
+// ─── Groq Service (Free, Fast, Unlimited) ───
 
 object GroqService {
     

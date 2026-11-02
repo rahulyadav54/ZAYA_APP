@@ -22,3 +22,11 @@ backend/node_modules/
 build_*.log
 build_output.txt
 *.log
+
+# Secrets & Environments
+*.env
+.env
+backend/.env
+.wrangler/
+cloudflare-worker/node_modules/
+cloudflare-worker/.wrangler/

@@ -62,7 +62,7 @@ fun MaterialDetailScreen(
             DashboardCard(
                 icon = Icons.Rounded.Quiz,
                 title = "Take AI Quiz",
-                subtitle = "${viewModel.quizQuestions.size} questions â€¢ Difficulty: ${viewModel.currentDifficulty.replaceFirstChar { it.uppercase() }}",
+                subtitle = "${viewModel.quizQuestions.size} questions  •  Difficulty: ${viewModel.currentDifficulty.replaceFirstChar { it.uppercase() }}",
                 color = Color(0xFFFF5252),
                 onClick = { onNavigate(Screen.AIQuiz) }
             )

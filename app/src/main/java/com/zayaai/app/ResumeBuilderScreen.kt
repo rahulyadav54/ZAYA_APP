@@ -56,7 +56,7 @@ fun ResumeBuilderScreen(viewModel: ResumeViewModel, paddingValues: PaddingValues
             .padding(paddingValues)
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // â”€â”€ Tab bar â”€â”€
+        // ── Tab bar ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,7 +100,7 @@ fun ResumeBuilderScreen(viewModel: ResumeViewModel, paddingValues: PaddingValues
             }
         }
 
-        // â”€â”€ Tab content â”€â”€
+        // ── Tab content ──
         when (selectedTab) {
             ResumeTab.Templates -> TemplatesTab(viewModel, isDark)
             ResumeTab.Builder -> BuilderTab(viewModel, isDark)
@@ -127,7 +127,7 @@ private fun TemplatesTab(viewModel: ResumeViewModel, isDark: Boolean) {
             .padding(horizontal = 16.dp)
     ) {
         if (selectedTemplate == null) {
-            // â”€â”€ Template gallery â”€â”€
+            // ── Template gallery ──
             Spacer(Modifier.height(8.dp))
             Text(
                 "Choose a Template",
@@ -146,7 +146,7 @@ private fun TemplatesTab(viewModel: ResumeViewModel, isDark: Boolean) {
                 Spacer(Modifier.height(12.dp))
             }
         } else {
-            // â”€â”€ Fill template â”€â”€
+            // ── Fill template ──
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {
@@ -174,7 +174,7 @@ private fun TemplatesTab(viewModel: ResumeViewModel, isDark: Boolean) {
             OutlinedTextField(
                 value = userDetails,
                 onValueChange = { userDetails = it },
-                placeholder = { Text("Paste your details hereâ€¦\n\nName, email, phone, education, skills, experience, projects, etc.",
+                placeholder = { Text("Paste your details here...\n\nName, email, phone, education, skills, experience, projects, etc.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),
                 shape = RoundedCornerShape(16.dp),
@@ -190,7 +190,7 @@ private fun TemplatesTab(viewModel: ResumeViewModel, isDark: Boolean) {
             Spacer(Modifier.height(16.dp))
 
             GradientButton(
-                text = if (isGenerating) "Generatingâ€¦" else "Generate Resume",
+                text = if (isGenerating) "Generating..." else "Generate Resume",
                 isLoading = isGenerating,
                 onClick = { viewModel.generateFromTemplate(selectedTemplate!!, userDetails) }
             )
@@ -280,7 +280,7 @@ private fun BuilderTab(viewModel: ResumeViewModel, isDark: Boolean) {
                 Text("AI Resume Builder",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("Paste your details â†’ Get an ATS-friendly resume",
+                Text("Paste your details → Get an ATS-friendly resume",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -308,7 +308,7 @@ private fun BuilderTab(viewModel: ResumeViewModel, isDark: Boolean) {
             value = details,
             onValueChange = { details = it },
             placeholder = {
-                Text("Enter your details hereâ€¦\n\n" +
+                Text("Enter your details here...\n\n" +
                     "Example:\n" +
                     "Name: John Doe\n" +
                     "Email: john@gmail.com\n" +
@@ -334,7 +334,7 @@ private fun BuilderTab(viewModel: ResumeViewModel, isDark: Boolean) {
         Spacer(Modifier.height(16.dp))
 
         GradientButton(
-            text = if (isGenerating) "Building Resumeâ€¦" else "Generate ATS Resume",
+            text = if (isGenerating) "Building Resume..." else "Generate ATS Resume",
             isLoading = isGenerating,
             onClick = { viewModel.generateResume(details) }
         )
@@ -445,7 +445,7 @@ private fun AnalyzerTab(viewModel: ResumeViewModel, isDark: Boolean) {
 
         Spacer(Modifier.height(16.dp))
 
-        // â”€â”€ Upload Section â”€â”€
+        // ── Upload Section ──
         Text(
             "Upload Resume",
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -494,7 +494,7 @@ private fun AnalyzerTab(viewModel: ResumeViewModel, isDark: Boolean) {
             )
         }
 
-        // â”€â”€ Extracting indicator â”€â”€
+        // ── Extracting indicator ──
         AnimatedVisibility(
             visible = isExtracting,
             enter = fadeIn() + expandVertically(),
@@ -526,7 +526,7 @@ private fun AnalyzerTab(viewModel: ResumeViewModel, isDark: Boolean) {
             }
         }
 
-        // â”€â”€ Uploaded file preview â”€â”€
+        // ── Uploaded file preview ──
         AnimatedVisibility(
             visible = uploadedFileName != null && !isExtracting,
             enter = fadeIn() + expandVertically(),
@@ -598,7 +598,7 @@ private fun AnalyzerTab(viewModel: ResumeViewModel, isDark: Boolean) {
 
         Spacer(Modifier.height(16.dp))
 
-        // â”€â”€ Divider with "OR" â”€â”€
+        // ── Divider with "OR" ──
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -618,7 +618,7 @@ private fun AnalyzerTab(viewModel: ResumeViewModel, isDark: Boolean) {
             value = resumeText,
             onValueChange = { resumeText = it },
             placeholder = {
-                Text("Paste your complete resume text hereâ€¦\n\n" +
+                Text("Paste your complete resume text here...\n\n" +
                     "Copy everything from your resume (name, contact, education, skills, experience, etc.) " +
                     "and paste it here. The AI will analyze it and suggest matching jobs.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
@@ -639,7 +639,7 @@ private fun AnalyzerTab(viewModel: ResumeViewModel, isDark: Boolean) {
         Spacer(Modifier.height(16.dp))
 
         GradientButton(
-            text = if (isAnalyzing) "Analyzingâ€¦" else "Analyze My Resume",
+            text = if (isAnalyzing) "Analyzing..." else "Analyze My Resume",
             isLoading = isAnalyzing,
             onClick = { viewModel.analyzeResume(resumeText) }
         )
@@ -668,7 +668,7 @@ private fun AnalyzerTab(viewModel: ResumeViewModel, isDark: Boolean) {
     }
 }
 
-// â”€â”€â”€ Upload Option Card â”€â”€â”€
+// ─── Upload Option Card ───
 
 @Composable
 private fun UploadOptionCard(

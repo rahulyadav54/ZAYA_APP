@@ -61,7 +61,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // â”€â”€â”€ Header â”€â”€â”€
+        // ─── Header ───
         Text(
             "Document Analyzer",
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
@@ -76,7 +76,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // â”€â”€â”€ Upload Section â”€â”€â”€
+        // ─── Upload Section ───
         Text(
             "Upload Document",
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -118,7 +118,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
             )
         }
 
-        // â”€â”€â”€ Extracting Indicator â”€â”€â”€
+        // ─── Extracting Indicator ───
         if (viewModel.isExtracting) {
             Spacer(modifier = Modifier.height(16.dp))
             Card(
@@ -144,7 +144,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
             }
         }
 
-        // â”€â”€â”€ Error Message â”€â”€â”€
+        // ─── Error Message ───
         viewModel.errorMessage?.let { error ->
             Spacer(modifier = Modifier.height(12.dp))
             Card(
@@ -162,7 +162,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
             }
         }
 
-        // â”€â”€â”€ Extracted Text Preview â”€â”€â”€
+        // ─── Extracted Text Preview ───
         AnimatedVisibility(visible = viewModel.extractedText.isNotBlank()) {
             Column {
                 Spacer(modifier = Modifier.height(20.dp))
@@ -261,7 +261,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
                     }
                 }
 
-                // â”€â”€â”€ Analysis Tools â”€â”€â”€
+                // ─── Analysis Tools ───
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     "Analyze Document",
@@ -327,7 +327,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
             }
         }
 
-        // â”€â”€â”€ Analyzing Indicator â”€â”€â”€
+        // ─── Analyzing Indicator ───
         if (viewModel.isAnalyzing) {
             Spacer(modifier = Modifier.height(16.dp))
             Card(
@@ -353,7 +353,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
             }
         }
 
-        // â”€â”€â”€ Analysis Result â”€â”€â”€
+        // ─── Analysis Result ───
         AnimatedVisibility(
             visible = viewModel.analysisResult.isNotBlank(),
             enter = fadeIn(),
@@ -406,7 +406,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
         Spacer(modifier = Modifier.height(32.dp))
     }
 
-    // â”€â”€â”€ Paste Text Dialog â”€â”€â”€
+    // ─── Paste Text Dialog ───
     if (showPasteDialog) {
         AlertDialog(
             onDismissRequest = { showPasteDialog = false },
@@ -448,7 +448,7 @@ fun DocumentAnalyzerScreen(viewModel: DocumentAnalyzerViewModel, paddingValues: 
     }
 }
 
-// â”€â”€â”€ Upload Option Card â”€â”€â”€
+// ─── Upload Option Card ───
 @Composable
 private fun UploadCard(
     icon: ImageVector,
@@ -501,7 +501,7 @@ private fun UploadCard(
     }
 }
 
-// â”€â”€â”€ Analysis Chip â”€â”€â”€
+// ─── Analysis Chip ───
 @Composable
 private fun AnalysisChip(
     label: String,

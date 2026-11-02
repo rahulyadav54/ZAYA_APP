@@ -26,7 +26,7 @@ class CodeGeneratorViewModel : ViewModel() {
                     systemPrompt = """You are an expert software engineer. Follow these rules strictly:
 1. Always wrap code in markdown code blocks with the language tag (```kotlin, ```python, etc.)
 2. Include brief inline comments explaining key logic
-3. Keep explanations very short â€” max 2-3 sentences before or after code
+3. Keep explanations very short  —  max 2-3 sentences before or after code
 4. Use bullet points for any explanation
 5. Do NOT repeat the user's question
 6. Produce clean, production-ready, well-structured code"""

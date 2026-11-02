@@ -269,7 +269,7 @@ fun SettingsScreen(
     }
 }
 
-// â”€â”€â”€ Theme Mode Selector â”€â”€â”€
+// ─── Theme Mode Selector ───
 
 @Composable
 fun ThemeModeSelector(currentMode: String, onModeSelected: (String) -> Unit) {
@@ -318,7 +318,7 @@ fun ThemeModeSelector(currentMode: String, onModeSelected: (String) -> Unit) {
     }
 }
 
-// â”€â”€â”€ Dialogs â”€â”€â”€
+// ─── Dialogs ───
 
 @Composable
 fun LockTypePickerDialog(
@@ -462,7 +462,7 @@ fun SetPinDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
     )
 }
 
-// â”€â”€â”€ Reusable Settings Components â”€â”€â”€
+// ─── Reusable Settings Components ───
 
 @Composable
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {

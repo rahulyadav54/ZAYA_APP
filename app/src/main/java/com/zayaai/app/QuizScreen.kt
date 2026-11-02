@@ -77,7 +77,7 @@ fun QuizScreen(viewModel: QuizViewModel, paddingValues: PaddingValues) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = NeonCyan)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Loading quiz questionsâ€¦", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                    Text("Loading quiz questions...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         } else if (quizCompleted) {

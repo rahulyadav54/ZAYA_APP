@@ -79,16 +79,16 @@ fun StudySummaryScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                     }
-                    trimmed.startsWith("â€¢") || trimmed.startsWith("-") || trimmed.startsWith("*") -> {
+                    trimmed.startsWith(" • ") || trimmed.startsWith("-") || trimmed.startsWith("*") -> {
                         // Bullet point
                         Row(
                             modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp),
                             verticalAlignment = Alignment.Top
                         ) {
-                            Text("â€¢", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(" • ", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                trimmed.removePrefix("â€¢").removePrefix("-").removePrefix("*").trim(),
+                                trimmed.removePrefix(" • ").removePrefix("-").removePrefix("*").trim(),
                                 color = MaterialTheme.colorScheme.onBackground,
                                 style = MaterialTheme.typography.bodyMedium,
                                 lineHeight = 22.sp

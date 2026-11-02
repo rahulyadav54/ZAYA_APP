@@ -56,7 +56,7 @@ fun PlaceholderScreen(title: String, paddingValues: PaddingValues) {
     }
 }
 
-// â”€â”€â”€ Conversation History Screen â”€â”€â”€
+// ─── Conversation History Screen ───
 
 @Composable
 fun ConversationHistoryScreen(

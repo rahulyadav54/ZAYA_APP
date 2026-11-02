@@ -67,17 +67,17 @@ class SpeechRecognizerManager(context: Context) {
                 when (error) {
                     SpeechRecognizer.ERROR_NO_MATCH,
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
-                        // No speech detected â€” notify ViewModel so it can auto-retry
+                        // No speech detected  —  notify ViewModel so it can auto-retry
                         _recognizedText.value = "No speech detected"
                         onResult?.invoke("No speech detected")
                     }
                     SpeechRecognizer.ERROR_CLIENT -> {
-                        // Usually caused by calling startListening while already active â€” safe to retry
+                        // Usually caused by calling startListening while already active  —  safe to retry
                         _recognizedText.value = ""
                         onResult?.invoke("")
                     }
                     SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> {
-                        // Recognizer busy â€” stop first, then let ViewModel retry
+                        // Recognizer busy  —  stop first, then let ViewModel retry
                         speechRecognizer?.cancel()
                         _recognizedText.value = ""
                         onResult?.invoke("")
@@ -100,7 +100,7 @@ class SpeechRecognizerManager(context: Context) {
                         onResult?.invoke("Error: permission")
                     }
                     else -> {
-                        // Unknown error â€” trigger callback so ViewModel doesn't get stuck
+                        // Unknown error  —  trigger callback so ViewModel doesn't get stuck
                         _recognizedText.value = errorMessage
                         onResult?.invoke("")
                     }

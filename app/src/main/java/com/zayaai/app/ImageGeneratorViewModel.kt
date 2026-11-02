@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
 
 class ImageGeneratorViewModel : ViewModel() {
 
-    /** Raw image bytes from the API â€” null when no image */
+    /** Raw image bytes from the API  —  null when no image */
     var generatedImageBytes by mutableStateOf<ByteArray?>(null)
         private set
 
@@ -109,7 +109,7 @@ class ImageGeneratorViewModel : ViewModel() {
         val seed = (0..999999).random()
         val ts = System.currentTimeMillis()
 
-        // Multiple URL variants â€” try fastest configs first
+        // Multiple URL variants  —  try fastest configs first
         val urls = listOf(
             // Default model (fastest available)
             "https://image.pollinations.ai/prompt/$encodedPrompt?width=512&height=512&nologo=true&seed=$seed&t=$ts",
@@ -125,7 +125,7 @@ class ImageGeneratorViewModel : ViewModel() {
 
                 val request = Request.Builder()
                     .url(url)
-                    // Use a standard browser User-Agent â€” some APIs block custom agents
+                    // Use a standard browser User-Agent  —  some APIs block custom agents
                     .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
                     .header("Accept", "image/*")
                     .build()

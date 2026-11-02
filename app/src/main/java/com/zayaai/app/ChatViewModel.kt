@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.content.Context
 import android.net.Uri
@@ -14,7 +14,9 @@ import com.google.firebase.firestore.PropertyName
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -29,7 +31,9 @@ data class Message(
     val timestamp: Long = System.currentTimeMillis(),
     val conversationId: String = "",
     val attachmentName: String? = null,
-    val attachmentType: String? = null  // "image", "pdf", "text", "document", "file"
+    val attachmentType: String? = null,  // "image", "pdf", "text", "document", "file"
+    val isError: Boolean = false,
+    val modelUsed: String? = null
 )
 
 data class Conversation(
@@ -52,16 +56,25 @@ class ChatViewModel : ViewModel() {
     var isTyping by mutableStateOf(false)
         private set
 
+    var isThinking by mutableStateOf(false)
+        private set
+
+    var selectedModel by mutableStateOf(AIService.NEMOTRON_PRIMARY)
+        private set
+
     var currentConversationId by mutableStateOf("")
         private set
 
     var currentConversationTitle by mutableStateOf("New Chat")
         private set
 
+    private var activeStreamJob: Job? = null
+    private var lastUserPrompt: String = ""
+
     private val db: FirebaseFirestore = Firebase.firestore
     private val auth = Firebase.auth
 
-    private val systemPrompt = """You are AI ZAYA, a helpful, friendly, and intelligent AI assistant developed by ZAYA CODE HUB. Follow these rules:
+    private val systemPrompt = """You are AI ZAYA, a helpful, friendly, and intelligent AI assistant powered by NVIDIA Nemotron 3 Ultra and developed by ZAYA CODE HUB. Follow these rules:
 - When asked who you are or who made you, always say you were created by ZAYA CODE HUB. Never mention Google, OpenAI, or any other company.
 - ZAYA CODE HUB leadership: CEO & Founder is **Rahul Kumar Yadav**, Co-Founder is **Shivshankar Jaysawal**, HR Manager is **Akash Adhikari**. Always provide these details when asked about the team.
 - Give concise, structured answers. Avoid unnecessary explanations.
@@ -97,7 +110,6 @@ class ChatViewModel : ViewModel() {
 
             isAboutZaya && (lower.contains("team") || lower.contains("members") || lower.contains("people behind")) ->
                 """Here's the **ZAYA CODE HUB** leadership team:
-
 • **CEO & Founder:** Rahul Kumar Yadav
 • **Co-Founder:** Shivshankar Jaysawal
 • **HR Manager:** Akash Adhikari
@@ -108,23 +120,17 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
         }
     }
 
-    private fun formatErrorMessage(rawMessage: String?): String {
-        if (rawMessage == null) return "Something went wrong. Please try again."
-        return when {
-            rawMessage.contains("rate limit", ignoreCase = true) -> "Too many requests. Please wait a moment."
-            rawMessage.contains("No endpoints", ignoreCase = true) -> "Service currently unavailable."
-            rawMessage.contains("API key", ignoreCase = true) -> "Configuration error."
-            rawMessage.contains("network", ignoreCase = true) -> "Network connection issue."
-            else -> "Error: $rawMessage"
-        }
-    }
-
     init {
         loadConversations()
         startNewChat()
     }
 
+    fun selectModel(modelId: String) {
+        selectedModel = modelId
+    }
+
     fun startNewChat() {
+        stopGeneration()
         val newId = UUID.randomUUID().toString()
         currentConversationId = newId
         currentConversationTitle = "New Chat"
@@ -142,6 +148,7 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
     }
 
     fun loadConversation(conversationId: String) {
+        stopGeneration()
         currentConversationId = conversationId
         _messages.clear()
         val userId = auth.currentUser?.uid ?: return
@@ -180,45 +187,178 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
             }
     }
 
-    fun sendMessage(text: String) {
-        if (text.isBlank()) return
+    /**
+     * Stop active response generation / stream.
+     */
+    fun stopGeneration() {
+        activeStreamJob?.cancel()
+        activeStreamJob = null
+        isTyping = false
+        isThinking = false
 
-        val userMessage = Message(text, true, conversationId = currentConversationId)
+        // Save whatever partial response has streamed so far
+        val lastMsg = _messages.lastOrNull()
+        if (lastMsg != null && !lastMsg.isUser && lastMsg.text.isNotBlank()) {
+            saveMessage(lastMsg)
+            updateConversationMetadata(lastMsg.text)
+        }
+    }
+
+    /**
+     * Regenerate the last AI response.
+     */
+    fun regenerateLastResponse() {
+        if (isTyping) stopGeneration()
+
+        // Find last user prompt
+        val lastUserMsg = _messages.lastOrNull { it.isUser }
+        if (lastUserMsg == null) return
+
+        // Remove the trailing assistant message if present
+        if (_messages.isNotEmpty() && !_messages.last().isUser) {
+            _messages.removeAt(_messages.lastIndex)
+        }
+
+        // Re-execute sending
+        executeSendMessage(lastUserMsg.text, isRegenerate = true)
+    }
+
+    /**
+     * Retry if last request encountered an error.
+     */
+    fun retryLastMessage() {
+        if (lastUserPrompt.isNotBlank()) {
+            if (_messages.isNotEmpty() && _messages.last().isError) {
+                _messages.removeAt(_messages.lastIndex)
+            }
+            executeSendMessage(lastUserPrompt, isRegenerate = true)
+        }
+    }
+
+    fun sendMessage(text: String) {
+        if (text.isBlank() || isTyping) return
+        val userMessage = Message(
+            text = text,
+            isUser = true,
+            conversationId = currentConversationId
+        )
         _messages.add(userMessage)
         saveMessage(userMessage)
+        lastUserPrompt = text
 
+        executeSendMessage(text, isRegenerate = false)
+    }
+
+    private fun executeSendMessage(text: String, isRegenerate: Boolean) {
         isTyping = true
-        
-        viewModelScope.launch(Dispatchers.IO) {
+        isThinking = true
+
+        activeStreamJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Check for hardcoded team responses first
                 val teamResponse = getZayaTeamResponse(text)
-                val response = teamResponse ?: run {
-                    val history = _messages.takeLast(10).map { 
-                        OpenRouterMessage(if (it.isUser) "user" else "assistant", it.text) 
+                if (teamResponse != null) {
+                    withContext(Dispatchers.Main) {
+                        isThinking = false
+                        val aiMessage = Message(
+                            text = teamResponse,
+                            isUser = false,
+                            conversationId = currentConversationId,
+                            modelUsed = "ZAYA Local"
+                        )
+                        _messages.add(aiMessage)
+                        saveMessage(aiMessage)
+                        updateConversationMetadata(teamResponse)
                     }
-                    val fullMessages = listOf(OpenRouterMessage("system", systemPrompt)) + history
-                    AIService.chat(fullMessages)
+                    return@launch
                 }
 
+                // Prepare multi-turn history
+                val history = _messages.filter { !it.isError }.takeLast(12).map {
+                    OpenRouterMessage(if (it.isUser) "user" else "assistant", it.text)
+                }
+                val fullMessages = listOf(OpenRouterMessage("system", systemPrompt)) + history
+
+                // Prepare a placeholder streaming message
+                var streamedText = ""
                 withContext(Dispatchers.Main) {
-                    val aiMessage = Message(response, false, conversationId = currentConversationId)
-                    _messages.add(aiMessage)
-                    saveMessage(aiMessage)
+                    val placeholder = Message(
+                        text = "",
+                        isUser = false,
+                        conversationId = currentConversationId,
+                        modelUsed = selectedModel
+                    )
+                    _messages.add(placeholder)
+                }
+
+                val finalOutput = AIService.chatStream(
+                    messages = fullMessages,
+                    maxTokens = 4096,
+                    temperature = 0.7,
+                    model = selectedModel,
+                    onThinking = { thinking ->
+                        isThinking = thinking
+                    },
+                    onChunk = { chunk ->
+                        streamedText += chunk
+                        if (_messages.isNotEmpty() && !_messages.last().isUser) {
+                            val current = _messages.last()
+                            _messages[_messages.lastIndex] = current.copy(text = streamedText)
+                        }
+                    }
+                )
+
+                withContext(Dispatchers.Main) {
+                    isThinking = false
+                    val finalMessage = Message(
+                        text = finalOutput.ifBlank { streamedText },
+                        isUser = false,
+                        conversationId = currentConversationId,
+                        modelUsed = selectedModel
+                    )
+
+                    if (_messages.isNotEmpty() && !_messages.last().isUser) {
+                        _messages[_messages.lastIndex] = finalMessage
+                    } else {
+                        _messages.add(finalMessage)
+                    }
+
+                    saveMessage(finalMessage)
 
                     if (_messages.count { it.isUser } == 1) {
                         generateConversationTitle(text)
                     }
-                    updateConversationMetadata(response)
+                    updateConversationMetadata(finalMessage.text)
+                }
+
+            } catch (e: CancellationException) {
+                // Cleanly stopped by user
+                withContext(Dispatchers.Main) {
+                    isThinking = false
+                    isTyping = false
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    val errorMsg = Message(formatErrorMessage(e.localizedMessage), false, conversationId = currentConversationId)
-                    _messages.add(errorMsg)
+                    isThinking = false
+                    val errorText = e.message ?: "Failed to generate response. Please check your connection."
+                    val errorMsg = Message(
+                        text = errorText,
+                        isUser = false,
+                        conversationId = currentConversationId,
+                        isError = true,
+                        modelUsed = selectedModel
+                    )
+                    // If placeholder was added, replace it with error
+                    if (_messages.isNotEmpty() && !_messages.last().isUser && _messages.last().text.isEmpty()) {
+                        _messages[_messages.lastIndex] = errorMsg
+                    } else {
+                        _messages.add(errorMsg)
+                    }
                 }
             } finally {
                 withContext(Dispatchers.Main) {
                     isTyping = false
+                    isThinking = false
                 }
             }
         }
@@ -258,7 +398,7 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
     }
 
     fun getLastAiResponse(): String {
-        return _messages.lastOrNull { !it.isUser }?.text ?: ""
+        return _messages.lastOrNull { !it.isUser && !it.isError }?.text ?: ""
     }
 
     fun sendMessageWithAttachment(text: String, uri: Uri, context: Context) {
@@ -278,7 +418,9 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
         saveMessage(userMessage)
 
         isTyping = true
-        viewModelScope.launch {
+        isThinking = true
+
+        activeStreamJob = viewModelScope.launch {
             try {
                 val aiText = when (attachmentType) {
                     "image" -> handleImageAttachment(text, uri, context)
@@ -287,7 +429,12 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
                     else -> handleDocumentAttachment(text, uri, context, fileName, "text")
                 }
 
-                val aiMessage = Message(aiText, false, conversationId = currentConversationId)
+                val aiMessage = Message(
+                    text = aiText,
+                    isUser = false,
+                    conversationId = currentConversationId,
+                    modelUsed = selectedModel
+                )
                 _messages.add(aiMessage)
                 saveMessage(aiMessage)
 
@@ -298,23 +445,21 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
 
             } catch (e: Exception) {
                 val errorMsg = Message(
-                    formatErrorMessage(e.localizedMessage),
-                    false,
-                    conversationId = currentConversationId
+                    text = e.message ?: "Failed to process attachment.",
+                    isUser = false,
+                    conversationId = currentConversationId,
+                    isError = true
                 )
                 _messages.add(errorMsg)
             } finally {
                 isTyping = false
+                isThinking = false
             }
         }
     }
 
     private suspend fun handleImageAttachment(userText: String, uri: Uri, context: Context): String {
-        // Note: The custom instructions say "Never send image_url in API requests".
-        // If the model supports vision but we aren't supposed to send URLs, we might need to send base64 directly
-        // which AIService.chatWithVision does. However, if instructions mean NO IMAGES AT ALL, we should respect that.
-        // For now, I'll extract text from images if possible, or just inform the user.
-        return "I've received your image, but my current configuration restricts sending image URLs or processing images directly via API. Please describe the image if you have a specific question about it."
+        return "I've received your image, but currently image uploads are processed via the OCR tool. For text questions, please ask directly or paste the text."
     }
 
     private suspend fun handleDocumentAttachment(
@@ -334,22 +479,20 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
         } else extractedText
 
         val questionText = userText.ifBlank { "Analyze this document." }
-
         val contextMessage = "Document: $fileName\nContent: $truncated\nQuestion: $questionText"
 
-        val history = _messages.dropLast(1).takeLast(5).map { 
-            OpenRouterMessage(if (it.isUser) "user" else "assistant", it.text) 
+        val history = _messages.dropLast(1).takeLast(5).map {
+            OpenRouterMessage(if (it.isUser) "user" else "assistant", it.text)
         }
         val conversationMessages = listOf(OpenRouterMessage("system", systemPrompt)) + history + OpenRouterMessage("user", contextMessage)
 
-        return AIService.chat(conversationMessages)
+        return AIService.chat(conversationMessages, model = selectedModel)
     }
 
     fun deleteConversation(conversationId: String) {
         val userId = auth.currentUser?.uid ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Delete all messages in the conversation
                 db.collection("users").document(userId)
                     .collection("conversations").document(conversationId)
                     .collection("messages").get()
@@ -358,18 +501,15 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
                             document.reference.delete()
                         }
                     }
-                // Delete the conversation document
                 db.collection("users").document(userId)
                     .collection("conversations").document(conversationId).delete()
-            } catch (e: Exception) {
-                // Handle error if needed
-            }
+            } catch (_: Exception) {}
         }
     }
 
     fun clearChat() {
+        stopGeneration()
         _messages.clear()
         startNewChat()
     }
 }
-

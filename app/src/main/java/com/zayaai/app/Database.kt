@@ -116,7 +116,7 @@ data class StudyArticleEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-// â”€â”€â”€ AI Learning Feature Entities â”€â”€â”€
+// ─── AI Learning Feature Entities ───
 
 @Entity(tableName = "study_materials")
 data class StudyMaterialEntity(
@@ -312,7 +312,7 @@ interface StudyArticleDao {
     suspend fun deleteArticle(article: StudyArticleEntity)
 }
 
-// â”€â”€â”€ AI Learning Feature DAOs â”€â”€â”€
+// ─── AI Learning Feature DAOs ───
 
 @Dao
 interface StudyMaterialDao {

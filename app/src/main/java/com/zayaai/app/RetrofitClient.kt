@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -18,7 +18,7 @@ data class ChatResponse(
     val error: String? = null
 )
 
-// â”€â”€â”€ PPT Generation Models â”€â”€â”€
+// ─── PPT Generation Models ───
 data class PPTCreateRequest(
     val topic: String,
     val slides: List<PPTSlide>
@@ -50,7 +50,8 @@ interface BackendApi {
 
 object RetrofitClient {
     private const val GROQ_BASE_URL = "https://api.groq.com/openai/"
-    private const val BACKEND_BASE_URL = "http://10.140.96.235:3000/"
+    private val BACKEND_BASE_URL: String
+        get() = if (BuildConfig.BACKEND_URL.endsWith("/")) BuildConfig.BACKEND_URL else "${BuildConfig.BACKEND_URL}/"
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -81,4 +82,3 @@ object RetrofitClient {
             .create(BackendApi::class.java)
     }
 }
-

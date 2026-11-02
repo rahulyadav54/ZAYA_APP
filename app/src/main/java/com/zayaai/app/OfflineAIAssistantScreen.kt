@@ -55,13 +55,13 @@ fun OfflineAIAssistantScreen(
             .padding(paddingValues)
             .imePadding()
     ) {
-        // â”€â”€â”€ Header â”€â”€â”€
+        // ─── Header ───
         OfflineAssistantHeader(
             isDark = isDark,
             onClearChat = { viewModel.clearChat() }
         )
 
-        // â”€â”€â”€ Messages â”€â”€â”€
+        // ─── Messages ───
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -76,7 +76,7 @@ fun OfflineAIAssistantScreen(
             }
         }
 
-        // â”€â”€â”€ Quick Suggestions â”€â”€â”€
+        // ─── Quick Suggestions ───
         if (viewModel.messages.size <= 1) {
             OfflineSuggestionChips(onSuggestionClick = { suggestion ->
                 inputText = ""
@@ -84,7 +84,7 @@ fun OfflineAIAssistantScreen(
             })
         }
 
-        // â”€â”€â”€ Input Bar â”€â”€â”€
+        // ─── Input Bar ───
         OfflineInputBar(
             inputText = inputText,
             onInputChange = { inputText = it },
@@ -101,7 +101,7 @@ fun OfflineAIAssistantScreen(
     }
 }
 
-// â”€â”€â”€ Header â”€â”€â”€
+// ─── Header ───
 
 @Composable
 private fun OfflineAssistantHeader(isDark: Boolean, onClearChat: () -> Unit) {
@@ -159,7 +159,7 @@ private fun OfflineAssistantHeader(isDark: Boolean, onClearChat: () -> Unit) {
     }
 }
 
-// â”€â”€â”€ Message Bubble â”€â”€â”€
+// ─── Message Bubble ───
 
 @Composable
 private fun OfflineMessageBubble(message: OfflineMessage, isDark: Boolean) {
@@ -266,7 +266,7 @@ private fun OfflineMessageBubble(message: OfflineMessage, isDark: Boolean) {
     }
 }
 
-// â”€â”€â”€ Typing Indicator â”€â”€â”€
+// ─── Typing Indicator ───
 
 @Composable
 private fun OfflineTypingIndicator(isDark: Boolean) {
@@ -318,7 +318,7 @@ private fun OfflineTypingIndicator(isDark: Boolean) {
     }
 }
 
-// â”€â”€â”€ Quick Suggestion Chips â”€â”€â”€
+// ─── Quick Suggestion Chips ───
 
 @Composable
 private fun OfflineSuggestionChips(onSuggestionClick: (String) -> Unit) {
@@ -374,7 +374,7 @@ private fun OfflineSuggestionChips(onSuggestionClick: (String) -> Unit) {
     }
 }
 
-// â”€â”€â”€ Input Bar â”€â”€â”€
+// ─── Input Bar ───
 
 @Composable
 private fun OfflineInputBar(
@@ -465,7 +465,7 @@ private fun OfflineInputBar(
     }
 }
 
-// â”€â”€â”€ Utility â”€â”€â”€
+// ─── Utility ───
 
 private fun formatOfflineTimestamp(timestamp: Long): String {
     val sdf = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())

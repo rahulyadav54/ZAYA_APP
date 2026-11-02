@@ -22,7 +22,7 @@ import java.io.InputStreamReader
 
 class DocumentAnalyzerViewModel : ViewModel() {
 
-    // â”€â”€â”€ State â”€â”€â”€
+    // ─── State ───
     var extractedText by mutableStateOf("")
         private set
 
@@ -46,7 +46,7 @@ class DocumentAnalyzerViewModel : ViewModel() {
 
     private var pdfBoxInitialized = false
 
-    // â”€â”€â”€ PDF Extraction â”€â”€â”€
+    // ─── PDF Extraction ───
     fun extractFromPdf(context: Context, uri: Uri) {
         viewModelScope.launch {
             isExtracting = true
@@ -71,7 +71,7 @@ class DocumentAnalyzerViewModel : ViewModel() {
                     result.trim()
                 }
                 if (text.isBlank()) {
-                    errorMessage = "No text found in PDF. The file might be image-based â€” try uploading as image instead."
+                    errorMessage = "No text found in PDF. The file might be image-based  —  try uploading as image instead."
                 } else {
                     extractedText = text
                 }
@@ -83,7 +83,7 @@ class DocumentAnalyzerViewModel : ViewModel() {
         }
     }
 
-    // â”€â”€â”€ Image OCR Extraction â”€â”€â”€
+    // ─── Image OCR Extraction ───
     fun extractFromImage(context: Context, uri: Uri) {
         viewModelScope.launch {
             isExtracting = true
@@ -110,7 +110,7 @@ class DocumentAnalyzerViewModel : ViewModel() {
         }
     }
 
-    // â”€â”€â”€ Text File Extraction â”€â”€â”€
+    // ─── Text File Extraction ───
     fun extractFromTextFile(context: Context, uri: Uri) {
         viewModelScope.launch {
             isExtracting = true
@@ -142,7 +142,7 @@ class DocumentAnalyzerViewModel : ViewModel() {
         }
     }
 
-    // â”€â”€â”€ Paste Text â”€â”€â”€
+    // ─── Paste Text ───
     fun setManualText(text: String) {
         extractedText = text
         fileName = "Pasted Text"
@@ -151,7 +151,7 @@ class DocumentAnalyzerViewModel : ViewModel() {
         analysisResult = ""
     }
 
-    // â”€â”€â”€ AI Analysis â”€â”€â”€
+    // ─── AI Analysis ───
     fun analyzeDocument(analysisType: String) {
         if (extractedText.isBlank()) {
             errorMessage = "No document text to analyze. Upload a document first."
@@ -201,7 +201,7 @@ Follow these rules:
         }
     }
 
-    // â”€â”€â”€ Custom Question â”€â”€â”€
+    // ─── Custom Question ───
     fun askQuestion(question: String) {
         if (extractedText.isBlank()) {
             errorMessage = "No document text available. Upload a document first."
@@ -242,7 +242,7 @@ If the answer is not in the document, say so. Use markdown formatting for clarit
         }
     }
 
-    // â”€â”€â”€ Clear â”€â”€â”€
+    // ─── Clear ───
     fun clear() {
         extractedText = ""
         analysisResult = ""
@@ -251,7 +251,7 @@ If the answer is not in the document, say so. Use markdown formatting for clarit
         fileType = ""
     }
 
-    // â”€â”€â”€ Helper â”€â”€â”€
+    // ─── Helper ───
     private fun getFileName(context: Context, uri: Uri): String {
         var name = "Unknown"
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->

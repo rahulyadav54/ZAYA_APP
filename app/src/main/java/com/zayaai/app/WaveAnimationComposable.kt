@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.*
 import kotlin.random.Random
 
-// â”€â”€â”€ Organic Wave Ring â”€â”€â”€
+// ─── Organic Wave Ring ───
 
 @Composable
 fun WaveRingAnimation(
@@ -85,7 +85,7 @@ private fun DrawScope.drawOrganicWaveRing(
     val steps = 360
     for (i in 0..steps) {
         val angle = (i.toFloat() / steps) * 2f * PI.toFloat()
-        // Multiple sine waves for organic feel â€” gentler frequencies for smooth motion
+        // Multiple sine waves for organic feel  —  gentler frequencies for smooth motion
         val wave = amplitude * (
                 sin(angle * 3f + phase) * 0.45f +
                         sin(angle * 4f - phase * 1.2f) * 0.3f +
@@ -106,7 +106,7 @@ private fun DrawScope.drawOrganicWaveRing(
     )
 }
 
-// â”€â”€â”€ Floating Particles â”€â”€â”€
+// ─── Floating Particles ───
 
 data class Particle(
     var x: Float,
@@ -163,7 +163,7 @@ fun FloatingParticles(
     }
 }
 
-// â”€â”€â”€ Glow Ring (soft radial glow behind mic) â”€â”€â”€
+// ─── Glow Ring (soft radial glow behind mic) ───
 
 @Composable
 fun GlowRing(

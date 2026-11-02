@@ -1,0 +1,14 @@
+{
+  "name": "aizaya-api-worker",
+  "version": "2.0.0",
+  "description": "AI ZAYA Production AI Gateway on Cloudflare Workers",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  }
+}
+

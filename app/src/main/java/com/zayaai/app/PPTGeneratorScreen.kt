@@ -39,7 +39,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // â”€â”€â”€ Header â”€â”€â”€
+        // ─── Header ───
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.Slideshow,
@@ -64,7 +64,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // â”€â”€â”€ Topic Input â”€â”€â”€
+        // ─── Topic Input ───
         Text(
             "Presentation Topic",
             style = MaterialTheme.typography.titleSmall,
@@ -97,7 +97,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // â”€â”€â”€ Slide Count â”€â”€â”€
+        // ─── Slide Count ───
         Text(
             "Number of Slides",
             style = MaterialTheme.typography.titleSmall,
@@ -124,7 +124,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // â”€â”€â”€ Generate Button â”€â”€â”€
+        // ─── Generate Button ───
         GradientButton(
             text = if (viewModel.isGenerating) "Generating..." else "Generate Presentation",
             isLoading = viewModel.isGenerating,
@@ -134,7 +134,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
             }
         )
 
-        // â”€â”€â”€ Error Message â”€â”€â”€
+        // ─── Error Message ───
         if (viewModel.errorMessage.isNotBlank()) {
             Spacer(modifier = Modifier.height(16.dp))
             Box(
@@ -151,7 +151,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
             }
         }
 
-        // â”€â”€â”€ Generated Outline â”€â”€â”€
+        // ─── Generated Outline ───
         AnimatedVisibility(
             visible = viewModel.generatedOutline.isNotBlank(),
             enter = fadeIn() + slideInVertically()
@@ -187,7 +187,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // â”€â”€â”€ Download PPT Button â”€â”€â”€
+                // ─── Download PPT Button ───
                 Button(
                     onClick = { viewModel.downloadPPT(context) },
                     modifier = Modifier
@@ -253,7 +253,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
                     }
                 }
 
-                // â”€â”€â”€ Download Progress â”€â”€â”€
+                // ─── Download Progress ───
                 if (viewModel.isDownloading) {
                     Spacer(modifier = Modifier.height(12.dp))
                     LinearProgressIndicator(
@@ -265,7 +265,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
                     )
                 }
 
-                // â”€â”€â”€ Open File Button (after download) â”€â”€â”€
+                // ─── Open File Button (after download) ───
                 AnimatedVisibility(
                     visible = viewModel.downloadComplete,
                     enter = fadeIn() + slideInVertically()
@@ -321,7 +321,7 @@ fun PPTGeneratorScreen(viewModel: PPTGeneratorViewModel, paddingValues: PaddingV
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // â”€â”€â”€ Clear Button â”€â”€â”€
+                // ─── Clear Button ───
                 OutlinedButton(
                     onClick = {
                         viewModel.clear()

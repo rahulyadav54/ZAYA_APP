@@ -36,7 +36,7 @@ object FileDownloadHelper {
         return try {
             val uri = Uri.parse(fileUrl)
             val request = DownloadManager.Request(uri).apply {
-                setTitle("AI ZAYA â€” Downloading PPT")
+                setTitle("AI ZAYA  —  Downloading PPT")
                 setDescription("Downloading $fileName")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalPublicDir(

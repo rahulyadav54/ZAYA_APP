@@ -41,7 +41,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // â”€â”€â”€ Header â”€â”€â”€
+        // ─── Header ───
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.AutoFixHigh,
@@ -65,7 +65,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // â”€â”€â”€ Mode Toggle â”€â”€â”€
+        // ─── Mode Toggle ───
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -80,7 +80,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // â”€â”€â”€ Category Selector (only for Generate mode) â”€â”€â”€
+        // ─── Category Selector (only for Generate mode) ───
         if (!isOptimizeMode) {
             Text(
                 "Category",
@@ -105,7 +105,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // â”€â”€â”€ Input Field â”€â”€â”€
+        // ─── Input Field ───
         Text(
             if (isOptimizeMode) "Paste Your Prompt" else "Describe Your Goal",
             style = MaterialTheme.typography.titleSmall,
@@ -141,7 +141,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // â”€â”€â”€ Generate / Optimize Button â”€â”€â”€
+        // ─── Generate / Optimize Button ───
         GradientButton(
             text = if (viewModel.isLoading) "Generating..." else if (isOptimizeMode) "Optimize Prompt" else "Generate Prompts",
             isLoading = viewModel.isLoading,
@@ -151,7 +151,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
             }
         )
 
-        // â”€â”€â”€ Error Message â”€â”€â”€
+        // ─── Error Message ───
         if (viewModel.errorMessage.isNotBlank()) {
             Spacer(modifier = Modifier.height(12.dp))
             Box(
@@ -168,7 +168,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
             }
         }
 
-        // â”€â”€â”€ Results â”€â”€â”€
+        // ─── Results ───
         val r = viewModel.result
         val hasResults = r.basicPrompt.isNotBlank() || r.advancedPrompt.isNotBlank() ||
                 r.proPrompt.isNotBlank() || r.enhancementTips.isNotBlank()
@@ -232,7 +232,7 @@ fun PromptEngineerScreen(viewModel: PromptEngineerViewModel, paddingValues: Padd
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // â”€â”€â”€ Clear Button â”€â”€â”€
+                // ─── Clear Button ───
                 OutlinedButton(
                     onClick = {
                         viewModel.clear()

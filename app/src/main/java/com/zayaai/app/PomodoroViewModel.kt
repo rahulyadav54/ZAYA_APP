@@ -26,7 +26,7 @@ class PomodoroViewModel : ViewModel() {
     private val motivationalQuotes = listOf(
         "Deep work is the superpower of the 21st century. ðŸ§ ",
         "Small steps every day lead to big results. ðŸš€",
-        "You don't have to be great to start. âœ¨",
+        "You don't have to be great to start. ✨",
         "Focus is the art of knowing what to ignore. ðŸŽ¯",
         "Discipline is choosing what you want most. ðŸ’Ž",
         "The secret of getting ahead is getting started. ðŸ”¥",

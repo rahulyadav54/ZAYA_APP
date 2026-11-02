@@ -49,7 +49,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
         if (isGranted) viewModel.startListening()
     }
 
-    // â”€â”€â”€ Animated Values â”€â”€â”€
+    // ─── Animated Values ───
     val infiniteTransition = rememberInfiniteTransition(label = "main")
 
     val micScale by infiniteTransition.animateFloat(
@@ -80,7 +80,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
         label = "tap"
     )
 
-    // â”€â”€â”€ Full Screen Layout â”€â”€â”€
+    // ─── Full Screen Layout ───
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -112,42 +112,45 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                 .graphicsLayer { rotationZ = outerRingRotation * 0.02f }
         )
 
-        // â”€â”€â”€ Content â”€â”€â”€
+        // ─── Content ───
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // â”€â”€â”€ Top Bar â”€â”€â”€
+            // ─── Top Bar ───
             Spacer(modifier = Modifier.height(24.dp))
 
             // Title
             Text(
-                if (viewModel.isTeacherMode) "ZAYA TUTOR" else "ZAYA VOICE",
+                if (viewModel.isTeacherMode) "AI VOICE TUTOR" else "VOICE ASSISTANT",
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 6.sp
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 2.5.sp,
+                    fontSize = 17.sp
                 ),
-                color = Color.White.copy(alpha = 0.6f)
+                color = Color.White.copy(alpha = 0.9f)
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             // Subtitle hint
             Text(
-                if (viewModel.isTeacherMode) "Ask me anything â€¢ I'll teach you"
-                else "Ask me anything â€¢ I know it all",
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                color = Color.White.copy(alpha = 0.3f)
+                if (viewModel.isTeacherMode) "Interactive Voice Learning • Ask any question"
+                else "Real-Time AI Voice • Speak naturally anytime",
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.5.sp, fontSize = 12.sp),
+                color = Color.White.copy(alpha = 0.55f)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Status pill
             AnimatedContent(
                 targetState = when (voiceState) {
-                    VoiceState.SPEAKING -> "Speakingâ€¦ tap to interrupt"
-                    else -> config.statusText
+                    VoiceState.SPEAKING -> "Speaking • Tap mic to interrupt"
+                    VoiceState.LISTENING -> "Listening • Speak now..."
+                    VoiceState.PROCESSING -> "Thinking..."
+                    VoiceState.IDLE -> "Ready • Tap mic to speak"
                 },
                 transitionSpec = {
                     fadeIn(tween(300)) togetherWith fadeOut(tween(200))
@@ -189,7 +192,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                 }
             }
 
-            // â”€â”€â”€ Center Area: Mic + Waves â”€â”€â”€
+            // ─── Center Area: Mic + Waves ───
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -198,7 +201,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                    // â”€â”€ Mic Button â”€â”€
+                    // ── Mic Button ──
                     Box(
                         modifier = Modifier
                             .size(200.dp)
@@ -289,7 +292,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // â”€â”€ Partial / Recognized Text â”€â”€
+                    // ── Partial / Recognized Text ──
                     AnimatedVisibility(
                         visible = partialText.isNotEmpty() && isListening,
                         enter = fadeIn(tween(200)),
@@ -366,7 +369,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                 }
             }
 
-            // â”€â”€â”€ Bottom Controls â”€â”€â”€
+            // ─── Bottom Controls ───
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -411,7 +414,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
     }
 }
 
-// â”€â”€â”€ Bottom Control Button â”€â”€â”€
+// ─── Bottom Control Button ───
 
 @Composable
 private fun BottomControlButton(
@@ -457,9 +460,9 @@ private fun BottomControlButton(
     }
 }
 
-// â”€â”€â”€ Keep backward compat â”€â”€â”€
+// ─── Keep backward compat ───
 @Composable
 fun RmsWaveformVisualizer(rmsLevel: Float) {
-    // Deprecated â€” kept for backward compatibility
+    // Deprecated  —  kept for backward compatibility
 }
 

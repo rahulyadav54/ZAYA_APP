@@ -1,4 +1,4 @@
-﻿package com.zayaai.app.ui.theme
+package com.zayaai.app.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -19,45 +19,44 @@ enum class ThemeMode { Light, Dark, System }
 
 /**
  * CompositionLocal that is `true` when the resolved theme is dark.
- * Screens that need a gradient or other dark-only decoration can read this.
  */
 val LocalIsDarkTheme = compositionLocalOf { false }
 
-// â”€â”€â”€ Color Schemes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+// ─── Dark Color Scheme (Matching Reference Mockup) ───
 private val DarkColorScheme = darkColorScheme(
-    primary = NeonPurple,
-    secondary = NeonCyan,
-    tertiary = AccentGradientEnd,
+    primary = PrimaryPurple,
+    secondary = SecondaryIndigo,
+    tertiary = AccentCyan,
     background = DarkBackground,
-    surface = SurfaceDark,
-    surfaceVariant = Color(0xFF2A2A3E),
+    surface = DarkSurface,
+    surfaceVariant = DarkSurfaceVariant,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    outline = Color(0xFF3A3A4E),
+    onBackground = DarkTextPrimary,
+    onSurface = DarkTextPrimary,
+    onSurfaceVariant = DarkTextSecondary,
+    outline = DarkBorder,
+    outlineVariant = Color(0xFF1E203C)
 )
 
+// ─── Light Color Scheme (Matching Reference Mockup) ───
 private val LightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    secondary = NeonCyan,
-    tertiary = AccentGradientEnd,
+    primary = PrimaryPurple,
+    secondary = SecondaryIndigo,
+    tertiary = AccentCyan,
     background = LightBackground,
     surface = LightSurface,
-    surfaceVariant = Color(0xFFEEEFF5),
+    surfaceVariant = LightSurfaceVariant,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = LightTextPrimary,
     onSurface = LightTextPrimary,
     onSurfaceVariant = LightTextSecondary,
-    outline = Color(0xFFD0D0DA),
+    outline = LightBorder,
+    outlineVariant = Color(0xFFE2E8F0)
 )
-
-// â”€â”€â”€ Theme Composable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 fun AIZAYATheme(
@@ -77,7 +76,7 @@ fun AIZAYATheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            window.navigationBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.surface.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme
                 isAppearanceLightNavigationBars = !darkTheme
@@ -93,4 +92,3 @@ fun AIZAYATheme(
         )
     }
 }
-
