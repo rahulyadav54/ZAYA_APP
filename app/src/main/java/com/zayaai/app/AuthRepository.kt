@@ -96,6 +96,8 @@ class AuthRepository(
         }
     }
 
+    fun getGoogleSignInIntent(): android.content.Intent = authManager.getSignInIntent()
+
     fun signOut() {
         authManager.signOut()
     }

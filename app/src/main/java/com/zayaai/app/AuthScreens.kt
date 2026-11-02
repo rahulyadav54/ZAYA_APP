@@ -1,10 +1,16 @@
 package com.zayaai.app
 
+import android.app.Activity
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -14,7 +20,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.rounded.*
@@ -27,6 +32,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -39,14 +45,61 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import com.zayaai.app.ui.theme.LocalIsDarkTheme
 
 /**
- * Professional Input Field with Label Above
+ * Centered Brand Header: Geometric Z Logo + AI ZAYA + ALL-IN-ONE AI TOOLS
  */
 @Composable
-private fun ProfessionalInputField(
-    label: String,
+fun BrandHeader(isDark: Boolean) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (isDark) Color(0xFF1E163B) else Color(0xFFF5F3FF))
+                .border(
+                    1.dp,
+                    if (isDark) Color(0xFF3B2F6E) else Color(0xFFDDD6FE),
+                    RoundedCornerShape(16.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_zaya_brand_z),
+                contentDescription = "AI ZAYA Logo",
+                modifier = Modifier.size(42.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = "AI ZAYA",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 2.sp,
+            color = if (isDark) Color.White else Color(0xFF0F172A)
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = "ALL-IN-ONE AI TOOLS",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 2.sp,
+            color = if (isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED)
+        )
+    }
+}
+
+/**
+ * Standard Form Input Field with Rounded Border & Icon
+ */
+@Composable
+fun AuthInputField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
@@ -60,109 +113,113 @@ private fun ProfessionalInputField(
     val isDark = LocalIsDarkTheme.current
     var passwordVisible by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-            color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
-
-        val fieldModifier = if (focusRequester != null) {
-            Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .clip(RoundedCornerShape(12.dp))
-        } else {
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-        }
-
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isDark) Color(0xFF8B5CF6) else Color(0xFF6366F1),
-                    modifier = Modifier.size(19.dp)
-                )
-            },
-            trailingIcon = {
-                if (isPassword) {
-                    val iconImg = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = iconImg,
-                            contentDescription = null,
-                            tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            },
-            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = keyboardType,
-                imeAction = imeAction
-            ),
-            keyboardActions = keyboardActions,
-            modifier = fieldModifier,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = if (isDark) Color(0xFF8B5CF6) else Color(0xFF6366F1),
-                unfocusedBorderColor = if (isDark) Color(0xFF2A2648) else Color(0xFFCBD5E1),
-                focusedContainerColor = if (isDark) Color(0xFF16142A) else Color(0xFFFFFFFF),
-                unfocusedContainerColor = if (isDark) Color(0xFF131126) else Color(0xFFF8FAFC),
-                cursorColor = if (isDark) Color(0xFF8B5CF6) else Color(0xFF6366F1),
-                focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
-                unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
-            ),
-            singleLine = true
-        )
+    val fieldModifier = if (focusRequester != null) {
+        Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .clip(RoundedCornerShape(12.dp))
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
     }
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(
+                text = placeholder,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF94A3B8)
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED),
+                modifier = Modifier.size(20.dp)
+            )
+        },
+        trailingIcon = {
+            if (isPassword) {
+                val iconImg = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = iconImg,
+                        contentDescription = "Toggle password visibility",
+                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF94A3B8),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        },
+        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType,
+            imeAction = imeAction
+        ),
+        keyboardActions = keyboardActions,
+        modifier = fieldModifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = if (isDark) Color(0xFFA855F7) else Color(0xFF7C3AED),
+            unfocusedBorderColor = if (isDark) Color(0xFF2E264E) else Color(0xFFE2E8F0),
+            focusedContainerColor = if (isDark) Color(0xFF130F24) else Color.White,
+            unfocusedContainerColor = if (isDark) Color(0xFF100D1E) else Color(0xFFFBFBFE),
+            cursorColor = if (isDark) Color(0xFFA855F7) else Color(0xFF7C3AED),
+            focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+            unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+        ),
+        singleLine = true
+    )
 }
 
 /**
- * Clean & Professional Primary Button (No childish rockets, pure elegance)
+ * Capsule Purple Action Button (e.g. Sign In →, Create Account →)
  */
 @Composable
-private fun ProfessionalButton(
+fun AuthCapsuleButton(
     text: String,
     isLoading: Boolean = false,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
-        enabled = !isLoading,
+        enabled = enabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-        contentPadding = PaddingValues(0.dp)
+        shape = RoundedCornerShape(26.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent
+        ),
+        contentPadding = PaddingValues()
     ) {
+        val bgGradient = if (enabled) {
+            Brush.horizontalGradient(
+                colors = listOf(
+                    Color(0xFF6D28D9),
+                    Color(0xFF7C3AED),
+                    Color(0xFF8B5CF6)
+                )
+            )
+        } else {
+            Brush.horizontalGradient(
+                colors = listOf(
+                    Color(0xFFCBD5E1),
+                    Color(0xFFCBD5E1)
+                )
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF7C3AED),
-                            Color(0xFF6366F1)
-                        )
-                    ),
-                    shape = RoundedCornerShape(14.dp)
-                ),
+                .background(bgGradient, shape = RoundedCornerShape(26.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (isLoading) {
@@ -172,33 +229,66 @@ private fun ProfessionalButton(
                     strokeWidth = 2.5.dp
                 )
             } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        ),
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    ),
+                    color = Color.White
+                )
             }
         }
     }
 }
 
+/**
+ * Continue with Google Button (Official Google 'G' icon + Crisp Surface)
+ */
+@Composable
+fun GoogleSignInButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDark = LocalIsDarkTheme.current
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isDark) Color(0xFF1A162B) else Color.White,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isDark) Color(0xFF322A4E) else Color(0xFFE2E8F0)
+        ),
+        shadowElevation = 0.5.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(50.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_google_g),
+                contentDescription = "Google Logo",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "Continue with Google",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                ),
+                color = if (isDark) Color.White else Color(0xFF1E293B)
+            )
+        }
+    }
+}
+
 // =========================================================================
-// 1. LOGIN SCREEN (Clean, Modern & Professional)
+// 1. LOGIN SCREEN (Clean, Modern & Light)
 // =========================================================================
 @Composable
 fun LoginScreen(
@@ -213,62 +303,64 @@ fun LoginScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var rememberMe by remember { mutableStateOf(true) }
 
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
 
-    val backgroundBrush = if (isDark) {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFF090A14),
-                Color(0xFF120E28),
-                Color(0xFF090A14)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFFF9F9FE),
-                Color(0xFFF3F1FD),
-                Color(0xFFFFFFFF)
-            )
-        )
+    // Official Google Sign-In Activity Launcher
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                if (account != null) {
+                    authViewModel.signInWithGoogle(account) { loginResult ->
+                        loginResult.onSuccess { role ->
+                            Toast.makeText(context, "Welcome back, ${account.displayName ?: "User"}!", Toast.LENGTH_SHORT).show()
+                            onLoginSuccess(role)
+                        }.onFailure {
+                            Toast.makeText(context, "Google Sign-In failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Google Sign-In error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
+            .background(if (isDark) Color(0xFF090614) else Color(0xFFFFFFFF))
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 24.dp)
+                .padding(horizontal = 26.dp, vertical = 20.dp)
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Official Brand Logo (Exact squircle logo uploaded by user)
-            Image(
-                painter = painterResource(id = R.drawable.ic_brand_logo),
-                contentDescription = "AI ZAYA Logo",
-                modifier = Modifier
-                    .size(76.dp)
-                    .clip(RoundedCornerShape(20.dp))
-            )
+            // Centered Brand Header
+            BrandHeader(isDark = isDark)
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
-            // Typography Header
+            // Welcome Header
             Text(
                 text = "Welcome to AI ZAYA",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.5.sp
+                    fontSize = 24.sp,
+                    letterSpacing = (-0.5).sp
                 ),
                 color = if (isDark) Color.White else Color(0xFF0F172A),
                 textAlign = TextAlign.Center
@@ -277,20 +369,19 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Sign in to continue your AI learning journey",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Sign in to continue your AI learning journey.",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                 color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Form Fields
-            ProfessionalInputField(
-                label = "Email Address",
+            // Email Field
+            AuthInputField(
                 value = email,
                 onValueChange = { email = it },
-                placeholder = "name@example.com",
+                placeholder = "Email Address",
                 icon = Icons.Rounded.Email,
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
@@ -298,13 +389,13 @@ fun LoginScreen(
                 focusRequester = emailFocus
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            ProfessionalInputField(
-                label = "Password",
+            // Password Field
+            AuthInputField(
                 value = password,
                 onValueChange = { password = it },
-                placeholder = "Enter your password",
+                placeholder = "Password",
                 icon = Icons.Rounded.Lock,
                 isPassword = true,
                 imeAction = ImeAction.Done,
@@ -312,68 +403,117 @@ fun LoginScreen(
                 focusRequester = passwordFocus
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Forgot Password (right aligned)
+            // Remember Me (Left) & Forgot Password (Right) Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        rememberMe = !rememberMe
+                    }
+                ) {
+                    Checkbox(
+                        checked = rememberMe,
+                        onCheckedChange = { rememberMe = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(0xFF7C3AED),
+                            uncheckedColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                        ),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Remember me",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
+                    )
+                }
+
                 Text(
                     text = "Forgot password?",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (isDark) Color(0xFF8B5CF6) else Color(0xFF6366F1),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = Color(0xFF7C3AED),
                     modifier = Modifier
                         .clickable { onNavigateToForgotPassword() }
                         .padding(vertical = 4.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Sign In Button
-            ProfessionalButton(
-                text = "Sign In",
+            // Primary Button: "Sign In →"
+            AuthCapsuleButton(
+                text = "Sign In →",
                 isLoading = authViewModel.isLoading,
                 onClick = {
                     focusManager.clearFocus()
                     if (email.isBlank() || password.isBlank()) {
                         Toast.makeText(context, "Please enter your email and password", Toast.LENGTH_SHORT).show()
-                        return@ProfessionalButton
+                        return@AuthCapsuleButton
                     }
                     authViewModel.login(email.trim(), password) { result ->
                         result.onSuccess { role ->
                             Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
                             onLoginSuccess(role)
-                        }
-                        .onFailure {
+                        }.onFailure {
                             Toast.makeText(context, "Login Failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
                         }
                     }
                 }
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
-            // Clean Divider
+            // "OR" Divider
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 HorizontalDivider(
                     modifier = Modifier.weight(1f),
-                    color = if (isDark) Color(0xFF1E1C33) else Color(0xFFE2E8F0)
+                    color = if (isDark) Color(0xFF2E264E) else Color(0xFFE2E8F0)
                 )
                 Text(
-                    text = "  or  ",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "  OR  ",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp
+                    ),
                     color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
                 )
                 HorizontalDivider(
                     modifier = Modifier.weight(1f),
-                    color = if (isDark) Color(0xFF1E1C33) else Color(0xFFE2E8F0)
+                    color = if (isDark) Color(0xFF2E264E) else Color(0xFFE2E8F0)
                 )
             }
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            // Google Sign-In Button
+            GoogleSignInButton(
+                onClick = {
+                    try {
+                        val intent = authViewModel.getGoogleSignInIntent()
+                        googleSignInLauncher.launch(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Google Sign-In: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
 
             Spacer(modifier = Modifier.height(28.dp))
 
@@ -384,24 +524,29 @@ fun LoginScreen(
             ) {
                 Text(
                     text = "Don't have an account? ",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                 )
                 Text(
-                    text = "Sign up",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (isDark) Color(0xFF8B5CF6) else Color(0xFF6366F1),
+                    text = "Sign Up",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color(0xFF7C3AED),
                     modifier = Modifier
                         .clickable { onNavigateToRegister() }
                         .padding(4.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
 
 // =========================================================================
-// 2. REGISTRATION SCREEN (Clean, Modern & Professional)
+// 2. CREATE ACCOUNT SCREEN (Clean, Modern & Light)
 // =========================================================================
 @Composable
 fun RegistrationScreen(
@@ -416,65 +561,110 @@ fun RegistrationScreen(
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var repeatPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
 
     val nameFocus = remember { FocusRequester() }
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
     val confirmPasswordFocus = remember { FocusRequester() }
 
-    val backgroundBrush = if (isDark) {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFF090A14),
-                Color(0xFF120E28),
-                Color(0xFF090A14)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFFF9F9FE),
-                Color(0xFFF3F1FD),
-                Color(0xFFFFFFFF)
-            )
-        )
+    // Google Sign-In Launcher for Registration as well
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                if (account != null) {
+                    authViewModel.signInWithGoogle(account) { loginResult ->
+                        loginResult.onSuccess {
+                            Toast.makeText(context, "Welcome, ${account.displayName ?: "User"}!", Toast.LENGTH_SHORT).show()
+                            onRegisterSuccess()
+                        }.onFailure {
+                            Toast.makeText(context, "Google Sign-In failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Google Sign-In error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
+
+    // Password criteria evaluation
+    val hasMinLength = password.length >= 8
+    val hasUpper = password.any { it.isUpperCase() }
+    val hasLower = password.any { it.isLowerCase() }
+    val hasDigit = password.any { it.isDigit() }
+    val hasSpecial = password.any { !it.isLetterOrDigit() }
+
+    val metCount = listOf(hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial).count { it }
+    val allRequirementsMet = metCount == 5
+    val passwordsMatch = confirmPassword.isNotEmpty() && password == confirmPassword
+
+    val strengthLabel = when {
+        password.isEmpty() -> "Empty"
+        metCount <= 2 -> "Weak"
+        metCount in 3..4 -> "Fair"
+        else -> "Strong"
+    }
+    val strengthColor = when {
+        password.isEmpty() -> Color.Gray
+        metCount <= 2 -> Color(0xFFEF4444)
+        metCount in 3..4 -> Color(0xFFF59E0B)
+        else -> Color(0xFF16A34A)
+    }
+
+    val isFormValid = fullName.isNotBlank() && email.isNotBlank() && allRequirementsMet && passwordsMatch
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
+            .background(if (isDark) Color(0xFF090614) else Color(0xFFFFFFFF))
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 24.dp)
+                .padding(horizontal = 26.dp, vertical = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            // Top Back Arrow Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateToLogin,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (isDark) Color.White else Color(0xFF0F172A),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
 
-            // Official Brand Logo
-            Image(
-                painter = painterResource(id = R.drawable.ic_brand_logo),
-                contentDescription = "AI ZAYA Logo",
-                modifier = Modifier
-                    .size(68.dp)
-                    .clip(RoundedCornerShape(18.dp))
-            )
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Spacer(modifier = Modifier.height(18.dp))
+            BrandHeader(isDark = isDark)
 
-            // Header Typography
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Heading: "Create your account"
             Text(
                 text = "Create your account",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.5.sp
+                    fontSize = 24.sp,
+                    letterSpacing = (-0.5).sp
                 ),
                 color = if (isDark) Color.White else Color(0xFF0F172A),
                 textAlign = TextAlign.Center
@@ -483,33 +673,32 @@ fun RegistrationScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Get started with AI ZAYA for smart learning & tools",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Get started with AI ZAYA for smart learning and tools.",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                 color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Fields
-            ProfessionalInputField(
-                label = "Full Name",
+            // 1. Full Name
+            AuthInputField(
                 value = fullName,
                 onValueChange = { fullName = it },
-                placeholder = "John Doe",
+                placeholder = "Full Name",
                 icon = Icons.Rounded.Person,
                 imeAction = ImeAction.Next,
                 keyboardActions = KeyboardActions(onNext = { emailFocus.requestFocus() }),
                 focusRequester = nameFocus
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            ProfessionalInputField(
-                label = "Email Address",
+            // 2. Email Address
+            AuthInputField(
                 value = email,
                 onValueChange = { email = it },
-                placeholder = "name@example.com",
+                placeholder = "Email Address",
                 icon = Icons.Rounded.Email,
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
@@ -517,13 +706,13 @@ fun RegistrationScreen(
                 focusRequester = emailFocus
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            ProfessionalInputField(
-                label = "Password",
+            // 3. Password
+            AuthInputField(
                 value = password,
                 onValueChange = { password = it },
-                placeholder = "Create a strong password",
+                placeholder = "Password",
                 icon = Icons.Rounded.Lock,
                 isPassword = true,
                 imeAction = ImeAction.Next,
@@ -531,18 +720,85 @@ fun RegistrationScreen(
                 focusRequester = passwordFocus
             )
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Password Strength Indicator: Weak / Fair / Strong
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Password Strength: ",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                    )
+                    Text(
+                        text = strengthLabel,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = strengthColor
+                    )
+                }
+
+                // 3 Segmented Strength Bars
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val activeSegments = when {
+                        metCount <= 2 -> 1
+                        metCount in 3..4 -> 2
+                        else -> 3
+                    }
+                    repeat(3) { idx ->
+                        val isActive = password.isNotEmpty() && idx < activeSegments
+                        Box(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(
+                                    if (isActive) strengthColor
+                                    else if (isDark) Color(0xFF2E264E)
+                                    else Color(0xFFE2E8F0)
+                                )
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Real-Time Password Requirements Feedback
-            PasswordRequirementsList(password = password)
+            // Real-Time Checklist (Neutral indicators for incomplete, green check for satisfied)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (isDark) Color(0xFF130E26) else Color(0xFFF8FAFC),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isDark) Color(0xFF2B214E) else Color(0xFFE2E8F0)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    RequirementRow(text = "At least 8 characters", isMet = hasMinLength, isDark = isDark)
+                    RequirementRow(text = "One uppercase letter (A - Z)", isMet = hasUpper, isDark = isDark)
+                    RequirementRow(text = "One lowercase letter (a - z)", isMet = hasLower, isDark = isDark)
+                    RequirementRow(text = "One number (0 - 9)", isMet = hasDigit, isDark = isDark)
+                    RequirementRow(text = "One special symbol (!@#$%...)", isMet = hasSpecial, isDark = isDark)
+                }
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            ProfessionalInputField(
-                label = "Confirm Password",
-                value = repeatPassword,
-                onValueChange = { repeatPassword = it },
-                placeholder = "Re-enter your password",
+            // 4. Confirm Password
+            AuthInputField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                placeholder = "Confirm Password",
                 icon = Icons.Rounded.Lock,
                 isPassword = true,
                 imeAction = ImeAction.Done,
@@ -550,48 +806,91 @@ fun RegistrationScreen(
                 focusRequester = confirmPasswordFocus
             )
 
-            Spacer(modifier = Modifier.height(26.dp))
+            // Confirm Password matching indicator
+            if (confirmPassword.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (passwordsMatch) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
+                        contentDescription = null,
+                        tint = if (passwordsMatch) Color(0xFF16A34A) else Color(0xFFEF4444),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (passwordsMatch) "Passwords match" else "Passwords do not match",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = if (passwordsMatch) Color(0xFF16A34A) else Color(0xFFEF4444)
+                    )
+                }
+            }
 
-            // Create Account Button (NO rocket, pure professional)
-            ProfessionalButton(
-                text = "Create Account",
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Primary Button: "Create Account →"
+            AuthCapsuleButton(
+                text = "Create Account →",
                 isLoading = authViewModel.isLoading,
+                enabled = isFormValid,
                 onClick = {
                     focusManager.clearFocus()
-                    if (email.isBlank() || password.isBlank() || fullName.isBlank()) {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                        return@ProfessionalButton
-                    }
-
-                    val hasMinLength = password.length >= 8
-                    val hasUpper = password.any { it.isUpperCase() }
-                    val hasLower = password.any { it.isLowerCase() }
-                    val hasDigit = password.any { it.isDigit() }
-                    val hasSpecial = password.any { !it.isLetterOrDigit() }
-                    val isPasswordValid = hasMinLength && hasUpper && hasLower && hasDigit && hasSpecial
-
-                    if (!isPasswordValid) {
-                        Toast.makeText(
-                            context,
-                            "Password must meet all 5 requirements below",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return@ProfessionalButton
-                    }
-
-                    if (password != repeatPassword) {
-                        Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
-                        return@ProfessionalButton
+                    if (!isFormValid) {
+                        Toast.makeText(context, "Please fulfill all required fields and password criteria", Toast.LENGTH_SHORT).show()
+                        return@AuthCapsuleButton
                     }
 
                     authViewModel.register(fullName.trim(), email.trim(), password) { result ->
                         result.onSuccess {
                             Toast.makeText(context, "Account created successfully!", Toast.LENGTH_SHORT).show()
                             onRegisterSuccess()
+                        }.onFailure {
+                            Toast.makeText(context, "Registration failed: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
                         }
-                        .onFailure {
-                            Toast.makeText(context, "Error: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
-                        }
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // "OR" Divider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = if (isDark) Color(0xFF2E264E) else Color(0xFFE2E8F0)
+                )
+                Text(
+                    text = "  OR  ",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                )
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = if (isDark) Color(0xFF2E264E) else Color(0xFFE2E8F0)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Google Sign-In Button on Registration
+            GoogleSignInButton(
+                onClick = {
+                    try {
+                        val intent = authViewModel.getGoogleSignInIntent()
+                        googleSignInLauncher.launch(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Google Sign-In: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
                 }
             )
@@ -605,13 +904,16 @@ fun RegistrationScreen(
             ) {
                 Text(
                     text = "Already have an account? ",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                 )
                 Text(
-                    text = "Sign in",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (isDark) Color(0xFF8B5CF6) else Color(0xFF6366F1),
+                    text = "Sign In",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color(0xFF7C3AED),
                     modifier = Modifier
                         .clickable { onNavigateToLogin() }
                         .padding(4.dp)
@@ -623,8 +925,43 @@ fun RegistrationScreen(
     }
 }
 
+/**
+ * Single Requirement Item with Neutral Circle / Green Check
+ */
+@Composable
+private fun RequirementRow(
+    text: String,
+    isMet: Boolean,
+    isDark: Boolean
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = if (isMet) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = if (isMet) Color(0xFF16A34A) else if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
+            modifier = Modifier.size(15.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 12.5.sp,
+                fontWeight = if (isMet) FontWeight.SemiBold else FontWeight.Normal
+            ),
+            color = if (isMet) {
+                if (isDark) Color(0xFF86EFAC) else Color(0xFF166534)
+            } else {
+                if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+            }
+        )
+    }
+}
+
 // =========================================================================
-// 3. FORGOT PASSWORD SCREEN (Clean, Modern & Professional)
+// 3. FORGOT PASSWORD SCREEN (Clean, Modern & Light)
 // =========================================================================
 @Composable
 fun ForgotPasswordScreen(
@@ -637,38 +974,20 @@ fun ForgotPasswordScreen(
     var email by remember { mutableStateOf("") }
     val emailFocus = remember { FocusRequester() }
 
-    val backgroundBrush = if (isDark) {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFF090A14),
-                Color(0xFF120E28),
-                Color(0xFF090A14)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            listOf(
-                Color(0xFFF9F9FE),
-                Color(0xFFF3F1FD),
-                Color(0xFFFFFFFF)
-            )
-        )
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
+            .background(if (isDark) Color(0xFF090614) else Color(0xFFFFFFFF))
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp)
+                .padding(horizontal = 26.dp, vertical = 20.dp)
         ) {
             // Top Back Arrow Button
             Row(
@@ -676,58 +995,54 @@ fun ForgotPasswordScreen(
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = if (isDark) Color(0xFF1B1832) else Color(0xFFEDE9FE),
-                    modifier = Modifier.size(42.dp)
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = if (isDark) Color.White else Color(0xFF4338CA),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (isDark) Color.White else Color(0xFF0F172A),
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Official Brand Logo
-            Image(
-                painter = painterResource(id = R.drawable.ic_brand_logo),
-                contentDescription = "AI ZAYA Logo",
-                modifier = Modifier
-                    .size(68.dp)
-                    .clip(RoundedCornerShape(18.dp))
-            )
+            BrandHeader(isDark = isDark)
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
             Text(
-                text = "Reset your password",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                text = "Reset Password",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 24.sp,
+                    letterSpacing = (-0.5).sp
+                ),
                 color = if (isDark) Color.White else Color(0xFF0F172A)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Enter your registered email address and we will send you a reset link.",
-                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                text = "Enter your registered email address to receive password reset instructions.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    lineHeight = 22.sp
+                ),
                 color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
-            ProfessionalInputField(
-                label = "Email Address",
+            AuthInputField(
                 value = email,
                 onValueChange = { email = it },
-                placeholder = "name@example.com",
+                placeholder = "Email Address",
                 icon = Icons.Rounded.Email,
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Done,
@@ -737,14 +1052,14 @@ fun ForgotPasswordScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            ProfessionalButton(
-                text = "Send Reset Link",
+            AuthCapsuleButton(
+                text = "Send Reset Link →",
                 isLoading = authViewModel.isLoading,
                 onClick = {
                     focusManager.clearFocus()
                     if (email.isBlank()) {
                         Toast.makeText(context, "Please enter your email address", Toast.LENGTH_SHORT).show()
-                        return@ProfessionalButton
+                        return@AuthCapsuleButton
                     }
                     authViewModel.resetPassword(email.trim()) { result ->
                         result.onSuccess {
@@ -754,8 +1069,7 @@ fun ForgotPasswordScreen(
                                 Toast.LENGTH_LONG
                             ).show()
                             onNavigateBack()
-                        }
-                        .onFailure {
+                        }.onFailure {
                             Toast.makeText(context, "Error: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
                         }
                     }
@@ -765,93 +1079,15 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Return to sign in",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (isDark) Color(0xFF8B5CF6) else Color(0xFF6366F1),
+                text = "Return to Sign In",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                ),
+                color = Color(0xFF7C3AED),
                 modifier = Modifier
                     .clickable { onNavigateBack() }
                     .padding(8.dp)
-            )
-        }
-    }
-}
-
-// =========================================================================
-// 4. LIVE PASSWORD REQUIREMENTS COMPOSABLES
-// =========================================================================
-@Composable
-fun PasswordRequirementsList(password: String) {
-    val isDark = LocalIsDarkTheme.current
-    val hasMinLength = password.length >= 8
-    val hasUpper = password.any { it.isUpperCase() }
-    val hasLower = password.any { it.isLowerCase() }
-    val hasDigit = password.any { it.isDigit() }
-    val hasSpecial = password.any { !it.isLetterOrDigit() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            PasswordCriteriaItem("8+ chars", hasMinLength, modifier = Modifier.weight(1f))
-            PasswordCriteriaItem("Uppercase", hasUpper, modifier = Modifier.weight(1f))
-            PasswordCriteriaItem("Lowercase", hasLower, modifier = Modifier.weight(1f))
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            PasswordCriteriaItem("Number (0-9)", hasDigit, modifier = Modifier.weight(1f))
-            PasswordCriteriaItem("Symbol (!@#...)", hasSpecial, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-fun PasswordCriteriaItem(
-    label: String,
-    isMet: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val isDark = LocalIsDarkTheme.current
-    val activeColor = Color(0xFF10B981)
-    val inactiveColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-    val bgColor = if (isMet) {
-        activeColor.copy(alpha = if (isDark) 0.18f else 0.12f)
-    } else {
-        if (isDark) Color(0xFF18152B) else Color(0xFFF1F5F9)
-    }
-
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = bgColor,
-        modifier = modifier
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp)
-        ) {
-            Icon(
-                imageVector = if (isMet) Icons.Rounded.CheckCircle else Icons.Rounded.Circle,
-                contentDescription = null,
-                tint = if (isMet) activeColor else inactiveColor,
-                modifier = Modifier.size(11.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = if (isMet) FontWeight.Bold else FontWeight.Medium
-                ),
-                color = if (isMet) activeColor else inactiveColor,
-                maxLines = 1
             )
         }
     }

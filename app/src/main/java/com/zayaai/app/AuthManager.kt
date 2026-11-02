@@ -17,11 +17,12 @@ class AuthManager(private val context: Context) {
     fun getSignInIntent(): Intent {
         // We will try to get the string resource, and if it fails (not yet generated),
         // we use a placeholder to allow compilation.
+        val defaultClientId = "493304702545-6fhbfpd1t3fbiln9fqgvi19rp8uugtk2.apps.googleusercontent.com"
         val webClientId = try {
             val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
-            if (resId != 0) context.getString(resId) else ""
+            if (resId != 0) context.getString(resId) else defaultClientId
         } catch (e: Exception) {
-            ""
+            defaultClientId
         }
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)

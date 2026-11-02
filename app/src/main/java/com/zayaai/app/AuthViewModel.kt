@@ -231,6 +231,40 @@ class AuthViewModel(
         }
     }
 
+    fun getGoogleSignInIntent(): android.content.Intent = authRepository.getGoogleSignInIntent()
+
+    fun signInWithGoogle(account: com.google.android.gms.auth.api.signin.GoogleSignInAccount, onResult: (Result<String>) -> Unit) {
+        isLoading = true
+        viewModelScope.launch {
+            val result = authRepository.signInWithGoogle(account)
+            if (result.isSuccess) {
+                val role = result.getOrNull() ?: "user"
+                userRole = role
+                val firebaseUser = authRepository.getCurrentUser()
+                currentUser = firebaseUser
+                val name = firebaseUser?.displayName ?: account.displayName ?: "User"
+                val email = firebaseUser?.email ?: account.email ?: ""
+                firestoreUserName = name
+                firestoreUserEmail = email
+
+                dataStoreManager.saveSession(
+                    email = email,
+                    role = role,
+                    name = name
+                )
+                dataStoreManager.setOnboardingCompleted(true)
+                isOnboardingCompleted = true
+
+                authState = AuthState.Authenticated(role, name, email)
+                onResult(Result.success(role))
+            } else {
+                onResult(Result.failure(result.exceptionOrNull() ?: Exception("Google Sign-In failed")))
+            }
+            isLoading = false
+            sessionChecked = true
+        }
+    }
+
     fun completeOnboarding() {
         viewModelScope.launch {
             dataStoreManager.setOnboardingCompleted(true)
