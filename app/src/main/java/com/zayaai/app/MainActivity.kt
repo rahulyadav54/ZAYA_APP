@@ -50,74 +50,83 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContent {
             val context = LocalContext.current
-            
-            // Splash screen state
-            var showSplash by remember { mutableStateOf(true) }
-            
-            if (showSplash) {
-                SplashScreen(onSplashComplete = { showSplash = false })
-            } else {
-                // Lazy initialization of ViewModels and repositories
-                val authManager = remember { AuthManager(context) }
-                val userRepository = remember { UserRepository() }
-                val dataStoreManager = remember { DataStoreManager(context) }
-                val authRepository = remember { AuthRepository(authManager, userRepository) }
-                val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository, dataStoreManager))
-                
-                val securityViewModel: SecurityViewModel = viewModel(factory = SecurityViewModelFactory(dataStoreManager, context))
-                
-                val currentUser = authViewModel.currentUser
-                val userRole = authViewModel.userRole
-                val firestoreUserEmail = authViewModel.firestoreUserEmail
-                val settings by securityViewModel.settings.collectAsState()
-                val isUnlocked = securityViewModel.isUnlocked
 
-                val themeMode = try {
-                    ThemeMode.valueOf(settings.themeMode.replaceFirstChar { it.uppercase() })
-                } catch (_: Exception) {
-                    ThemeMode.Light
-                }
+            val authManager = remember { AuthManager(context) }
+            val userRepository = remember { UserRepository() }
+            val dataStoreManager = remember { DataStoreManager(context) }
+            val authRepository = remember { AuthRepository(authManager, userRepository) }
+            val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository, dataStoreManager))
+            val securityViewModel: SecurityViewModel = viewModel(factory = SecurityViewModelFactory(dataStoreManager, context))
 
-                AIZAYATheme(themeMode = themeMode) {
-                    Crossfade(targetState = Triple(currentUser, userRole, firestoreUserEmail), label = "main_fade") { (user, role, fsEmail) ->
-                        if (user == null && fsEmail == null) {
-                            var currentAuthScreen by remember { mutableStateOf(AuthScreen.Login) }
-                            when (currentAuthScreen) {
-                                AuthScreen.Login -> LoginScreen(
-                                    authViewModel = authViewModel,
-                                    onLoginSuccess = { /* Managed by AuthViewModel state */ },
-                                    onNavigateToRegister = { currentAuthScreen = AuthScreen.Register },
-                                    onNavigateToForgotPassword = { currentAuthScreen = AuthScreen.ForgotPassword }
-                                )
-                                AuthScreen.Register -> RegistrationScreen(
-                                    authViewModel = authViewModel,
-                                    onRegisterSuccess = { currentAuthScreen = AuthScreen.Login },
-                                    onNavigateToLogin = { currentAuthScreen = AuthScreen.Login }
-                                )
-                                AuthScreen.ForgotPassword -> ForgotPasswordScreen(
-                                    authViewModel = authViewModel,
-                                    onNavigateBack = { currentAuthScreen = AuthScreen.Login }
-                                )
-                            }
-                        } else {
-                            if (role == null) {
-                                LaunchedEffect(user) {
-                                    authViewModel.checkUserSessionIfNeeded()
+            val authState = authViewModel.authState
+            val isOnboardingCompleted = authViewModel.isOnboardingCompleted
+            val settings by securityViewModel.settings.collectAsState()
+            val isUnlocked = securityViewModel.isUnlocked
+
+            val themeMode = try {
+                ThemeMode.valueOf(settings.themeMode.replaceFirstChar { it.uppercase() })
+            } catch (_: Exception) {
+                ThemeMode.Light
+            }
+
+            var splashTimerFinished by remember { mutableStateOf(false) }
+            val isSplashActive = !splashTimerFinished || authState is AuthState.Initializing
+
+            AIZAYATheme(themeMode = themeMode) {
+                Crossfade(targetState = isSplashActive, label = "splash_fade") { splashActive ->
+                    if (splashActive) {
+                        SplashScreen(onSplashComplete = { splashTimerFinished = true })
+                    } else {
+                        when (authState) {
+                            is AuthState.Authenticated -> {
+                                if (settings.appLockEnabled && !isUnlocked.value) {
+                                    AppLockScreen(
+                                        securityViewModel = securityViewModel,
+                                        onUnlock = { securityViewModel.setUnlocked(true) }
+                                    )
+                                } else {
+                                    val database = remember { AiZayaDatabase.getDatabase(context) }
+                                    val repository = remember { AiZayaRepository(database) }
+                                    val viewModelFactory = remember { ViewModelFactory(repository) }
+
+                                    MainAppScaffold(
+                                        authViewModel = authViewModel,
+                                        userRole = authState.role,
+                                        viewModelFactory = viewModelFactory,
+                                        securityViewModel = securityViewModel
+                                    )
                                 }
+                            }
+                            is AuthState.Unauthenticated -> {
+                                if (!isOnboardingCompleted) {
+                                    OnboardingScreen(
+                                        onComplete = {
+                                            authViewModel.completeOnboarding()
+                                        }
+                                    )
+                                } else {
+                                    var currentAuthScreen by remember { mutableStateOf(AuthScreen.Login) }
+                                    when (currentAuthScreen) {
+                                        AuthScreen.Login -> LoginScreen(
+                                            authViewModel = authViewModel,
+                                            onLoginSuccess = { /* Managed by AuthViewModel state */ },
+                                            onNavigateToRegister = { currentAuthScreen = AuthScreen.Register },
+                                            onNavigateToForgotPassword = { currentAuthScreen = AuthScreen.ForgotPassword }
+                                        )
+                                        AuthScreen.Register -> RegistrationScreen(
+                                            authViewModel = authViewModel,
+                                            onRegisterSuccess = { /* Managed by AuthViewModel state */ },
+                                            onNavigateToLogin = { currentAuthScreen = AuthScreen.Login }
+                                        )
+                                        AuthScreen.ForgotPassword -> ForgotPasswordScreen(
+                                            authViewModel = authViewModel,
+                                            onNavigateBack = { currentAuthScreen = AuthScreen.Login }
+                                        )
+                                    }
+                                }
+                            }
+                            is AuthState.Initializing -> {
                                 LoadingScreen()
-                            } else if (settings.appLockEnabled && !isUnlocked.value) {
-                                AppLockScreen(securityViewModel = securityViewModel, onUnlock = { securityViewModel.setUnlocked(true) })
-                            } else {
-                                val database = remember { AiZayaDatabase.getDatabase(context) }
-                                val repository = remember { AiZayaRepository(database) }
-                                val viewModelFactory = remember { ViewModelFactory(repository) }
-
-                                MainAppScaffold(
-                                    authViewModel = authViewModel,
-                                    userRole = role,
-                                    viewModelFactory = viewModelFactory,
-                                    securityViewModel = securityViewModel
-                                )
                             }
                         }
                     }

@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -13,10 +13,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
+sealed class AuthState {
+    object Initializing : AuthState()
+    data class Authenticated(val role: String, val displayName: String, val email: String) : AuthState()
+    object Unauthenticated : AuthState()
+}
+
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val dataStoreManager: DataStoreManager
 ) : ViewModel() {
+
+    var authState by mutableStateOf<AuthState>(AuthState.Initializing)
+        private set
+
+    var isOnboardingCompleted by mutableStateOf(false)
+        private set
 
     var currentUser by mutableStateOf<FirebaseUser?>(null)
         private set
@@ -36,27 +48,23 @@ class AuthViewModel(
     var sessionChecked by mutableStateOf(false)
         private set
 
-    /** Display name: uses Firebase displayName for admin, saved name for students */
+    /** Display name: uses Firebase displayName, saved name, or email prefix */
     val displayName: String
         get() {
-            // First try Firebase displayName (usually set for admins/Google users)
             val fbName = currentUser?.displayName?.takeIf { it.isNotBlank() }
             if (!fbName.isNullOrBlank()) return fbName
-            
-            // Then try Firestore saved name (for students)
+
             val fsName = firestoreUserName?.takeIf { it.isNotBlank() }
             if (!fsName.isNullOrBlank()) return fsName
-            
-            // If we have an email, extract the name part (before @)
+
             val emailPart = (currentUser?.email ?: firestoreUserEmail)?.takeIf { it.isNotBlank() }
             if (!emailPart.isNullOrBlank()) {
                 val namePart = emailPart.substringBefore("@")
-                // Capitalize first letter of each word
                 return namePart.split(".").joinToString(" ") { word ->
                     word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
                 }
             }
-            
+
             return "User"
         }
 
@@ -64,43 +72,66 @@ class AuthViewModel(
         restoreSession()
     }
 
-    private fun restoreSession() {
+    fun restoreSession() {
         viewModelScope.launch {
             try {
-                // --- 1. Try Firebase Auth first (admin / Google users) ---
+                // 1. Read persistent onboarding state
+                val onboardingDone = dataStoreManager.isOnboardingCompleted()
+                isOnboardingCompleted = onboardingDone
+
+                // 2. Check Firebase Auth session (official secure persistence)
                 val firebaseUser = authRepository.getCurrentUser()
                 if (firebaseUser != null) {
                     currentUser = firebaseUser
-                    val role = withTimeoutOrNull(5000L) {
+                    val savedSession = withContext(Dispatchers.IO) {
+                        dataStoreManager.getSavedSession()
+                    }
+
+                    // Attempt role fetch with safe fallback (NEVER sign out if role lookup fails)
+                    val fetchedRole = withTimeoutOrNull(3000L) {
                         withContext(Dispatchers.IO) {
-                            authRepository.getUserRole(firebaseUser.uid)
+                            try {
+                                authRepository.getUserRole(firebaseUser.uid)
+                            } catch (_: Exception) { null }
                         }
                     }
-                    if (role != null) {
-                        userRole = role
-                        val name = firebaseUser.displayName
-                            ?: withTimeoutOrNull(3000L) {
-                                withContext(Dispatchers.IO) {
+
+                    val role = fetchedRole ?: savedSession?.role ?: "user"
+                    userRole = role
+
+                    val name = firebaseUser.displayName?.takeIf { it.isNotBlank() }
+                        ?: savedSession?.name?.takeIf { it.isNotBlank() }
+                        ?: withTimeoutOrNull(2000L) {
+                            withContext(Dispatchers.IO) {
+                                try {
                                     authRepository.getUserNameByUid(firebaseUser.uid)
-                                }
+                                } catch (_: Exception) { null }
                             }
-                            ?: "Admin"
-                        firestoreUserName = name
-                        dataStoreManager.saveSession(
-                            email = firebaseUser.email ?: "",
-                            role = role,
-                            name = name
-                        )
-                        sessionChecked = true
-                        return@launch
-                    } else {
-                        Log.w("AuthViewModel", "Role fetch failed for Firebase user, clearing")
-                        try { authRepository.signOut() } catch (_: Exception) {}
-                        currentUser = null
+                        }
+                        ?: firebaseUser.email?.substringBefore("@")
+                        ?: "User"
+
+                    firestoreUserName = name
+                    firestoreUserEmail = firebaseUser.email
+
+                    // Persist session metadata
+                    dataStoreManager.saveSession(
+                        email = firebaseUser.email ?: "",
+                        role = role,
+                        name = name
+                    )
+
+                    if (!onboardingDone) {
+                        dataStoreManager.setOnboardingCompleted(true)
+                        isOnboardingCompleted = true
                     }
+
+                    sessionChecked = true
+                    authState = AuthState.Authenticated(role, name, firebaseUser.email ?: "")
+                    return@launch
                 }
 
-                // --- 2. No Firebase user - check saved Firestore session (students) ---
+                // 3. Fallback to saved local session in DataStore
                 val savedSession = withContext(Dispatchers.IO) {
                     dataStoreManager.getSavedSession()
                 }
@@ -109,24 +140,34 @@ class AuthViewModel(
                     firestoreUserName = savedSession.name.ifBlank { null }
                     userRole = savedSession.role
                     currentUser = null
-                    Log.d("AuthViewModel", "Restored session for ${savedSession.name} (${savedSession.email})")
+
+                    if (!onboardingDone) {
+                        dataStoreManager.setOnboardingCompleted(true)
+                        isOnboardingCompleted = true
+                    }
+
                     sessionChecked = true
+                    authState = AuthState.Authenticated(savedSession.role, savedSession.name, savedSession.email)
                     return@launch
                 }
 
-                // --- 3. No session at all - show login ---
+                // 4. Truly unauthenticated
                 currentUser = null
                 userRole = null
                 firestoreUserEmail = null
                 firestoreUserName = null
-
+                authState = AuthState.Unauthenticated
             } catch (e: Exception) {
-                Log.e("AuthViewModel", "Session restore failed", e)
-                try { authRepository.signOut() } catch (_: Exception) {}
-                currentUser = null
-                userRole = null
-                firestoreUserEmail = null
-                firestoreUserName = null
+                Log.e("AuthViewModel", "Session restore error", e)
+                val saved = try { dataStoreManager.getSavedSession() } catch (_: Exception) { null }
+                if (saved != null) {
+                    firestoreUserEmail = saved.email
+                    firestoreUserName = saved.name.ifBlank { null }
+                    userRole = saved.role
+                    authState = AuthState.Authenticated(saved.role, saved.name, saved.email)
+                } else {
+                    authState = AuthState.Unauthenticated
+                }
             } finally {
                 sessionChecked = true
             }
@@ -139,21 +180,28 @@ class AuthViewModel(
             val result = authRepository.login(email, pass)
             if (result.isSuccess) {
                 val loginResult = result.getOrNull()!!
-                userRole = loginResult.role
+                val role = loginResult.role
+                userRole = role
                 val firebaseUser = authRepository.getCurrentUser()
                 currentUser = firebaseUser
-                firestoreUserName = loginResult.name
-                firestoreUserEmail = null // All users now have Firebase Auth
-                // Save session with name for persistence
+                val name = loginResult.name.ifBlank {
+                    firebaseUser?.displayName ?: email.substringBefore("@")
+                }
+                firestoreUserName = name
+                firestoreUserEmail = firebaseUser?.email ?: email
+
+                // Persist session
                 dataStoreManager.saveSession(
                     email = email,
-                    role = loginResult.role,
-                    name = loginResult.name
+                    role = role,
+                    name = name
                 )
-                onResult(Result.success(loginResult.role))
+                dataStoreManager.setOnboardingCompleted(true)
+                isOnboardingCompleted = true
+
+                authState = AuthState.Authenticated(role, name, email)
+                onResult(Result.success(role))
             } else {
-                firestoreUserEmail = null
-                firestoreUserName = null
                 onResult(Result.failure(result.exceptionOrNull() ?: Exception("Login failed")))
             }
             isLoading = false
@@ -168,15 +216,25 @@ class AuthViewModel(
             if (result.isSuccess) {
                 currentUser = authRepository.getCurrentUser()
                 userRole = "user"
-                firestoreUserEmail = null // All users now have Firebase Auth
+                firestoreUserEmail = email
                 firestoreUserName = name
                 dataStoreManager.saveSession(email = email, role = "user", name = name)
+                dataStoreManager.setOnboardingCompleted(true)
+                isOnboardingCompleted = true
+                authState = AuthState.Authenticated("user", name, email)
                 onResult(Result.success(Unit))
             } else {
                 onResult(Result.failure(result.exceptionOrNull() ?: Exception("Registration failed")))
             }
             isLoading = false
             sessionChecked = true
+        }
+    }
+
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            dataStoreManager.setOnboardingCompleted(true)
+            isOnboardingCompleted = true
         }
     }
 
@@ -189,6 +247,7 @@ class AuthViewModel(
         userRole = null
         firestoreUserEmail = null
         firestoreUserName = null
+        authState = AuthState.Unauthenticated
         sessionChecked = true
     }
 
@@ -202,7 +261,7 @@ class AuthViewModel(
     }
 
     fun checkUserSessionIfNeeded() {
-        if ((currentUser != null || firestoreUserEmail != null) && userRole == null) {
+        if (authState is AuthState.Initializing) {
             restoreSession()
         }
     }

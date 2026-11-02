@@ -35,7 +35,10 @@ Developed by **ZAYA CODE HUB**.
 * **Local Database**: Room persistence (`AiZayaDatabase`) for offline notes, flashcards, study planner, and chat history
 * **Networking**: Retrofit 2 + OkHttp 4 with UTF-8 JSON parsing
 * **Voice Engine**: Real-time speech recognition via Android `SpeechRecognizer` + low-latency `TextToSpeech` playback
-* **Authentication**: Firebase Authentication + Google Sign-In + Biometric app lock
+* **Authentication & Persistence**: Firebase Authentication with resilient offline DataStore session restoration, zero-flicker startup splash flow, and persistent user sessions across app closures.
+* **3-Slide Interactive Onboarding**: First-time user onboarding carousel showcasing AI Intelligence, Academic Suite, and Voice Tutor with smooth indicator dots and skip capabilities.
+* **Redesigned Auth Suite**: Modern elevated card container, segmented `[ Sign In | Create Account ]` tab switcher, real-time 5-factor password strength indicators (8+ chars, uppercase, lowercase, numbers, symbols), and reset password experience.
+* **Biometric Security**: Biometric fingerprint / device lock integration.
 
 ---
 
@@ -73,6 +76,8 @@ ZAYA_APP/
 ├── app/                                    # Android Application Module
 │   ├── src/main/java/com/zayaai/app/       # Kotlin Compose Screens & Components
 │   │   ├── AIChatScreen.kt                 # Modern AI chat interface & suggestions
+│   │   ├── AuthScreens.kt                  # Modern Sign In, Register & Password Validation
+│   │   ├── OnboardingScreen.kt             # 3-slide interactive onboarding experience
 │   │   ├── HomeScreen.kt                   # 3D robot hero card & 3-column tool catalog
 │   │   ├── MainActivity.kt                 # Navigation graph & elevated taskbar
 │   │   ├── VoiceAssistantScreen.kt         # Real-time voice AI & tutor mode

@@ -32,6 +32,7 @@ class DataStoreManager(private val context: Context) {
         val LOGGED_IN_ROLE = stringPreferencesKey("logged_in_role")
         val LOGGED_IN_NAME = stringPreferencesKey("logged_in_name")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data
@@ -127,6 +128,21 @@ class DataStoreManager(private val context: Context) {
             preferences.remove(LOGGED_IN_EMAIL)
             preferences.remove(LOGGED_IN_ROLE)
             preferences.remove(LOGGED_IN_NAME)
+        }
+    }
+
+    suspend fun setOnboardingCompleted(completed: Boolean = true) {
+        context.dataStore.edit { preferences ->
+            preferences[ONBOARDING_COMPLETED] = completed
+        }
+    }
+
+    suspend fun isOnboardingCompleted(): Boolean {
+        return try {
+            val prefs = context.dataStore.data.catch { emit(emptyPreferences()) }.first()
+            prefs[ONBOARDING_COMPLETED] ?: false
+        } catch (_: Exception) {
+            false
         }
     }
 
