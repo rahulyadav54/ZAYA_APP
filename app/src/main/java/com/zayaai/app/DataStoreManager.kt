@@ -33,6 +33,8 @@ class DataStoreManager(private val context: Context) {
         val LOGGED_IN_NAME = stringPreferencesKey("logged_in_name")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val BRAIN_GAME_HINTS = intPreferencesKey("brain_game_hints")
+        val BRAIN_GAME_XP = intPreferencesKey("brain_game_xp")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data
@@ -161,6 +163,35 @@ class DataStoreManager(private val context: Context) {
         } catch (e: Exception) {
             null
         }
+    }
+
+    val brainGameHintsFlow: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs -> prefs[BRAIN_GAME_HINTS] ?: 5 }
+
+    val brainGameXpFlow: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs -> prefs[BRAIN_GAME_XP] ?: 120 }
+
+    suspend fun addHints(count: Int) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[BRAIN_GAME_HINTS] ?: 5
+            prefs[BRAIN_GAME_HINTS] = current + count
+            val currentXp = prefs[BRAIN_GAME_XP] ?: 120
+            prefs[BRAIN_GAME_XP] = currentXp + (count * 25)
+        }
+    }
+
+    suspend fun useHint(): Boolean {
+        var used = false
+        context.dataStore.edit { prefs ->
+            val current = prefs[BRAIN_GAME_HINTS] ?: 5
+            if (current > 0) {
+                prefs[BRAIN_GAME_HINTS] = current - 1
+                used = true
+            }
+        }
+        return used
     }
 }
 

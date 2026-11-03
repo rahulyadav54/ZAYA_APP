@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zayaai.app.ui.theme.LocalIsDarkTheme
 import com.zayaai.app.ui.theme.NeonCyan
+import com.zayaai.app.ads.BannerAdCard
 import com.zayaai.app.ui.theme.NeonPurple
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -427,6 +428,9 @@ fun MathChallengeScreen(paddingValues: PaddingValues) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Play Again", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                BannerAdCard()
             }
         }
     }

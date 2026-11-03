@@ -17,6 +17,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zayaai.app.ui.theme.NeonCyan
+import android.app.Activity
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.zayaai.app.ads.BannerAdCard
+import com.zayaai.app.ads.RewardedAdManager
 import kotlinx.coroutines.delay
 
 private val wordBank = listOf(
@@ -47,6 +52,10 @@ fun WordScrambleScreen(paddingValues: PaddingValues) {
     var timeLeft by remember { mutableIntStateOf(120) }
     var showError by remember { mutableStateOf(false) }
     var usedWords by remember { mutableStateOf(setOf<String>()) }
+    val context = LocalContext.current
+    val activity = context as? Activity
+    var extraHintsGranted by remember { mutableIntStateOf(0) }
+    val maxAllowedHints = 3 + extraHintsGranted
 
     fun scrambleWord(word: String): String {
         var result = word.toList().shuffled().joinToString("")
@@ -73,10 +82,21 @@ fun WordScrambleScreen(paddingValues: PaddingValues) {
     }
 
     fun getHint() {
-        if (hintsUsed < 3) {
+        if (hintsUsed < maxAllowedHints) {
             val revealCount = (hintsUsed + 1).coerceAtMost(currentWord.length / 2)
             hint = currentWord.take(revealCount) + "_".repeat(currentWord.length - revealCount)
             hintsUsed++
+        } else if (activity != null) {
+            RewardedAdManager.show(
+                activity = activity,
+                onUserEarnedReward = {
+                    extraHintsGranted += 3
+                    Toast.makeText(context, "🎉 +3 Hints Unlocked!", Toast.LENGTH_SHORT).show()
+                },
+                onAdFailedToShow = {
+                    Toast.makeText(context, "Sponsor ad loading, try again in a moment.", Toast.LENGTH_SHORT).show()
+                }
+            )
         }
     }
 
@@ -270,14 +290,17 @@ fun WordScrambleScreen(paddingValues: PaddingValues) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Hint button
+                    // Hint button with dynamic AdMob reward replenishment
                     OutlinedButton(
                         onClick = { getHint() },
                         modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        enabled = hintsUsed < 3
+                        shape = RoundedCornerShape(14.dp)
                     ) {
-                        Text("💡 Hint (${3 - hintsUsed})", fontWeight = FontWeight.Bold)
+                        if (hintsUsed < maxAllowedHints) {
+                            Text("💡 Hint (${maxAllowedHints - hintsUsed})", fontWeight = FontWeight.Bold)
+                        } else {
+                            Text("💡 +3 Hints (Ad)", fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                        }
                     }
 
                     // Skip
@@ -345,6 +368,9 @@ fun WordScrambleScreen(paddingValues: PaddingValues) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Play Again", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                BannerAdCard()
             }
         }
     }
