@@ -1,0 +1,11 @@
+{
+  "name": "ai-zaya-events-hub",
+  "version": "1.0.0",
+  "description": "AI ZAYA Events Hub Organizer and Admin Operations Portal",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": ["ai-zaya", "events", "hackathons", "organizer-portal"],
+  "author": "ZAYA CODE HUB",
+  "license": "MIT"
+}

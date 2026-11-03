@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "name": "ai-zaya-events-hub",
+  "framework": null,
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
