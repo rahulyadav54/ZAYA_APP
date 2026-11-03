@@ -1262,21 +1262,27 @@
           currentUserRole = role;
           loginSuccess(email, role);
         } else {
-          // Fallback auth
-          currentUserRole = "SUPER_ADMIN";
-          loginSuccess(email, "SUPER_ADMIN");
-        }
-      } catch (err) {
-        console.warn("Auth error:", err);
-        // Fallback for bootstrap admin setup
-        if (email.toLowerCase().includes("admin") && password.length >= 6) {
-          currentUserRole = "SUPER_ADMIN";
-          loginSuccess(email, "SUPER_ADMIN");
-        } else {
-          showLoginAlert(err.message || "Invalid administrator credentials.", 'error');
+          showLoginAlert("Firebase Auth service is not ready. Please check internet connection.", 'error');
           btn.disabled = false;
           btn.innerHTML = `<span>Sign In to Dashboard</span><i class="fa-solid fa-arrow-right text-xs"></i>`;
         }
+      } catch (err) {
+        console.warn("Firebase Auth error:", err);
+        let errorMsg = "Invalid administrator credentials.";
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          errorMsg = "Account not found or password incorrect. Please verify this user is added in your Firebase Console Authentication.";
+        } else if (err.code === 'auth/wrong-password') {
+          errorMsg = "Incorrect password. Please enter the password you created in Firebase Console.";
+        } else if (err.code === 'auth/invalid-email') {
+          errorMsg = "Please enter a valid email address format.";
+        } else if (err.code === 'auth/too-many-requests') {
+          errorMsg = "Access temporarily blocked due to repeated failed attempts. Please wait a few minutes.";
+        } else if (err.message) {
+          errorMsg = err.message;
+        }
+        showLoginAlert(errorMsg, 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<span>Sign In to Dashboard</span><i class="fa-solid fa-arrow-right text-xs"></i>`;
       }
     }
 
