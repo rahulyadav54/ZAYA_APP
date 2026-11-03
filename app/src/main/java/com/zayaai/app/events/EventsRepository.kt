@@ -2,6 +2,7 @@ package com.zayaai.app.events
 
 import android.content.Context
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -13,8 +14,16 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
+/**
+ * Production-ready Events Repository for AI ZAYA.
+ * Communicates directly with Firebase Firestore for real-time events,
+ * registrations, digital ticket tokens, and verified credentials.
+ */
 class EventsRepository(private val context: Context) {
     private val db: FirebaseFirestore = Firebase.firestore
     private val auth = Firebase.auth
@@ -27,7 +36,14 @@ class EventsRepository(private val context: Context) {
     }
 
     fun getCurrentUserName(): String {
-        return auth.currentUser?.displayName ?: "AI ZAYA Developer"
+        val user = auth.currentUser
+        return if (!user?.displayName.isNullOrBlank()) {
+            user!!.displayName!!
+        } else if (!user?.email.isNullOrBlank()) {
+            user!!.email!!.substringBefore("@")
+        } else {
+            "AI ZAYA User"
+        }
     }
 
     fun getCurrentUserEmail(): String {
@@ -35,16 +51,15 @@ class EventsRepository(private val context: Context) {
     }
 
     /**
-     * Stream events from Firestore with fallback to rich seed data.
+     * Stream published events in real-time from Firestore.
+     * Returns empty list if no events are published (no fake fallback).
      */
     fun getEventsFlow(): Flow<List<EventItem>> = callbackFlow {
-        val initialSeed = EventsSeedData.getInitialEvents()
-        trySend(initialSeed)
-
         val listener = db.collection("events")
+            .whereEqualTo("published", true)
             .addSnapshotListener { snapshot, error ->
                 if (error != null || snapshot == null || snapshot.isEmpty) {
-                    trySend(initialSeed)
+                    trySend(emptyList())
                     return@addSnapshotListener
                 }
 
@@ -55,19 +70,14 @@ class EventsRepository(private val context: Context) {
                         null
                     }
                 }
-
-                if (remoteEvents.isNotEmpty()) {
-                    trySend(remoteEvents)
-                } else {
-                    trySend(initialSeed)
-                }
+                trySend(remoteEvents)
             }
 
         awaitClose { listener.remove() }
     }.flowOn(Dispatchers.IO)
 
     /**
-     * Get a single event by ID.
+     * Get a single event by ID from Firestore.
      */
     suspend fun getEventById(eventId: String): EventItem? = withContext(Dispatchers.IO) {
         try {
@@ -75,15 +85,16 @@ class EventsRepository(private val context: Context) {
             if (doc.exists()) {
                 doc.toObject(EventItem::class.java)?.copy(id = doc.id)
             } else {
-                EventsSeedData.getInitialEvents().firstOrNull { it.id == eventId }
+                null
             }
         } catch (_: Exception) {
-            EventsSeedData.getInitialEvents().firstOrNull { it.id == eventId }
+            null
         }
     }
 
     /**
      * Register a participant or team for an event.
+     * Enforces deadline validation, capacity validation, and duplicate prevention.
      */
     suspend fun registerForEvent(
         event: EventItem,
@@ -102,17 +113,52 @@ class EventsRepository(private val context: Context) {
         val userName = getCurrentUserName()
         val userEmail = getCurrentUserEmail()
 
-        // Generate clean unique Registration ID
-        val randomNum = (10000..99999).random()
-        val regId = "ZAYA-EVT-$randomNum"
-        val ticketId = "TCK-$randomNum"
+        // 1. Deadline validation
+        if (event.registrationDeadline > 0 && System.currentTimeMillis() > event.registrationDeadline) {
+            return@withContext Result.failure(IllegalStateException("Registration deadline has passed for this event."))
+        }
 
-        // Generate secure opaque token for QR ticket verification
-        val rawData = "$regId:${event.id}:$userId:${System.currentTimeMillis()}:zaya_secure_salt"
+        // 2. Capacity validation
+        if (event.capacity > 0 && event.registeredCount >= event.capacity) {
+            return@withContext Result.failure(IllegalStateException("This event has reached full capacity."))
+        }
+
+        // 3. Duplicate check in Firestore
+        try {
+            val existing = db.collection("events").document(event.id)
+                .collection("registrations")
+                .whereEqualTo("userId", userId)
+                .get().await()
+
+            if (!existing.isEmpty) {
+                val existingReg = existing.documents.first().toObject(EventRegistration::class.java)
+                if (existingReg != null) {
+                    localRegistrations.removeAll { it.registrationId == existingReg.registrationId }
+                    localRegistrations.add(existingReg)
+                    return@withContext Result.success(existingReg)
+                }
+            }
+        } catch (_: Exception) {}
+
+        // Check local duplicate
+        val localExisting = localRegistrations.firstOrNull { it.eventId == event.id && it.userId == userId }
+        if (localExisting != null) {
+            return@withContext Result.success(localExisting)
+        }
+
+        // Generate genuine unique registration ID and secure SHA-256 QR token
+        val regId = "EVT-${UUID.randomUUID().toString().take(8).uppercase()}"
+        val ticketId = "TCK-${UUID.randomUUID().toString().take(8).uppercase()}"
+
+        val rawTokenPayload = "$regId:${event.id}:$userId:${System.currentTimeMillis()}:${UUID.randomUUID()}"
         val qrToken = MessageDigest.getInstance("SHA-256")
-            .digest(rawData.toByteArray())
+            .digest(rawTokenPayload.toByteArray())
             .joinToString("") { "%02x".format(it) }
-            .take(32)
+
+        // If team registration, generate or use team code
+        val effectiveTeamCode = if (isTeam) {
+            teamCode?.ifBlank { null } ?: "TEAM-${UUID.randomUUID().toString().take(6).uppercase()}"
+        } else null
 
         val registration = EventRegistration(
             registrationId = regId,
@@ -121,17 +167,17 @@ class EventsRepository(private val context: Context) {
             userId = userId,
             userName = userName,
             userEmail = userEmail,
-            userPhone = auth.currentUser?.phoneNumber ?: "+91 98765 00000",
-            college = college.ifBlank { "University Institute of Technology" },
-            department = department.ifBlank { "Computer Science & Engineering" },
-            yearOfStudy = yearOfStudy.ifBlank { "3rd Year" },
-            skills = skills.ifBlank { "Android, Kotlin, AI, Cloud" },
-            githubUrl = githubUrl,
-            linkedinUrl = linkedinUrl,
+            userPhone = auth.currentUser?.phoneNumber ?: "",
+            college = college.trim(),
+            department = department.trim(),
+            yearOfStudy = yearOfStudy.trim(),
+            skills = skills.trim(),
+            githubUrl = githubUrl.trim(),
+            linkedinUrl = linkedinUrl.trim(),
             isTeam = isTeam,
-            teamName = if (isTeam) (teamName?.ifBlank { "Team ZAYA" } ?: "Team ZAYA") else null,
-            teamCode = teamCode,
-            isTeamLeader = isTeam && teamCode == null,
+            teamName = if (isTeam) (teamName?.trim()?.ifBlank { "Team $userName" } ?: "Team $userName") else null,
+            teamCode = effectiveTeamCode,
+            isTeamLeader = isTeam && teamCode.isNullOrBlank(),
             teamMembers = if (isTeam) listOf(userName) else emptyList(),
             answers = customAnswers,
             status = "Approved",
@@ -140,25 +186,28 @@ class EventsRepository(private val context: Context) {
             timestamp = System.currentTimeMillis()
         )
 
-        // Store locally immediately
-        localRegistrations.removeAll { it.eventId == event.id && it.userId == userId }
-        localRegistrations.add(registration)
-
-        // Also push to Firestore if online
+        // Save to Firestore
         try {
             db.collection("events").document(event.id)
                 .collection("registrations").document(regId).set(registration).await()
             db.collection("users").document(userId)
                 .collection("event_registrations").document(regId).set(registration).await()
+
+            // Increment registeredCount on the event
+            db.collection("events").document(event.id)
+                .update("registeredCount", FieldValue.increment(1))
         } catch (_: Exception) {
-            // Keep local persistence if offline
+            // Keep in local cache if offline
         }
+
+        localRegistrations.removeAll { it.eventId == event.id && it.userId == userId }
+        localRegistrations.add(registration)
 
         Result.success(registration)
     }
 
     /**
-     * Get registrations for current user.
+     * Get real registrations for current user.
      */
     fun getUserRegistrationsFlow(): Flow<List<EventRegistration>> = callbackFlow {
         val userId = getCurrentUserId()
@@ -201,13 +250,19 @@ class EventsRepository(private val context: Context) {
     /**
      * Cancel an active registration.
      */
-    suspend fun cancelRegistration(registrationId: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun cancelRegistration(registrationId: String, eventId: String = ""): Boolean = withContext(Dispatchers.IO) {
         val userId = getCurrentUserId()
         localRegistrations.removeAll { it.registrationId == registrationId }
 
         try {
             db.collection("users").document(userId)
                 .collection("event_registrations").document(registrationId).delete().await()
+            if (eventId.isNotBlank()) {
+                db.collection("events").document(eventId)
+                    .collection("registrations").document(registrationId).delete().await()
+                db.collection("events").document(eventId)
+                    .update("registeredCount", FieldValue.increment(-1))
+            }
             true
         } catch (_: Exception) {
             true
@@ -215,44 +270,87 @@ class EventsRepository(private val context: Context) {
     }
 
     /**
-     * Check-in attendee by QR token.
+     * Real Check-in verification of attendee by QR token.
+     * Prevents duplicate check-ins and updates Firestore.
      */
     suspend fun verifyAndCheckInTicket(token: String): AttendanceScanResult = withContext(Dispatchers.IO) {
-        val reg = localRegistrations.firstOrNull { it.qrSecurityToken.equals(token, ignoreCase = true) || it.registrationId.equals(token, ignoreCase = true) }
-            ?: EventsSeedData.getInitialEvents().firstOrNull()?.let {
-                // If scanned a demo or test QR code, produce a valid sample check-in
-                EventRegistration(
-                    registrationId = "ZAYA-EVT-78241",
-                    eventId = it.id,
-                    eventTitle = it.title,
-                    userId = "user_demo",
-                    userName = "Rahul Kumar Yadav",
-                    userEmail = "rahul@zayacodehub.in",
-                    college = "Indian Institute of Information Technology",
-                    status = "Approved",
-                    qrSecurityToken = token,
-                    ticketId = "TCK-78241"
-                )
+        val cleanToken = token.trim()
+        if (cleanToken.isBlank()) {
+            return@withContext AttendanceScanResult(false, "Invalid QR ticket data.")
+        }
+
+        try {
+            // Search in Firestore across registrations by qrSecurityToken
+            val snapshot = db.collectionGroup("registrations")
+                .whereEqualTo("qrSecurityToken", cleanToken)
+                .get().await()
+
+            val doc = if (!snapshot.isEmpty) {
+                snapshot.documents.first()
+            } else {
+                val byTicketId = db.collectionGroup("registrations")
+                    .whereEqualTo("ticketId", cleanToken)
+                    .get().await()
+                if (!byTicketId.isEmpty) byTicketId.documents.first() else null
             }
 
-        if (reg == null) {
-            return@withContext AttendanceScanResult(false, "Invalid QR Ticket. No active registration found.")
+            if (doc == null) {
+                // Check local registrations cache
+                val localReg = localRegistrations.firstOrNull {
+                    it.qrSecurityToken.equals(cleanToken, ignoreCase = true) ||
+                            it.ticketId.equals(cleanToken, ignoreCase = true) ||
+                            it.registrationId.equals(cleanToken, ignoreCase = true)
+                }
+
+                if (localReg == null) {
+                    return@withContext AttendanceScanResult(false, "Invalid QR Ticket. No active registration record found on the server.")
+                }
+
+                if (localReg.attended) {
+                    val timeStr = SimpleDateFormat("hh:mm a, dd MMM", Locale.getDefault()).format(Date(localReg.attendedAt ?: System.currentTimeMillis()))
+                    return@withContext AttendanceScanResult(false, "Ticket already checked in at $timeStr. Duplicate check-in prevented.", localReg)
+                }
+
+                val updated = localReg.copy(attended = true, attendedAt = System.currentTimeMillis())
+                localRegistrations.removeAll { it.registrationId == localReg.registrationId }
+                localRegistrations.add(updated)
+                return@withContext AttendanceScanResult(true, "Check-in verified successfully for ${updated.userName}!", updated)
+            }
+
+            val reg = doc.toObject(EventRegistration::class.java)
+                ?: return@withContext AttendanceScanResult(false, "Error reading ticket registration record.")
+
+            if (reg.attended) {
+                val timeStr = SimpleDateFormat("hh:mm a, dd MMM", Locale.getDefault()).format(Date(reg.attendedAt ?: System.currentTimeMillis()))
+                return@withContext AttendanceScanResult(false, "Ticket already checked in at $timeStr. Duplicate check-in blocked.", reg)
+            }
+
+            if (reg.status != "Approved") {
+                return@withContext AttendanceScanResult(false, "Ticket is not approved. Current status: ${reg.status}", reg)
+            }
+
+            // Real server-side attendance update
+            val attendedAt = System.currentTimeMillis()
+            doc.reference.update(mapOf("attended" to true, "attendedAt" to attendedAt)).await()
+
+            try {
+                db.collection("users").document(reg.userId)
+                    .collection("event_registrations").document(reg.registrationId)
+                    .update(mapOf("attended" to true, "attendedAt" to attendedAt)).await()
+            } catch (_: Exception) {}
+
+            val updatedReg = reg.copy(attended = true, attendedAt = attendedAt)
+            localRegistrations.removeAll { it.registrationId == reg.registrationId }
+            localRegistrations.add(updatedReg)
+
+            AttendanceScanResult(true, "Attendance recorded successfully for ${updatedReg.userName} (${updatedReg.eventTitle})!", updatedReg)
+        } catch (e: Exception) {
+            AttendanceScanResult(false, "Server verification failed: ${e.localizedMessage ?: "Network error"}")
         }
-
-        if (reg.attended) {
-            return@withContext AttendanceScanResult(false, "Ticket already checked in at ${java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(reg.attendedAt ?: System.currentTimeMillis()))}.", reg)
-        }
-
-        // Mark attended
-        val updated = reg.copy(attended = true, attendedAt = System.currentTimeMillis())
-        localRegistrations.removeAll { it.registrationId == reg.registrationId }
-        localRegistrations.add(updated)
-
-        AttendanceScanResult(true, "Attendance recorded successfully for ${updated.userName}!", updated)
     }
 
     /**
-     * Toggle bookmark/saved event.
+     * Bookmark management.
      */
     fun toggleBookmark(eventId: String): Boolean {
         return if (localBookmarks.contains(eventId)) {
@@ -268,39 +366,30 @@ class EventsRepository(private val context: Context) {
         return localBookmarks.contains(eventId)
     }
 
-    fun getBookmarkedEvents(): List<EventItem> {
-        val all = EventsSeedData.getInitialEvents()
-        return all.filter { localBookmarks.contains(it.id) }
-    }
-
     /**
-     * Certificates flow.
+     * Real Certificates stream from Firestore.
+     * Returns empty list if no certificates issued yet.
      */
     fun getCertificatesFlow(): Flow<List<EventCertificate>> = callbackFlow {
-        val sampleCerts = listOf(
-            EventCertificate(
-                certificateId = "CERT-ZAYA-2026-9041",
-                eventId = "evt_zaya_hackathon_2026",
-                eventTitle = "AI ZAYA National Hackathon 2026",
-                participantName = getCurrentUserName(),
-                type = "Winner - 1st Place",
-                issueDate = System.currentTimeMillis() - 86400000L * 15,
-                organizer = "ZAYA CODE HUB",
-                verificationUrl = "https://admin.zayacodehub.in/verify/CERT-ZAYA-2026-9041"
-            ),
-            EventCertificate(
-                certificateId = "CERT-ZAYA-2026-4821",
-                eventId = "evt_codestorm_2026",
-                eventTitle = "CodeStorm Competitive Coding League",
-                participantName = getCurrentUserName(),
-                type = "Participation & Excellence",
-                issueDate = System.currentTimeMillis() - 86400000L * 30,
-                organizer = "ZAYA Competitive Programming Club",
-                verificationUrl = "https://admin.zayacodehub.in/verify/CERT-ZAYA-2026-4821"
-            )
-        )
-        trySend(sampleCerts)
-        awaitClose {}
+        val userId = getCurrentUserId()
+        val listener = db.collection("event_certificates")
+            .whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null || snapshot.isEmpty) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val certs = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        doc.toObject(EventCertificate::class.java)?.copy(certificateId = doc.id)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                trySend(certs)
+            }
+
+        awaitClose { listener.remove() }
     }.flowOn(Dispatchers.IO)
 }
-

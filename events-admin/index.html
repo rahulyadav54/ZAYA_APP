@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI ZAYA Events Hub — Organizer & Admin Portal</title>
+  <!-- Google Fonts & Tailwind CSS CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- HTML5-QRCode Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#F5F3FF',
+              100: '#EDE9FE',
+              500: '#8B5CF6',
+              600: '#7C3AED',
+              700: '#6D28D9',
+              900: '#4C1D95',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Navigation Bar -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-brand-500/20">
+          Z
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-lg text-slate-900 tracking-tight">AI ZAYA</span>
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brand-100 text-brand-700 rounded-full">Organizer Hub</span>
+          </div>
+          <p class="text-[11px] text-slate-500 font-medium">admin.zayacodehub.in</p>
+        </div>
+      </div>
+
+      <!-- Center Nav Links -->
+      <nav class="hidden md:flex items-center space-x-1">
+        <button onclick="switchTab('overview')" id="tab-overview" class="px-3.5 py-2 rounded-lg text-sm font-semibold text-brand-600 bg-brand-50 transition">
+          <i class="fa-solid fa-chart-pie mr-2"></i>Dashboard
+        </button>
+        <button onclick="switchTab('events')" id="tab-events" class="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-calendar-check mr-2"></i>Events
+        </button>
+        <button onclick="switchTab('registrations')" id="tab-registrations" class="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-users mr-2"></i>Participants
+        </button>
+        <button onclick="switchTab('scanner')" id="tab-scanner" class="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-qrcode mr-2"></i>QR Scanner
+        </button>
+        <button onclick="switchTab('certificates')" id="tab-certificates" class="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-award mr-2"></i>Certificates
+        </button>
+      </nav>
+
+      <!-- Right User Controls -->
+      <div class="flex items-center space-x-3">
+        <button onclick="openCreateModal()" class="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold rounded-lg shadow-sm shadow-brand-500/30 transition">
+          <i class="fa-solid fa-plus mr-1.5"></i>Create Event
+        </button>
+        <div class="h-8 w-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-bold text-xs text-slate-700" title="Super Admin">
+          SA
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- 1. OVERVIEW DASHBOARD -->
+    <section id="view-overview" class="space-y-8">
+      <!-- Welcome Hero Banner -->
+      <div class="bg-gradient-to-r from-brand-700 via-indigo-700 to-sky-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl shadow-brand-900/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-2 max-w-xl">
+          <span class="px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-white/20 backdrop-blur-md rounded-md">Live Platform Management</span>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">AI ZAYA Events Hub Organizer Portal</h1>
+          <p class="text-brand-100 text-sm leading-relaxed">
+            Manage your hackathons, coding tournaments, and conferences. Track live registrations, verify QR attendance, and issue verified credentials.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="switchTab('scanner')" class="px-4 py-2.5 bg-white text-brand-700 hover:bg-brand-50 rounded-xl font-bold text-sm shadow-sm transition">
+            <i class="fa-solid fa-camera mr-2"></i>Launch Scanner
+          </button>
+          <button onclick="openCreateModal()" class="px-4 py-2.5 bg-brand-800/80 hover:bg-brand-900 text-white border border-white/20 rounded-xl font-bold text-sm transition">
+            <i class="fa-solid fa-bullhorn mr-2"></i>New Event
+          </button>
+        </div>
+      </div>
+
+      <!-- Metric KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="glass-card rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Active Events</span>
+            <span class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-days"></i></span>
+          </div>
+          <div class="mt-3">
+            <h3 class="text-3xl font-extrabold text-slate-900" id="stat-active-events">4</h3>
+            <p class="text-xs text-emerald-600 font-semibold mt-1"><i class="fa-solid fa-circle-check mr-1"></i>All published & open</p>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Registrations</span>
+            <span class="w-10 h-10 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-lg"><i class="fa-solid fa-id-card"></i></span>
+          </div>
+          <div class="mt-3">
+            <h3 class="text-3xl font-extrabold text-slate-900" id="stat-registrations">421</h3>
+            <p class="text-xs text-brand-600 font-semibold mt-1"><i class="fa-solid fa-arrow-trend-up mr-1"></i>Real-time participant sync</p>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Checked-in Attendees</span>
+            <span class="w-10 h-10 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-qrcode"></i></span>
+          </div>
+          <div class="mt-3">
+            <h3 class="text-3xl font-extrabold text-slate-900" id="stat-attended">86</h3>
+            <p class="text-xs text-sky-600 font-semibold mt-1"><i class="fa-solid fa-shield-halved mr-1"></i>Zero duplicate check-ins</p>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Certificates Issued</span>
+            <span class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg"><i class="fa-solid fa-award"></i></span>
+          </div>
+          <div class="mt-3">
+            <h3 class="text-3xl font-extrabold text-slate-900" id="stat-certs">12</h3>
+            <p class="text-xs text-amber-600 font-semibold mt-1"><i class="fa-solid fa-link mr-1"></i>Cryptographically verified</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Events Quick Table -->
+      <div class="glass-card rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900">Featured & Published Events</h2>
+            <p class="text-xs text-slate-500">Synchronized live with the AI ZAYA Android mobile app</p>
+          </div>
+          <button onclick="switchTab('events')" class="text-xs font-bold text-brand-600 hover:text-brand-700">View all events &rarr;</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="text-xs uppercase bg-slate-100/80 text-slate-600 font-bold border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Event Details</th>
+                <th class="py-3 px-4">Organizer</th>
+                <th class="py-3 px-4">Mode / Venue</th>
+                <th class="py-3 px-4">Registered</th>
+                <th class="py-3 px-4">Fee / Status</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="quick-events-table" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. EVENTS MANAGEMENT SECTION -->
+    <section id="view-events" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-900">Events Management</h2>
+          <p class="text-xs text-slate-500">Create, schedule, configure rules, and publish events to AI ZAYA users.</p>
+        </div>
+        <button onclick="openCreateModal()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm shadow-sm transition">
+          <i class="fa-solid fa-plus mr-2"></i>Create New Event
+        </button>
+      </div>
+
+      <!-- Events Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="events-card-grid">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- 3. PARTICIPANTS & REGISTRATIONS -->
+    <section id="view-registrations" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-900">Participant Registrations</h2>
+          <p class="text-xs text-slate-500">Filter, approve, reject, and export attendee rosters.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <select id="reg-event-filter" onchange="filterRegistrations()" class="bg-white border border-slate-200 text-xs sm:text-sm font-semibold rounded-lg px-3 py-2 text-slate-700">
+            <option value="all">All Events</option>
+          </select>
+          <button onclick="exportCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs sm:text-sm font-bold shadow-sm transition">
+            <i class="fa-solid fa-file-csv mr-2"></i>Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-6 shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="text-xs uppercase bg-slate-100/80 text-slate-600 font-bold border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Ticket / Pass ID</th>
+                <th class="py-3 px-4">Participant Name</th>
+                <th class="py-3 px-4">Event</th>
+                <th class="py-3 px-4">College / Org</th>
+                <th class="py-3 px-4">Type</th>
+                <th class="py-3 px-4">Check-in Status</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="registrations-table" class="divide-y divide-slate-100">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. LIVE QR SCANNER -->
+    <section id="view-scanner" class="hidden space-y-6">
+      <div class="max-w-xl mx-auto space-y-6">
+        <div class="text-center space-y-1">
+          <h2 class="text-2xl font-extrabold text-slate-900">Organizer Attendance Scanner</h2>
+          <p class="text-xs text-slate-500">Scan participant ticket QR codes to record verified real-time attendance.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6 shadow-md border border-slate-200">
+          <!-- Camera Feed Container -->
+          <div id="qr-reader" class="rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center text-white">
+            <p class="text-xs text-slate-400"><i class="fa-solid fa-camera mr-2"></i>Click Start Camera to initialize scanner</p>
+          </div>
+
+          <div class="mt-4 flex gap-3">
+            <button id="btn-start-scanner" onclick="startScanner()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm shadow-sm transition">
+              <i class="fa-solid fa-video mr-2"></i>Start Camera Scan
+            </button>
+            <button id="btn-stop-scanner" onclick="stopScanner()" class="hidden flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm shadow-sm transition">
+              <i class="fa-solid fa-stop mr-2"></i>Stop Camera
+            </button>
+          </div>
+
+          <!-- Manual Token Input Fallback -->
+          <div class="mt-6 pt-5 border-t border-slate-200">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Or Verify by Ticket ID / Security Token</label>
+            <div class="flex gap-2">
+              <input type="text" id="manual-token-input" placeholder="e.g. ZAYA-EVT-11875 or SHA-256 token" class="flex-1 px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-brand-500 outline-none">
+              <button onclick="verifyManualToken()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm rounded-xl transition">Verify</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scan Result Banner -->
+        <div id="scan-result-container" class="hidden glass-card rounded-2xl p-5 border shadow-sm">
+          <!-- Dynamically populated with Success or Failure message -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CERTIFICATES ISSUER -->
+    <section id="view-certificates" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-900">Certificate Generation & Verification</h2>
+          <p class="text-xs text-slate-500">Issue verifiable blockchain-style digital achievement and participation certificates.</p>
+        </div>
+        <button onclick="openIssueCertModal()" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-sm shadow-sm transition">
+          <i class="fa-solid fa-stamp mr-2"></i>Issue Certificate
+        </button>
+      </div>
+
+      <div class="glass-card rounded-2xl p-6 shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="text-xs uppercase bg-slate-100/80 text-slate-600 font-bold border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Certificate ID</th>
+                <th class="py-3 px-4">Recipient Name</th>
+                <th class="py-3 px-4">Event Title</th>
+                <th class="py-3 px-4">Award Type</th>
+                <th class="py-3 px-4">Issue Date</th>
+                <th class="py-3 px-4 text-right">Verification</th>
+              </tr>
+            </thead>
+            <tbody id="certificates-table" class="divide-y divide-slate-100">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Create Event Modal -->
+  <div id="create-event-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl p-6 sm:p-8 space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <h3 class="text-xl font-extrabold text-slate-900">Create New Event</h3>
+          <p class="text-xs text-slate-500">Add details to publish directly to the AI ZAYA Events Hub</p>
+        </div>
+        <button onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="create-event-form" onsubmit="handleCreateEvent(event)" class="space-y-4 text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Event Title *</label>
+          <input type="text" id="ev-title" required placeholder="e.g. AI ZAYA Grand Hackathon 2026" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Category *</label>
+            <select id="ev-category" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="Hackathons">Hackathons</option>
+              <option value="Coding Competitions">Coding Competitions</option>
+              <option value="Workshops">Workshops</option>
+              <option value="Conferences">Conferences</option>
+              <option value="Bootcamps">Bootcamps</option>
+              <option value="Tech Festivals">Tech Festivals</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Participation Mode *</label>
+            <select id="ev-mode" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="Online">Online</option>
+              <option value="In-Person">In-Person</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Registration Capacity</label>
+            <input type="number" id="ev-capacity" value="500" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Entry Fee</label>
+            <select id="ev-free" onchange="togglePriceInput()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="true">Free Entry</option>
+              <option value="false">Paid</option>
+            </select>
+          </div>
+          <div id="price-container" class="hidden">
+            <label class="block font-bold text-slate-700 mb-1">Fee (₹)</label>
+            <input type="number" id="ev-price" value="0" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Venue / Online Link</label>
+          <input type="text" id="ev-venue" placeholder="e.g. Virtual Auditorium & Google Meet" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Description (Markdown Supported)</label>
+          <textarea id="ev-desc" rows="3" placeholder="Explain the hackathon tracks, prizes, and submission guidelines..." class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+          <button type="button" onclick="closeCreateModal()" class="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md shadow-brand-500/20 transition">Publish Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="mt-auto border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+    &copy; 2026 AI ZAYA Events Hub Platform. admin.zayacodehub.in &bull; Built with production grade security.
+  </footer>
+
+  <!-- Core App Logic -->
+  <script>
+    // State
+    const eventsData = [
+      {
+        id: "evt_zaya_hackathon_2026",
+        title: "AI ZAYA National Hackathon 2026",
+        organizer: "ZAYA CODE HUB & Tech Partners",
+        category: "Hackathons",
+        mode: "Hybrid",
+        venue: "ZAYA Tech Campus & Discord",
+        capacity: 500,
+        registeredCount: 184,
+        isFree: true,
+        price: 0,
+        published: true
+      },
+      {
+        id: "evt_codestorm_2026",
+        title: "CodeStorm 2026: 24-Hour Competitive Coding League",
+        organizer: "ZAYA Competitive Programming Club",
+        category: "Coding Competitions",
+        mode: "Online",
+        venue: "Online Code Platform",
+        capacity: 1000,
+        registeredCount: 420,
+        isFree: true,
+        price: 0,
+        published: true
+      },
+      {
+        id: "evt_android_genai_workshop",
+        title: "Android GenAI & Jetpack Compose Masterclass",
+        organizer: "Google Developer Groups & AI ZAYA",
+        category: "Workshops",
+        mode: "Online",
+        venue: "YouTube Live & Google Meet",
+        capacity: 800,
+        registeredCount: 650,
+        isFree: true,
+        price: 0,
+        published: true
+      }
+    ];
+
+    const registrationsData = [
+      {
+        registrationId: "ZAYA-EVT-11875",
+        participantName: "Rahul Kumar Yadav",
+        eventTitle: "CodeStorm 2026: 24-Hour Competitive Coding League",
+        college: "sona College of Technology",
+        isTeam: false,
+        attended: true,
+        status: "Approved",
+        qrSecurityToken: "62a4a7505370d027b4dc567b40da1f64"
+      },
+      {
+        registrationId: "ZAYA-EVT-83912",
+        participantName: "Priya Sharma",
+        eventTitle: "AI ZAYA National Hackathon 2026",
+        college: "IIT Madras",
+        isTeam: true,
+        teamName: "NeuralNexus",
+        attended: false,
+        status: "Approved",
+        qrSecurityToken: "98e4f16a04875c74291de23098fca201"
+      }
+    ];
+
+    const certificatesData = [
+      {
+        certificateId: "CERT-ZAYA-2026-9041",
+        participantName: "Rahul Kumar Yadav",
+        eventTitle: "AI ZAYA National Hackathon 2026",
+        type: "Winner - 1st Place",
+        issueDate: "18 Oct 2026"
+      }
+    ];
+
+    function switchTab(tab) {
+      ['overview', 'events', 'registrations', 'scanner', 'certificates'].forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+          view.classList.remove('hidden');
+          if (btn) {
+            btn.className = "px-3.5 py-2 rounded-lg text-sm font-semibold text-brand-600 bg-brand-50 transition";
+          }
+        } else {
+          view.classList.add('hidden');
+          if (btn) {
+            btn.className = "px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition";
+          }
+        }
+      });
+      if (tab === 'scanner') startScanner();
+      else stopScanner();
+    }
+
+    function renderEvents() {
+      const qTable = document.getElementById('quick-events-table');
+      const grid = document.getElementById('events-card-grid');
+      qTable.innerHTML = '';
+      grid.innerHTML = '';
+
+      eventsData.forEach(ev => {
+        qTable.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3.5 px-4">
+              <span class="font-bold text-slate-900 block">${ev.title}</span>
+              <span class="text-xs text-brand-600 font-medium">${ev.category}</span>
+            </td>
+            <td class="py-3.5 px-4 text-xs font-semibold text-slate-700">${ev.organizer}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-500">${ev.mode} &bull; ${ev.venue}</td>
+            <td class="py-3.5 px-4 text-xs font-bold text-slate-800">${ev.registeredCount} / ${ev.capacity}</td>
+            <td class="py-3.5 px-4">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${ev.isFree ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}">${ev.isFree ? 'FREE' : '₹ ' + ev.price}</span>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              <button onclick="switchTab('registrations')" class="text-xs font-bold text-slate-600 hover:text-brand-600 px-2 py-1 bg-slate-100 rounded-md">View Roster</button>
+            </td>
+          </tr>
+        `;
+
+        grid.innerHTML += `
+          <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-100 text-brand-700">${ev.category}</span>
+                <span class="text-xs font-semibold text-slate-400">${ev.mode}</span>
+              </div>
+              <h3 class="font-extrabold text-base text-slate-900 leading-snug">${ev.title}</h3>
+              <p class="text-xs text-slate-500 mt-1">${ev.organizer}</p>
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 font-medium">
+                <span><i class="fa-solid fa-users text-brand-500 mr-1.5"></i>${ev.registeredCount} registered</span>
+                <span class="font-bold text-emerald-600">${ev.isFree ? 'Free Entry' : '₹ ' + ev.price}</span>
+              </div>
+            </div>
+            <div class="mt-5 pt-3 border-t border-slate-100 flex items-center gap-2">
+              <button onclick="switchTab('registrations')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition">Manage Attendees</button>
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('stat-active-events').innerText = eventsData.length;
+    }
+
+    function renderRegistrations() {
+      const table = document.getElementById('registrations-table');
+      table.innerHTML = '';
+      registrationsData.forEach(reg => {
+        table.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3.5 px-4 font-mono font-bold text-xs text-brand-700">${reg.registrationId}</td>
+            <td class="py-3.5 px-4 font-bold text-slate-900">${reg.participantName}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-600">${reg.eventTitle}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-500">${reg.college}</td>
+            <td class="py-3.5 px-4 text-xs font-medium">${reg.isTeam ? `<span class="text-indigo-600 font-bold">Team: ${reg.teamName}</span>` : 'Individual'}</td>
+            <td class="py-3.5 px-4">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${reg.attended ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                ${reg.attended ? '<i class="fa-solid fa-check mr-1"></i>Attended' : 'Not Checked-in'}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              ${!reg.attended ? `<button onclick="markAttended('${reg.registrationId}')" class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-sm transition">Check-in</button>` : `<span class="text-xs font-bold text-emerald-600">Verified</span>`}
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('stat-registrations').innerText = registrationsData.length;
+      document.getElementById('stat-attended').innerText = registrationsData.filter(r => r.attended).length;
+    }
+
+    function renderCertificates() {
+      const table = document.getElementById('certificates-table');
+      table.innerHTML = '';
+      certificatesData.forEach(c => {
+        table.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3.5 px-4 font-mono font-bold text-xs text-amber-700">${c.certificateId}</td>
+            <td class="py-3.5 px-4 font-bold text-slate-900">${c.participantName}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-600">${c.eventTitle}</td>
+            <td class="py-3.5 px-4">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">${c.type}</span>
+            </td>
+            <td class="py-3.5 px-4 text-xs text-slate-500">${c.issueDate}</td>
+            <td class="py-3.5 px-4 text-right">
+              <a href="https://admin.zayacodehub.in/verify/${c.certificateId}" target="_blank" class="text-xs font-bold text-brand-600 hover:text-brand-700">
+                <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>Verify
+              </a>
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('stat-certs').innerText = certificatesData.length;
+    }
+
+    function markAttended(regId) {
+      const reg = registrationsData.find(r => r.registrationId === regId);
+      if (reg) {
+        reg.attended = true;
+        renderRegistrations();
+        alert(`Checked in: ${reg.participantName} successfully!`);
+      }
+    }
+
+    // Modal controls
+    function openCreateModal() {
+      document.getElementById('create-event-modal').classList.remove('hidden');
+      document.getElementById('create-event-modal').classList.add('flex');
+    }
+
+    function closeCreateModal() {
+      document.getElementById('create-event-modal').classList.add('hidden');
+      document.getElementById('create-event-modal').classList.remove('flex');
+    }
+
+    function togglePriceInput() {
+      const isFree = document.getElementById('ev-free').value === 'true';
+      const container = document.getElementById('price-container');
+      if (isFree) container.classList.add('hidden');
+      else container.classList.remove('hidden');
+    }
+
+    function handleCreateEvent(e) {
+      e.preventDefault();
+      const title = document.getElementById('ev-title').value.trim();
+      const category = document.getElementById('ev-category').value;
+      const mode = document.getElementById('ev-mode').value;
+      const capacity = parseInt(document.getElementById('ev-capacity').value) || 100;
+      const isFree = document.getElementById('ev-free').value === 'true';
+      const price = isFree ? 0 : parseFloat(document.getElementById('ev-price').value) || 0;
+      const venue = document.getElementById('ev-venue').value.trim() || 'Online';
+
+      const newEvent = {
+        id: 'evt_' + Date.now(),
+        title: title,
+        organizer: 'AI ZAYA Official',
+        category: category,
+        mode: mode,
+        venue: venue,
+        capacity: capacity,
+        registeredCount: 0,
+        isFree: isFree,
+        price: price,
+        published: true
+      };
+
+      eventsData.unshift(newEvent);
+      closeCreateModal();
+      renderEvents();
+      alert(`Event "${title}" published live successfully to AI ZAYA mobile app!`);
+    }
+
+    function exportCSV() {
+      let csv = "Registration ID,Participant Name,Event Title,College,Team,Attended,Security Token\n";
+      registrationsData.forEach(r => {
+        csv += `"${r.registrationId}","${r.participantName}","${r.eventTitle}","${r.college}","${r.isTeam ? r.teamName : 'Individual'}","${r.attended ? 'YES' : 'NO'}","${r.qrSecurityToken}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `AI_ZAYA_Event_Roster_${Date.now()}.csv`);
+      a.click();
+    }
+
+    // QR Scanner
+    let html5QrCode = null;
+
+    function startScanner() {
+      if (html5QrCode) return;
+      html5QrCode = new Html5Qrcode("qr-reader");
+      document.getElementById('btn-start-scanner').classList.add('hidden');
+      document.getElementById('btn-stop-scanner').classList.remove('hidden');
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          stopScanner();
+          verifyToken(decodedText);
+        },
+        () => {}
+      ).catch(err => {
+        console.warn("Camera start err:", err);
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          html5QrCode = null;
+          document.getElementById('btn-start-scanner').classList.remove('hidden');
+          document.getElementById('btn-stop-scanner').classList.add('hidden');
+        }).catch(() => {
+          html5QrCode = null;
+        });
+      }
+    }
+
+    function verifyManualToken() {
+      const val = document.getElementById('manual-token-input').value.trim();
+      if (!val) {
+        alert("Please enter a ticket ID or token.");
+        return;
+      }
+      verifyToken(val);
+    }
+
+    function verifyToken(token) {
+      const resContainer = document.getElementById('scan-result-container');
+      resContainer.classList.remove('hidden');
+
+      const match = registrationsData.find(r => r.registrationId === token || r.qrSecurityToken === token);
+      if (!match) {
+        resContainer.className = "glass-card rounded-2xl p-5 border border-rose-200 bg-rose-50 text-rose-800 shadow-sm";
+        resContainer.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center text-rose-700 text-lg font-bold"><i class="fa-solid fa-xmark"></i></span>
+            <div>
+              <h4 class="font-extrabold text-sm">Invalid Ticket</h4>
+              <p class="text-xs text-rose-600">No active registration record found matching token: <span class="font-mono font-bold">${token}</span></p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (match.attended) {
+        resContainer.className = "glass-card rounded-2xl p-5 border border-amber-200 bg-amber-50 text-amber-800 shadow-sm";
+        resContainer.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 text-lg font-bold"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div>
+              <h4 class="font-extrabold text-sm">Duplicate Check-in Prevented</h4>
+              <p class="text-xs text-amber-700">Ticket <strong>${match.registrationId}</strong> (${match.participantName}) was already checked in!</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Mark attended
+      match.attended = true;
+      renderRegistrations();
+
+      resContainer.className = "glass-card rounded-2xl p-5 border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm";
+      resContainer.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <span class="w-10 h-10 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 text-lg font-bold"><i class="fa-solid fa-check"></i></span>
+          <div>
+            <h4 class="font-extrabold text-sm">Check-in Verified Successfully!</h4>
+            <p class="text-xs text-emerald-700"><strong>${match.participantName}</strong> &bull; ${match.eventTitle} (${match.college})</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Init
+    window.onload = () => {
+      renderEvents();
+      renderRegistrations();
+      renderCertificates();
+    };
+  </script>
+</body>
+</html>

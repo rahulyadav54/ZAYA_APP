@@ -31,36 +31,37 @@ data class EventItem(
     val title: String = "",
     val tagline: String = "",
     val category: String = "Hackathons", // "Hackathons", "Coding Competitions", "Workshops", "Webinars", "Conferences", "Bootcamps", "Tech Festivals"
-    val organizer: String = "ZAYA CODE HUB",
+    val organizer: String = "",
     val organizerLogo: String? = null,
-    val isVerifiedOrganizer: Boolean = true,
+    val isVerifiedOrganizer: Boolean = false,
     val posterUrl: String = "",
-    val startDate: Long = System.currentTimeMillis() + 86400000L * 7,
-    val endDate: Long = System.currentTimeMillis() + 86400000L * 9,
-    val registrationDeadline: Long = System.currentTimeMillis() + 86400000L * 5,
-    val mode: String = "Hybrid", // "Online", "Offline", "Hybrid"
-    val venue: String = "ZAYA Tech Campus, Innovation Auditorium & Discord",
-    val locationUrl: String? = "https://maps.google.com/?q=Tech+Auditorium",
-    val meetingLink: String? = "https://meet.google.com/zaya-hub",
+    val startDate: Long = 0L,
+    val endDate: Long = 0L,
+    val registrationDeadline: Long = 0L,
+    val mode: String = "Online", // "Online", "In-Person", "Hybrid"
+    val venue: String = "",
+    val locationUrl: String? = null,
+    val meetingLink: String? = null,
     val isFree: Boolean = true,
     val price: Double = 0.0,
     val currency: String = "₹",
-    val prizePool: String = "₹1,50,000",
-    val eligibility: String = "Open to all students, developers, and tech enthusiasts",
+    val prizePool: String = "",
+    val eligibility: String = "",
     val minTeamSize: Int = 1,
-    val maxTeamSize: Int = 4,
-    val capacity: Int = 500,
-    val registeredCount: Int = 184,
+    val maxTeamSize: Int = 1,
+    val capacity: Int = 0, // 0 = unlimited
+    val registeredCount: Int = 0,
     val description: String = "",
     val rules: List<String> = emptyList(),
     val agenda: List<EventAgendaItem> = emptyList(),
     val faqs: List<EventFaqItem> = emptyList(),
-    val contactEmail: String = "events@zayacodehub.in",
-    val contactPhone: String? = "+91 98765 43210",
-    val websiteUrl: String? = "https://admin.zayacodehub.in",
+    val contactEmail: String = "",
+    val contactPhone: String? = null,
+    val websiteUrl: String? = null,
     val customQuestions: List<EventCustomQuestion> = emptyList(),
     val status: String = "Upcoming", // "Upcoming", "Ongoing", "Completed", "Cancelled"
-    val featured: Boolean = false
+    val featured: Boolean = false,
+    val published: Boolean = true
 )
 
 @Keep

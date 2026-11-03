@@ -319,23 +319,27 @@ fun MainScreenContent(
     ) {
         Scaffold(
             topBar = {
-                // Top App Bar directly matching reference image
-                RedesignTopBar(
-                    currentRoute = currentRoute,
-                    onOpenDrawer = onOpenDrawer,
-                    onBackClick = {
-                        val popped = navController.popBackStack()
-                        if (!popped) {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(Screen.Home.route) { inclusive = true }
+                val isEventsScreen = currentRoute == Screen.EventsHub.route ||
+                        currentRoute == Screen.EventDetail.route ||
+                        currentRoute == Screen.MyEvents.route ||
+                        currentRoute == Screen.EventScanner.route
+                if (!isEventsScreen) {
+                    RedesignTopBar(
+                        currentRoute = currentRoute,
+                        onOpenDrawer = onOpenDrawer,
+                        onBackClick = {
+                            val popped = navController.popBackStack()
+                            if (!popped) {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(Screen.Home.route) { inclusive = true }
+                                }
                             }
+                        },
+                        onNotificationClick = {
+                            navController.navigate(Screen.History.route)
                         }
-                    },
-                    onNotificationClick = {
-                        // Navigate to Announcements / History
-                        navController.navigate(Screen.History.route)
-                    }
-                )
+                    )
+                }
             },
             bottomBar = {
                 if (showBottomBar && userRole != "admin") {

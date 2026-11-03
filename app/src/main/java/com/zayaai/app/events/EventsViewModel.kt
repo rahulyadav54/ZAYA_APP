@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 class EventsViewModel(application: Application) : AndroidViewModel(application) {
     val repository = EventsRepository(application.applicationContext)
 
-    private val _events = MutableStateFlow<List<EventItem>>(EventsSeedData.getInitialEvents())
+    private val _events = MutableStateFlow<List<EventItem>>(emptyList())
     val events: StateFlow<List<EventItem>> = _events.asStateFlow()
 
     private val _registrations = MutableStateFlow<List<EventRegistration>>(emptyList())

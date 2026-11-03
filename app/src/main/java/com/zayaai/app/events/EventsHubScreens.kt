@@ -57,6 +57,7 @@ fun EventsHubScreen(
 
     var showScannerDialog by remember { mutableStateOf(false) }
     var showAiAssistantDialog by remember { mutableStateOf(false) }
+    var showNotificationDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -66,61 +67,59 @@ fun EventsHubScreen(
                     .background(if (isDark) Color(0xFF0F111E) else Color(0xFFFFFFFF))
                     .statusBarsPadding()
             ) {
-                // Header Bar
+                // Dedicated Events Hub Header (Clean responsive layout, no Pro badge)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = "Back",
-                                tint = if (isDark) Color.White else Color(0xFF0F172A)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Events Hub",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 20.sp
-                                    ),
-                                    color = if (isDark) Color.White else Color(0xFF0F172A)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Brush.linearGradient(listOf(Color(0xFF7C3AED), Color(0xFF38BDF8))))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "LIVE",
-                                        color = Color.White,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "Discover. Register. Participate. Achieve.",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                            )
-                        }
+                    // Left: Back button
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back",
+                            tint = if (isDark) Color.White else Color(0xFF0F172A),
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
 
-                    // QR Check-in scanner button (for organizers)
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Center/Left: Title & Subtitle occupying remaining space
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Events Hub",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            ),
+                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Discover. Register. Participate. Achieve.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.5.sp,
+                                lineHeight = 15.sp
+                            ),
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Right: Attendance QR Scanner Icon
                     IconButton(
                         onClick = { showScannerDialog = true },
                         modifier = Modifier
+                            .size(38.dp)
                             .clip(CircleShape)
                             .background(if (isDark) Color(0xFF1E2138) else Color(0xFFF1F5F9))
                     ) {
@@ -128,6 +127,24 @@ fun EventsHubScreen(
                             imageVector = Icons.Rounded.QrCodeScanner,
                             contentDescription = "Attendance Scanner",
                             tint = Color(0xFF7C3AED),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // Right: Notification Bell Icon
+                    IconButton(
+                        onClick = { showNotificationDialog = true },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF1E2138) else Color(0xFFF1F5F9))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.NotificationsNone,
+                            contentDescription = "Announcements",
+                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -210,6 +227,51 @@ fun EventsHubScreen(
             certificate = cert,
             onDismiss = { viewModel.selectedCertificate = null }
         )
+    }
+
+    
+    if (showNotificationDialog) {
+        Dialog(onDismissRequest = { showNotificationDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (isDark) Color(0xFF141629) else Color.White,
+                border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Campaign, contentDescription = null, tint = Color(0xFF7C3AED))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Announcements", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                        }
+                        IconButton(onClick = { showNotificationDialog = false }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.Gray)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        text = "Official updates, deadline reminders, and schedule changes from organizers will appear here in real-time.",
+                        fontSize = 13.sp,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        lineHeight = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { showNotificationDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Got it")
+                    }
+                }
+            }
+        }
     }
 
     if (showScannerDialog) {
@@ -445,13 +507,13 @@ private fun ExploreEventsTab(viewModel: EventsViewModel) {
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "No events found",
+                            text = "No events available right now.",
                             fontWeight = FontWeight.SemiBold,
                             color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Try adjusting your filters or search keywords.",
+                            text = "Check back soon or create new events from the organizer portal.",
                             fontSize = 12.sp,
                             color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
                         )
@@ -514,7 +576,7 @@ private fun SavedEventsTab(viewModel: EventsViewModel) {
         }
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(savedEvents, key = { it.id }) { event ->
@@ -569,7 +631,7 @@ private fun MyEventsTab(viewModel: EventsViewModel) {
         }
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(registrations, key = { it.registrationId }) { reg ->
@@ -591,7 +653,7 @@ private fun CertificatesTab(viewModel: EventsViewModel) {
     val certificates by viewModel.certificates.collectAsState()
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
@@ -1209,40 +1271,38 @@ private fun EventDetailsDialog(
         ) {
             Scaffold(
                 topBar = {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp)
                             .background(
                                 Brush.linearGradient(
                                     listOf(Color(0xFF7C3AED), Color(0xFF6366F1), Color(0xFF06B6D4))
                                 )
                             )
                             .statusBarsPadding()
-                            .padding(14.dp)
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
                     ) {
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.4f))
-                        ) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
-                        }
-
-                        // Category & Bookmark
                         Row(
-                            modifier = Modifier.align(Alignment.TopEnd),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.35f))
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            }
+
+                            IconButton(
                                 onClick = { viewModel.toggleBookmark(event.id) },
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.4f))
+                                    .background(Color.Black.copy(alpha = 0.35f))
                             ) {
                                 Icon(
                                     imageVector = if (viewModel.isBookmarked(event.id)) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
@@ -1252,40 +1312,43 @@ private fun EventDetailsDialog(
                             }
                         }
 
-                        // Title & Badge inside hero
-                        Column(modifier = Modifier.align(Alignment.BottomStart)) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(Color.Black.copy(alpha = 0.5f))
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = event.category.uppercase(),
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.6.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.Black.copy(alpha = 0.4f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
                             Text(
-                                text = event.title,
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
-                                ),
+                                text = event.category.uppercase(),
                                 color = Color.White,
-                                maxLines = 2
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.7.sp
                             )
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = event.title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 21.sp,
+                                lineHeight = 27.sp
+                            ),
+                            color = Color.White
+                        )
                     }
                 },
                 bottomBar = {
                     Surface(
                         color = if (isDark) Color(0xFF14162B) else Color(0xFFFFFFFF),
                         border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
                     ) {
                         Row(
                             modifier = Modifier
@@ -1294,25 +1357,36 @@ private fun EventDetailsDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f, fill = false)) {
                                 Text(
                                     text = if (event.isFree) "FREE ENTRY" else "${event.currency} ${event.price}",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = if (event.isFree) Color(0xFF10B981) else Color(0xFF6366F1)
                                 )
+                                val seatText = if (event.capacity > 0) {
+                                    "${event.registeredCount} / ${event.capacity} seats registered"
+                                } else {
+                                    "${event.registeredCount} registered"
+                                }
                                 Text(
-                                    text = "${event.registeredCount} / ${event.capacity} seats registered",
-                                    fontSize = 11.sp,
-                                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                                    text = seatText,
+                                    fontSize = 11.5.sp,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                                 )
                             }
 
-                            if (isRegistered) {
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            val userReg = viewModel.getRegistrationForEvent(event.id)
+                            val isRegistered = userReg != null
+                            val isClosed = (event.registrationDeadline > 0 && System.currentTimeMillis() > event.registrationDeadline) ||
+                                    (event.capacity > 0 && event.registeredCount >= event.capacity)
+
+                            if (isRegistered && userReg?.status == "Approved") {
                                 Button(
                                     onClick = {
-                                        val reg = viewModel.getRegistrationForEvent(event.id)
-                                        if (reg != null) viewModel.selectedTicket = reg
+                                        viewModel.selectedTicket = userReg
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                                     shape = RoundedCornerShape(12.dp)
@@ -1320,6 +1394,28 @@ private fun EventDetailsDialog(
                                     Icon(Icons.Rounded.ConfirmationNumber, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("View Ticket", fontWeight = FontWeight.Bold)
+                                }
+                            } else if (isRegistered && userReg?.status == "Pending") {
+                                Surface(
+                                    color = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f))
+                                ) {
+                                    Text(
+                                        text = "Under Review",
+                                        color = Color(0xFFD97706),
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        fontSize = 12.5.sp
+                                    )
+                                }
+                            } else if (isClosed) {
+                                Button(
+                                    onClick = {},
+                                    enabled = false,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Registration Closed", fontWeight = FontWeight.Bold)
                                 }
                             } else {
                                 Button(
@@ -1340,7 +1436,7 @@ private fun EventDetailsDialog(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Organizer Row + Ask AI Button
@@ -1694,7 +1790,7 @@ private fun EventRegistrationDialog(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     // Team vs Individual selector
