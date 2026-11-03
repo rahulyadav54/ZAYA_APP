@@ -1,12 +1,12 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,14 +20,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zayaai.app.ads.BannerAdCard
+import com.zayaai.app.ads.RewardedAdManager
 import com.zayaai.app.ui.theme.*
 
 @Composable
 fun AboutScreen(paddingValues: PaddingValues) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -93,7 +100,7 @@ fun AboutScreen(paddingValues: PaddingValues) {
         // App Information
         AboutSectionCard(title = "App Information", icon = Icons.Rounded.Info) {
             InfoRow(label = "App Name", value = "AI ZAYA")
-            InfoRow(label = "Version", value = "2.2")
+            InfoRow(label = "Version", value = "2.3.0")
             InfoRow(label = "Category", value = "AI Productivity & Learning")
             InfoRow(label = "Platform", value = "Android")
         }
@@ -138,9 +145,49 @@ fun AboutScreen(paddingValues: PaddingValues) {
             InfoRow(label = "Location", value = "Tamil Nadu, India")
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        // Support AI ZAYA (Voluntary Rewarded Ad)
+        AboutSectionCard(title = "Support AI ZAYA", icon = Icons.Rounded.CardGiftcard) {
+            Text(
+                text = "AI ZAYA provides free access to premium AI models and educational tools. You can voluntarily watch a short video to help support our cloud servers!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 20.sp
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Button(
+                onClick = {
+                    if (activity != null) {
+                        RewardedAdManager.show(
+                            activity = activity,
+                            onUserEarnedReward = { reward ->
+                                Toast.makeText(context, "Thank you for supporting AI ZAYA! ❤️", Toast.LENGTH_LONG).show()
+                            },
+                            onAdFailedToShow = { error ->
+                                Toast.makeText(context, "Ad is loading, please try again shortly.", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryPurple
+                )
+            ) {
+                Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Watch Video to Support Us", fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Adaptive Banner Ad (Unobtrusive)
+        BannerAdCard()
+
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
-            "Â© 2026 Zaya Code Hub. All rights reserved.",
+            "© 2026 Zaya Code Hub. All rights reserved.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             textAlign = TextAlign.Center,

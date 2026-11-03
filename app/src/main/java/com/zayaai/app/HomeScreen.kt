@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.zayaai.app.ads.BannerAdCard
 import com.zayaai.app.ui.theme.*
 
 // ─── Tool Item Model for 3-Column Grid ───
@@ -251,6 +252,12 @@ fun HomeScreen(
                     onToolClick = onToolClick
                 )
             }
+        }
+
+        // ─── 5. Sponsored Banner Ad ───
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            BannerAdCard()
         }
 
         // Extra Bottom Spacing for Floating / Elevated Navigation Bar

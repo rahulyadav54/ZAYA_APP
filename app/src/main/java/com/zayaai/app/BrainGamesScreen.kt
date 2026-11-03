@@ -1,5 +1,7 @@
 package com.zayaai.app
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,13 +22,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zayaai.app.ads.BannerAdCard
+import com.zayaai.app.ads.RewardedAdManager
 import com.zayaai.app.ui.theme.LocalIsDarkTheme
 import com.zayaai.app.ui.theme.NeonCyan
 import com.zayaai.app.ui.theme.NeonPurple
+import com.zayaai.app.ui.theme.PrimaryPurple
 
 data class BrainGame(
     val title: String,
@@ -44,6 +50,9 @@ fun BrainGamesScreen(
     onNavigate: (Screen) -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
+    val context = LocalContext.current
+    val activity = context as? Activity
+    var bonusEnergyCount by remember { mutableStateOf(0) }
 
     val games = listOf(
         BrainGame("Math Challenge", "Speed math with levels", Icons.Rounded.Calculate, Color(0xFF00E676), Screen.MathChallenge, "🧮", "Easy-Hard"),
@@ -126,7 +135,76 @@ fun BrainGamesScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Spacer(modifier = Modifier.height(60.dp))
+        // Voluntary Rewarded Ad Card: Earn Game Hints
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isDark) Color(0xFF1F1A3A) else Color(0xFFF5F3FF)
+            ),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isDark) Color(0xFF7C3AED).copy(alpha = 0.4f) else Color(0xFFDDD6FE)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("⚡", fontSize = 20.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (bonusEnergyCount > 0) "Bonus Energy: +$bonusEnergyCount" else "Unlock Game Hints",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Watch a quick video to unlock hints and bonus puzzle levels.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Button(
+                    onClick = {
+                        if (activity != null) {
+                            RewardedAdManager.show(
+                                activity = activity,
+                                onUserEarnedReward = { reward ->
+                                    bonusEnergyCount += reward.amount.coerceAtLeast(3)
+                                    Toast.makeText(context, "🎉 You received +${reward.amount} Game Hints!", Toast.LENGTH_LONG).show()
+                                },
+                                onAdFailedToShow = { error ->
+                                    Toast.makeText(context, "Ad loading, please retry in a moment.", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text("Watch Ad", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Bottom Adaptive Banner Ad
+        BannerAdCard()
+
+        Spacer(modifier = Modifier.height(48.dp))
     }
 }
 
@@ -159,75 +237,70 @@ fun BrainGameCard(game: BrainGame, onClick: () -> Unit) {
             width = if (isDark) 1.5.dp else 1.dp,
             brush = Brush.linearGradient(
                 listOf(
-                    game.color.copy(alpha = if (isDark) 0.6f else 0.4f),
-                    if (isDark) Color.Transparent else game.color.copy(alpha = 0.1f)
+                    game.color.copy(alpha = if (isDark) 0.5f else 0.3f),
+                    game.color.copy(alpha = if (isDark) 0.1f else 0.1f)
                 )
             )
         )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (!isDark) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(game.color.copy(alpha = 0.06f), Color.Transparent)
-                            )
-                        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Difficulty tag
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Surface(
+                    color = game.color.copy(alpha = if (isDark) 0.2f else 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = game.difficulty,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = game.color,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            // Emoji / Icon
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .graphicsLayer { translationY = yOffset }
+                    .clip(CircleShape)
+                    .background(game.color.copy(alpha = if (isDark) 0.2f else 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    game.emoji,
+                    fontSize = 28.sp
                 )
             }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .graphicsLayer { translationY = yOffset }
-                            .background(
-                                game.color.copy(alpha = if (isDark) 0.15f else 0.12f),
-                                CircleShape
-                            )
-                            .border(1.dp, game.color.copy(alpha = 0.3f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(game.emoji, fontSize = 24.sp)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    // Difficulty badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(game.color.copy(alpha = 0.12f))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            game.difficulty,
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = game.color
-                        )
-                    }
-                }
 
-                Column {
-                    Text(
-                        text = game.title,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = game.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2
-                    )
-                }
+            // Text Info
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = game.title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = game.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
             }
         }
     }

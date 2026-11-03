@@ -123,6 +123,11 @@ dependencies {
     implementation(libs.mlkit.text.recognition)
     implementation(libs.pdfbox.android)
 
+    // Google Mobile Ads (AdMob) & Consent (UMP)
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    implementation("com.google.android.ump:user-messaging-platform:3.1.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.8.7")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

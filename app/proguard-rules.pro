@@ -35,3 +35,16 @@
 -dontwarn com.gemalto.jp2.JP2Decoder
 -keep class com.tom_roush.pdfbox.** { *; }
 -dontwarn com.tom_roush.pdfbox.**
+
+
+# Google Mobile Ads (AdMob) & UMP
+-keep public class com.google.android.gms.ads.** {
+   public *;
+}
+-keep public class com.google.ads.** {
+   public *;
+}
+-keep class com.google.android.ump.** { *; }
+-dontwarn com.google.android.gms.ads.**
+-dontwarn com.google.ads.**
+-dontwarn com.google.android.ump.**

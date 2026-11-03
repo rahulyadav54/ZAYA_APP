@@ -45,6 +45,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.zayaai.app.ui.theme.*
 import com.google.firebase.FirebaseApp
+import com.zayaai.app.ads.AdMobManager
+import com.zayaai.app.ads.AppOpenAdManager
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -52,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
+        AdMobManager.initializeWithConsent(this)
         enableEdgeToEdge()
         setContent {
             val context = LocalContext.current
@@ -76,6 +79,11 @@ class MainActivity : AppCompatActivity() {
 
             var splashTimerFinished by remember { mutableStateOf(false) }
             val isSplashActive = !splashTimerFinished || authState is AuthState.Initializing
+
+            LaunchedEffect(isSplashActive, authState) {
+                AppOpenAdManager.getInstance(application).isSuppressed =
+                    isSplashActive || authState !is AuthState.Authenticated
+            }
 
             AIZAYATheme(themeMode = themeMode) {
                 Crossfade(targetState = isSplashActive, label = "splash_fade") { splashActive ->
