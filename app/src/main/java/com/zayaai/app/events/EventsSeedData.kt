@@ -26,8 +26,28 @@ object EventsSeedData {
                 price = 0.0,
                 prizePool = "₹2,50,000",
                 eligibility = "Open to all college students, developers, and tech teams across India and globally",
-                minTeamSize = 1,
-                maxTeamSize = 4,
+                registrationMode = "both",
+                minTeamSize = 2,
+                maxTeamSize = 5,
+                availableDomains = listOf(
+                    "Artificial Intelligence & Machine Learning",
+                    "Generative AI",
+                    "Web Development",
+                    "Mobile App Development",
+                    "Blockchain & Web3",
+                    "Cybersecurity",
+                    "Internet of Things (IoT)",
+                    "Robotics & Automation",
+                    "FinTech",
+                    "Healthcare Technology",
+                    "Education Technology",
+                    "Renewable Energy & Sustainability",
+                    "Agriculture Technology",
+                    "Open Innovation",
+                    "Other"
+                ),
+                allowCustomDomains = true,
+                requireProjectDetails = false,
                 capacity = 500,
                 registeredCount = 286,
                 description = """### Welcome to AI ZAYA National Hackathon 2026!
@@ -43,7 +63,7 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
 - Free cloud credits and API access.
 - Verified completion certificates for all participating teams.""",
                 rules = listOf(
-                    "Teams must consist of 1 to 4 members.",
+                    "Teams must consist of 2 to 5 members.",
                     "All code must be written during the hackathon period. Open source libraries and frameworks are permitted.",
                     "Projects must be submitted on GitHub with a 2-minute demo video.",
                     "Plagiarism or submission of previously built projects results in immediate disqualification."
@@ -58,9 +78,9 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
                 faqs = listOf(
                     EventFaqItem("Who is eligible to participate?", "Any undergraduate, postgraduate student or self-taught developer is welcome to join."),
                     EventFaqItem("Is there any registration fee?", "No! AI ZAYA Hackathon is 100% free with meals, swags, and certificates provided."),
-                    EventFaqItem("Can I participate individually?", "Yes, individual participation is supported, though forming teams of 2 to 4 is encouraged.")
+                    EventFaqItem("Can I participate individually?", "Yes, individual participation is supported, though forming teams of 2 to 5 is encouraged.")
                 ),
-                contactEmail = "hackathon@zayacodehub.in",
+                contactEmail = "zayacodehub@gmail.com",
                 contactPhone = "+91 98765 43210",
                 websiteUrl = "https://admin.zayacodehub.in/hackathon2026",
                 featured = true,
@@ -85,6 +105,7 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
                 price = 0.0,
                 prizePool = "₹75,000",
                 eligibility = "All coding enthusiasts, engineers, and students",
+                registrationMode = "individual_only",
                 minTeamSize = 1,
                 maxTeamSize = 1,
                 capacity = 1000,
@@ -109,7 +130,7 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
                     EventFaqItem("What platform is the contest hosted on?", "The contest runs on the official integrated Code Platform with real-time test cases."),
                     EventFaqItem("Is there negative marking for wrong submissions?", "Yes, wrong submissions incur a 10-minute penalty on time score.")
                 ),
-                contactEmail = "codestorm@zayacodehub.in",
+                contactEmail = "zayacodehub@gmail.com",
                 featured = true,
                 status = "Upcoming"
             ),
@@ -132,6 +153,7 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
                 price = 0.0,
                 prizePool = "Free Pro Certifications",
                 eligibility = "Developers with basic Kotlin or Android knowledge",
+                registrationMode = "individual_only",
                 minTeamSize = 1,
                 maxTeamSize = 1,
                 capacity = 300,
@@ -154,7 +176,7 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
                 faqs = listOf(
                     EventFaqItem("Will recordings be provided?", "Yes, registered attendees will get permanent access to recordings and code repositories.")
                 ),
-                contactEmail = "workshops@zayacodehub.in",
+                contactEmail = "zayacodehub@gmail.com",
                 featured = false,
                 status = "Upcoming"
             ),
@@ -177,8 +199,10 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
                 price = 0.0,
                 prizePool = "₹1,00,000 Grant Fund",
                 eligibility = "Open to developers, startup founders, and researchers",
+                registrationMode = "both",
                 minTeamSize = 1,
                 maxTeamSize = 3,
+                availableDomains = listOf("DeFi", "Infrastructure", "Layer 2", "Zero Knowledge", "NFTs & Gaming"),
                 capacity = 400,
                 registeredCount = 195,
                 description = """A 2-day conference bringing together blockchain architects, cryptography researchers, and developers. Connect with founders, participate in hands-on smart contract security audits, and pitch your decentralized app for grant funding.""",
@@ -194,11 +218,10 @@ Join hundreds of top developers, innovators, and students to build breakthrough 
                 faqs = listOf(
                     EventFaqItem("Is food provided?", "Yes, lunch and networking refreshments are provided for both days.")
                 ),
-                contactEmail = "summit@zayacodehub.in",
+                contactEmail = "zayacodehub@gmail.com",
                 featured = false,
                 status = "Upcoming"
             )
         )
     }
 }
-

@@ -80,6 +80,19 @@ class MainActivity : FragmentActivity() {
             var splashTimerFinished by remember { mutableStateOf(false) }
             val isSplashActive = !splashTimerFinished || authState is AuthState.Initializing
 
+            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+            androidx.compose.runtime.DisposableEffect(lifecycleOwner, settings.appLockEnabled) {
+                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                    if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && settings.appLockEnabled) {
+                        securityViewModel.setUnlocked(false)
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
             LaunchedEffect(isSplashActive, authState) {
                 AppOpenAdManager.getInstance(application).isSuppressed =
                     isSplashActive || authState !is AuthState.Authenticated

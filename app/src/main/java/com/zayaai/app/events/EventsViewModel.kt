@@ -134,12 +134,26 @@ class EventsViewModel(application: Application) : AndroidViewModel(application) 
         college: String,
         department: String,
         yearOfStudy: String,
-        skills: String,
-        githubUrl: String,
-        linkedinUrl: String,
+        skills: String = "",
+        githubUrl: String = "",
+        linkedinUrl: String = "",
+        teamDescription: String = "",
+        teamGithubUrl: String = "",
+        teamLinkedinUrl: String = "",
+        teamPortfolioUrl: String = "",
+        teamSize: Int = 1,
+        domain: String = "",
+        customDomain: String = "",
+        projectTitle: String = "",
+        problemStatement: String = "",
+        proposedSolution: String = "",
+        techStack: String = "",
+        projectGithubUrl: String = "",
+        projectDemoUrl: String = "",
         teamMembersDetails: List<TeamMemberInfo> = emptyList(),
         customAnswers: Map<String, String> = emptyMap(),
-        onSuccess: (EventRegistration) -> Unit
+        onSuccess: (EventRegistration) -> Unit,
+        onError: ((String) -> Unit)? = null
     ) {
         viewModelScope.launch {
             isRegistering = true
@@ -157,6 +171,19 @@ class EventsViewModel(application: Application) : AndroidViewModel(application) 
                 skills = skills,
                 githubUrl = githubUrl,
                 linkedinUrl = linkedinUrl,
+                teamDescription = teamDescription,
+                teamGithubUrl = teamGithubUrl,
+                teamLinkedinUrl = teamLinkedinUrl,
+                teamPortfolioUrl = teamPortfolioUrl,
+                teamSize = teamSize,
+                domain = domain,
+                customDomain = customDomain,
+                projectTitle = projectTitle,
+                problemStatement = problemStatement,
+                proposedSolution = proposedSolution,
+                techStack = techStack,
+                projectGithubUrl = projectGithubUrl,
+                projectDemoUrl = projectDemoUrl,
                 teamMembersDetails = teamMembersDetails,
                 customAnswers = customAnswers
             )
@@ -166,7 +193,10 @@ class EventsViewModel(application: Application) : AndroidViewModel(application) 
                 registrationSuccessMessage = "You have successfully registered for ${event.title}!"
                 selectedTicket = reg
                 onSuccess(reg)
+            }.onFailure { err ->
+                onError?.invoke(err.message ?: "Registration failed")
             }
+            return@launch
         }
     }
 

@@ -47,7 +47,7 @@ class EventsRepository(private val context: Context) {
     }
 
     fun getCurrentUserEmail(): String {
-        return auth.currentUser?.email ?: "user@zayacodehub.in"
+        return auth.currentUser?.email ?: "zayacodehub@gmail.com"
     }
 
     /**
@@ -107,9 +107,22 @@ class EventsRepository(private val context: Context) {
         college: String,
         department: String,
         yearOfStudy: String,
-        skills: String,
-        githubUrl: String,
-        linkedinUrl: String,
+        skills: String = "",
+        githubUrl: String = "",
+        linkedinUrl: String = "",
+        teamDescription: String = "",
+        teamGithubUrl: String = "",
+        teamLinkedinUrl: String = "",
+        teamPortfolioUrl: String = "",
+        teamSize: Int = 1,
+        domain: String = "",
+        customDomain: String = "",
+        projectTitle: String = "",
+        problemStatement: String = "",
+        proposedSolution: String = "",
+        techStack: String = "",
+        projectGithubUrl: String = "",
+        projectDemoUrl: String = "",
         teamMembersDetails: List<TeamMemberInfo> = emptyList(),
         customAnswers: Map<String, String> = emptyMap()
     ): Result<EventRegistration> = withContext(Dispatchers.IO) {
@@ -165,10 +178,40 @@ class EventsRepository(private val context: Context) {
             teamCode?.ifBlank { null } ?: "TEAM-${UUID.randomUUID().toString().take(6).uppercase()}"
         } else null
 
+        // Check team name uniqueness
+        if (isTeam && !teamName.isNullOrBlank()) {
+            try {
+                val dupTeam = db.collection("events").document(event.id)
+                    .collection("registrations")
+                    .whereEqualTo("teamName", teamName.trim())
+                    .get().await()
+                if (!dupTeam.isEmpty && dupTeam.documents.none { it.getString("userId") == userId }) {
+                    return@withContext Result.failure(IllegalArgumentException("Team name '${teamName.trim()}' is already registered for this event. Please choose a different name."))
+                }
+            } catch (_: Exception) {}
+        }
+
         val memberNames = if (isTeam) {
             val names = mutableListOf(resolvedUserName)
             names.addAll(teamMembersDetails.map { it.name.trim() }.filter { it.isNotBlank() })
             names
+        } else emptyList()
+
+        val fullMemberList = if (isTeam) {
+            val list = mutableListOf<TeamMemberInfo>()
+            list.add(
+                TeamMemberInfo(
+                    name = resolvedUserName,
+                    email = resolvedUserEmail,
+                    phone = resolvedUserPhone,
+                    college = college.trim(),
+                    department = department.trim(),
+                    yearOfStudy = yearOfStudy.trim(),
+                    role = "Leader"
+                )
+            )
+            list.addAll(teamMembersDetails.map { it.copy(role = "Member") })
+            list
         } else emptyList()
 
         val registration = EventRegistration(
@@ -188,9 +231,22 @@ class EventsRepository(private val context: Context) {
             isTeam = isTeam,
             teamName = if (isTeam) (teamName?.trim()?.ifBlank { "Team $resolvedUserName" } ?: "Team $resolvedUserName") else null,
             teamCode = effectiveTeamCode,
-            isTeamLeader = isTeam && teamCode.isNullOrBlank(),
+            isTeamLeader = isTeam,
+            teamDescription = teamDescription.trim(),
+            teamGithubUrl = teamGithubUrl.trim(),
+            teamLinkedinUrl = teamLinkedinUrl.trim(),
+            teamPortfolioUrl = teamPortfolioUrl.trim(),
+            teamSize = if (isTeam) (1 + teamMembersDetails.size) else 1,
+            domain = domain.trim(),
+            customDomain = customDomain.trim(),
+            projectTitle = projectTitle.trim(),
+            problemStatement = problemStatement.trim(),
+            proposedSolution = proposedSolution.trim(),
+            techStack = techStack.trim(),
+            projectGithubUrl = projectGithubUrl.trim(),
+            projectDemoUrl = projectDemoUrl.trim(),
             teamMembers = memberNames,
-            teamMembersDetails = teamMembersDetails,
+            teamMembersDetails = fullMemberList,
             answers = customAnswers,
             status = "Approved",
             ticketId = ticketId,
@@ -202,6 +258,10 @@ class EventsRepository(private val context: Context) {
         try {
             db.collection("events").document(event.id)
                 .collection("registrations").document(regId).set(registration).await()
+            if (isTeam) {
+                db.collection("events").document(event.id)
+                    .collection("teams").document(regId).set(registration).await()
+            }
             db.collection("users").document(userId)
                 .collection("event_registrations").document(regId).set(registration).await()
 

@@ -107,7 +107,7 @@
           <label class="block font-bold text-slate-700 text-xs uppercase tracking-wider mb-1.5">Admin Email</label>
           <div class="relative">
             <i class="fa-solid fa-envelope absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
-            <input type="email" id="login-email" required placeholder="admin@zayacodehub.in" class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none text-slate-800 transition text-xs sm:text-sm">
+            <input type="email" id="login-email" required placeholder="zayacodehub@gmail.com" class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none text-slate-800 transition text-xs sm:text-sm">
           </div>
         </div>
 
@@ -158,7 +158,7 @@
       </div>
       <p class="text-xs text-slate-500 leading-relaxed">Enter your registered administrator email to receive an official password reset link.</p>
       <form onsubmit="handleForgotPassword(event)" class="space-y-3">
-        <input type="email" id="reset-email" required placeholder="admin@zayacodehub.in" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <input type="email" id="reset-email" required placeholder="zayacodehub@gmail.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-brand-500">
         <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-sm transition">Send Reset Link</button>
       </form>
     </div>
@@ -606,12 +606,21 @@
         <section id="view-teams" class="hidden space-y-6">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 class="text-xl font-black text-slate-900">Registered Teams</h2>
-              <p class="text-xs text-slate-500 font-medium">Monitor team formations, codes, project submissions, and team leads.</p>
+              <h2 class="text-xl font-black text-slate-900">Registered Hackathon Teams</h2>
+              <p class="text-xs text-slate-500 font-medium">Inspect team formations, member dossiers, domain tracks, project submissions, and verification status.</p>
             </div>
-            <select id="teams-event-filter" onchange="renderTeamsView()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
-              <option value="all">All Events</option>
-            </select>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="text" id="teams-search-input" onkeyup="renderTeamsView()" placeholder="Search team, leader, member, college..." class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none w-60 focus:ring-2 focus:ring-brand-500">
+              <select id="teams-event-filter" onchange="renderTeamsView()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
+                <option value="all">All Events</option>
+              </select>
+              <select id="teams-domain-filter" onchange="renderTeamsView()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
+                <option value="all">All Domains</option>
+              </select>
+              <button onclick="exportTeamsCSV()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-file-excel mr-1"></i>Export Teams CSV
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="teams-grid">
@@ -1120,7 +1129,7 @@
       <form id="invite-admin-form" onsubmit="handleInviteAdmin(event)" class="space-y-4 text-xs sm:text-sm">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Email Address *</label>
-          <input type="email" id="invite-email" required placeholder="organizer@zayacodehub.in" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+          <input type="email" id="invite-email" required placeholder="zayacodehub@gmail.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Assigned Role *</label>
@@ -1222,7 +1231,7 @@
     let announcementsData = [];
     let auditLogsData = [];
     let adminUsersData = [
-      { email: "admin@zayacodehub.in", name: "Super Admin", role: "SUPER_ADMIN", status: "Active", addedAt: "01 Nov 2026" }
+      { email: "zayacodehub@gmail.com", name: "Super Admin", role: "SUPER_ADMIN", status: "Active", addedAt: "01 Nov 2026" }
     ];
 
     // Chart instances
@@ -1698,31 +1707,197 @@
     // ─── Teams View ───
     function renderTeamsView() {
       const grid = document.getElementById('teams-grid');
-      const filter = document.getElementById('teams-event-filter').value;
+      const eventFilter = document.getElementById('teams-event-filter').value;
+      const domainFilter = document.getElementById('teams-domain-filter') ? document.getElementById('teams-domain-filter').value : 'all';
+      const search = (document.getElementById('teams-search-input') ? document.getElementById('teams-search-input').value : '').toLowerCase().trim();
       grid.innerHTML = '';
 
-      const teams = registrationsData.filter(r => r.isTeam && (filter === 'all' || r.eventId === filter));
+      // Populate domain filter options if empty
+      const domFilterElem = document.getElementById('teams-domain-filter');
+      if (domFilterElem && domFilterElem.options.length <= 1) {
+        const uniqueDomains = new Set();
+        registrationsData.forEach(r => {
+          const d = r.domain || r.customDomain;
+          if (d) uniqueDomains.add(d);
+        });
+        uniqueDomains.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.innerText = d;
+          domFilterElem.appendChild(opt);
+        });
+      }
+
+      const teams = registrationsData.filter(r => {
+        if (!r.isTeam && !r.teamName) return false;
+        if (eventFilter !== 'all' && r.eventId !== eventFilter) return false;
+        const dom = r.domain || r.customDomain || '';
+        if (domainFilter !== 'all' && dom !== domainFilter) return false;
+        if (search) {
+          const matchTeam = (r.teamName || '').toLowerCase().includes(search);
+          const matchCode = (r.teamCode || '').toLowerCase().includes(search);
+          const matchLeader = (r.userName || '').toLowerCase().includes(search);
+          const matchEmail = (r.userEmail || '').toLowerCase().includes(search);
+          const matchCollege = (r.college || '').toLowerCase().includes(search);
+          const matchMembers = (r.teamMembers || []).some(m => m.toLowerCase().includes(search));
+          if (!matchTeam && !matchCode && !matchLeader && !matchEmail && !matchCollege && !matchMembers) return false;
+        }
+        return true;
+      });
 
       if (teams.length === 0) {
-        grid.innerHTML = `<div class="col-span-3 py-8 text-center text-slate-400 text-xs">No team registrations found for this filter.</div>`;
+        grid.innerHTML = `<div class="col-span-3 py-12 text-center text-slate-400 text-xs"><i class="fa-solid fa-users-slash text-2xl mb-2 text-slate-300"></i><br>No team registrations match your current filters.</div>`;
         return;
       }
 
       teams.forEach(t => {
+        const domain = t.domain || t.customDomain || 'General Track';
+        const membersCount = t.teamMembersDetails ? (1 + t.teamMembersDetails.length) : (t.teamMembers ? t.teamMembers.length : 1);
+        const isCheckedIn = t.attended === true;
+
         grid.innerHTML += `
-          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-sm text-slate-900">${t.teamName || 'Team'}</span>
-              <span class="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-indigo-50 text-indigo-700">${t.teamCode || 'TEAM'}</span>
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4 hover:shadow-md transition">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="font-bold text-base text-slate-900 block">${t.teamName || 'Team'}</span>
+                <span class="text-[11px] text-purple-700 font-semibold bg-purple-50 px-2 py-0.5 rounded-md inline-block mt-1">
+                  <i class="fa-solid fa-bullseye mr-1"></i>${domain}
+                </span>
+              </div>
+              <div class="text-right">
+                <span class="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-indigo-50 text-indigo-700 block">${t.teamCode || 'TEAM'}</span>
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold mt-1.5 inline-block ${isCheckedIn ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                  ${isCheckedIn ? '<i class="fa-solid fa-check mr-1"></i>Checked In' : 'Registered'}
+                </span>
+              </div>
             </div>
-            <p class="text-xs text-slate-500 font-medium">Event: ${t.eventTitle}</p>
-            <div class="pt-2 border-t border-slate-100 text-xs text-slate-600 space-y-1">
-              <div><strong class="text-slate-700">Leader:</strong> ${t.userName}</div>
-              <div><strong class="text-slate-700">College:</strong> ${t.college || 'N/A'}</div>
+
+            <p class="text-xs text-slate-500 font-medium line-clamp-1"><i class="fa-solid fa-calendar mr-1 text-slate-400"></i>${t.eventTitle}</p>
+
+            <div class="pt-3 border-t border-slate-100 text-xs text-slate-600 space-y-1.5 bg-slate-50/70 p-3 rounded-xl">
+              <div class="flex items-center justify-between">
+                <div><strong class="text-slate-800">👑 Leader:</strong> ${t.userName}</div>
+                <span class="text-[10px] font-bold text-slate-500">${membersCount} Members</span>
+              </div>
+              <div><strong class="text-slate-800">🏛️ College:</strong> ${t.college || 'N/A'}</div>
+              ${t.projectTitle ? `<div><strong class="text-slate-800">💡 Project:</strong> <span class="text-purple-700 font-medium">${t.projectTitle}</span></div>` : ''}
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="openTeamDossier('${t.registrationId}')" class="flex-1 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl transition text-center">
+                <i class="fa-solid fa-id-card mr-1.5"></i>View Dossier
+              </button>
+              <button onclick="toggleCheckIn('${t.registrationId}')" class="px-3 py-2 ${isCheckedIn ? 'bg-amber-50 hover:bg-amber-100 text-amber-700' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'} font-bold text-xs rounded-xl transition" title="Toggle Check-in">
+                <i class="fa-solid ${isCheckedIn ? 'fa-rotate-left' : 'fa-check'}"></i>
+              </button>
             </div>
           </div>
         `;
       });
+    }
+
+    function openTeamDossier(regId) {
+      const t = registrationsData.find(r => r.registrationId === regId);
+      if (!t) return;
+
+      document.getElementById('dossier-team-code').innerText = t.teamCode || 'TEAM';
+      document.getElementById('dossier-team-name').innerText = t.teamName || 'Team';
+      document.getElementById('dossier-event-name').innerText = t.eventTitle;
+      document.getElementById('dossier-domain').innerText = t.domain || t.customDomain || 'General Track';
+      document.getElementById('dossier-status').innerText = t.attended ? 'Checked In' : (t.status || 'Approved');
+      document.getElementById('dossier-status').className = `px-3 py-1 rounded-full text-xs font-bold ${t.attended ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`;
+      
+      const count = t.teamMembersDetails ? (1 + t.teamMembersDetails.length) : 1;
+      document.getElementById('dossier-size').innerText = `${count} Total Members`;
+
+      // Project Concept
+      const projBox = document.getElementById('dossier-project-box');
+      if (t.projectTitle || t.problemStatement) {
+        projBox.classList.remove('hidden');
+        document.getElementById('dossier-project-title').innerText = t.projectTitle || 'Untitled Innovation Concept';
+        document.getElementById('dossier-problem').innerText = t.problemStatement ? 'Problem: ' + t.problemStatement : '';
+        document.getElementById('dossier-solution').innerText = t.proposedSolution ? 'Solution: ' + t.proposedSolution : '';
+        document.getElementById('dossier-tech-stack').innerText = t.techStack ? 'Tech Stack: ' + t.techStack : 'Stack: Not specified';
+        
+        let linksHtml = '';
+        if (t.projectGithubUrl || t.githubUrl) linksHtml += `<a href="${t.projectGithubUrl || t.githubUrl}" target="_blank" class="px-2.5 py-1 bg-slate-900 text-white rounded-lg text-xs font-semibold"><i class="fa-brands fa-github mr-1"></i>GitHub</a>`;
+        if (t.projectDemoUrl) linksHtml += `<a href="${t.projectDemoUrl}" target="_blank" class="px-2.5 py-1 bg-brand-600 text-white rounded-lg text-xs font-semibold"><i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>Live Demo</a>`;
+        document.getElementById('dossier-links').innerHTML = linksHtml;
+      } else {
+        projBox.classList.add('hidden');
+      }
+
+      // Members List
+      const mList = document.getElementById('dossier-members-list');
+      mList.innerHTML = '';
+
+      // Leader
+      mList.innerHTML += `
+        <div class="p-3 rounded-xl bg-purple-50/80 border border-purple-200/80 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-xs text-purple-950">👑 ${t.userName} <span class="font-semibold text-purple-700">(Team Leader)</span></span>
+            <span class="text-[10px] font-mono text-purple-700">${t.department || ''} (${t.yearOfStudy || ''})</span>
+          </div>
+          <div class="text-[11px] text-slate-600 flex flex-wrap gap-x-4">
+            <span><i class="fa-solid fa-envelope text-slate-400 mr-1"></i>${t.userEmail}</span>
+            <span><i class="fa-solid fa-phone text-slate-400 mr-1"></i>${t.userPhone || 'N/A'}</span>
+          </div>
+          <div class="text-[11px] text-slate-600"><i class="fa-solid fa-school text-slate-400 mr-1"></i>${t.college}</div>
+        </div>
+      `;
+
+      // Other Members
+      if (t.teamMembersDetails && t.teamMembersDetails.length > 0) {
+        t.teamMembersDetails.forEach((m, idx) => {
+          mList.innerHTML += `
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-xs text-slate-900">👤 Member ${idx + 2}: ${m.name}</span>
+                <span class="text-[10px] font-mono text-slate-600">${m.department || ''} (${m.yearOfStudy || ''})</span>
+              </div>
+              <div class="text-[11px] text-slate-600 flex flex-wrap gap-x-4">
+                <span><i class="fa-solid fa-envelope text-slate-400 mr-1"></i>${m.email}</span>
+                <span><i class="fa-solid fa-phone text-slate-400 mr-1"></i>${m.phone || 'N/A'}</span>
+              </div>
+              <div class="text-[11px] text-slate-600"><i class="fa-solid fa-school text-slate-400 mr-1"></i>${m.college || t.college}</div>
+            </div>
+          `;
+        });
+      }
+
+      document.getElementById('team-dossier-modal').classList.remove('hidden');
+      document.getElementById('team-dossier-modal').classList.add('flex');
+    }
+
+    function closeTeamDossierModal() {
+      document.getElementById('team-dossier-modal').classList.add('hidden');
+      document.getElementById('team-dossier-modal').classList.remove('flex');
+    }
+
+    function exportTeamsCSV() {
+      let csv = "Team Name,Team Code,Event,Domain,Leader Name,Leader Email,Leader Phone,College,Department,Year,Project Title,Tech Stack,Members Count,All Members,CheckIn Status\n";
+      const teams = registrationsData.filter(r => r.isTeam || r.teamName);
+      teams.forEach(t => {
+        const dom = t.domain || t.customDomain || 'General';
+        const leader = (t.userName || '').replace(/"/g, '""');
+        const email = t.userEmail || '';
+        const phone = t.userPhone || '';
+        const col = (t.college || '').replace(/"/g, '""');
+        const dept = (t.department || '').replace(/"/g, '""');
+        const year = t.yearOfStudy || '';
+        const proj = (t.projectTitle || '').replace(/"/g, '""');
+        const stack = (t.techStack || '').replace(/"/g, '""');
+        const mCount = t.teamMembersDetails ? (1 + t.teamMembersDetails.length) : (t.teamMembers ? t.teamMembers.length : 1);
+        const membersList = (t.teamMembers || []).join('; ').replace(/"/g, '""');
+        const status = t.attended ? 'Checked In' : (t.status || 'Approved');
+        csv += `"${t.teamName || ''}","${t.teamCode || ''}","${t.eventTitle}","${dom}","${leader}","${email}","${phone}","${col}","${dept}","${year}","${proj}","${stack}","${mCount}","${membersList}","${status}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ZAYATHON_Registered_Teams_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
     }
 
     // ─── Certificates Table ───
@@ -2138,7 +2313,7 @@
       const entry = {
         action: action,
         details: details,
-        actor: currentUser ? currentUser.email : "admin@zayacodehub.in",
+        actor: currentUser ? currentUser.email : "zayacodehub@gmail.com",
         timestamp: Date.now()
       };
       auditLogsData.unshift(entry);
@@ -2453,6 +2628,54 @@
   <div id="part-details-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl p-6 sm:p-7 space-y-4 border border-slate-100">
       <div id="part-details-content" class="space-y-4"></div>
+    </div>
+  </div>
+
+
+  <!-- Team Dossier Modal -->
+  <div id="team-dossier-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <span id="dossier-team-code" class="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-indigo-50 text-indigo-700">TEAM-CODE</span>
+          <h3 id="dossier-team-name" class="text-lg font-black text-slate-900 mt-1">Team Name</h3>
+          <p id="dossier-event-name" class="text-xs text-slate-500">Event</p>
+        </div>
+        <button onclick="closeTeamDossierModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Domain & Status -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="dossier-domain" class="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">Track</span>
+        <span id="dossier-status" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Checked In</span>
+        <span id="dossier-size" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">4 Members</span>
+      </div>
+
+      <!-- Project Concept -->
+      <div id="dossier-project-box" class="bg-slate-50 rounded-2xl p-4 border border-slate-200/70 space-y-2">
+        <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wider"><i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>Project Concept</h4>
+        <div id="dossier-project-title" class="text-sm font-bold text-slate-900">Project Title</div>
+        <div id="dossier-problem" class="text-xs text-slate-600">Problem</div>
+        <div id="dossier-solution" class="text-xs text-slate-600">Solution</div>
+        <div id="dossier-tech-stack" class="text-[11px] font-mono text-purple-700 bg-purple-50 p-2 rounded-lg">Tech Stack</div>
+        <div id="dossier-links" class="flex gap-2 pt-1"></div>
+      </div>
+
+      <!-- Members Roster -->
+      <div class="space-y-3">
+        <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wider"><i class="fa-solid fa-users text-brand-600 mr-1.5"></i>Team Members Roster</h4>
+        <div id="dossier-members-list" class="space-y-2.5">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <button onclick="closeTeamDossierModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl">
+          Close Dossier
+        </button>
+      </div>
     </div>
   </div>
 

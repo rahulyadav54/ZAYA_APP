@@ -25,7 +25,7 @@ import com.zayaai.app.ui.theme.LocalIsDarkTheme
 fun SidebarHeader(userName: String, userEmail: String) {
     val isDark = LocalIsDarkTheme.current
     val displayName = if (userName.isNotBlank() && !userName.equals("User", ignoreCase = true)) userName else "AI Explorer"
-    val displayEmail = if (userEmail.isNotBlank()) userEmail else "user@zayaai.com"
+    val displayEmail = if (userEmail.isNotBlank()) userEmail else "zayacodehub@gmail.com"
 
     Box(
         modifier = Modifier

@@ -2038,58 +2038,109 @@ private fun EventRegistrationDialog(
     val context = LocalContext.current
     val isDark = LocalIsDarkTheme.current
 
-    var isTeam by remember { mutableStateOf(event.maxTeamSize > 1) }
-    var userName by remember { mutableStateOf("") }
-    var userEmail by remember { mutableStateOf("") }
-    var userPhone by remember { mutableStateOf("") }
-    var college by remember { mutableStateOf("") }
-    var department by remember { mutableStateOf("") }
-    var yearOfStudy by remember { mutableStateOf("3rd Year") }
-    var skills by remember { mutableStateOf("") }
-    var githubUrl by remember { mutableStateOf("") }
-    var linkedinUrl by remember { mutableStateOf("") }
+    // Step state: 1 = Team Info, 2 = Team Members, 3 = Domain, 4 = Project Info, 5 = Review & Submit
+    var currentStep by remember { mutableIntStateOf(1) }
+    val totalSteps = 5
 
-    // Team Details
+    // Registration Mode
+    var isTeam by remember {
+        mutableStateOf(event.registrationMode != "individual_only")
+    }
+
+    // Step 1: Team Info
     var teamName by remember { mutableStateOf("") }
-    var teamCode by remember { mutableStateOf("") }
-    var teamSize by remember { mutableIntStateOf(if (event.minTeamSize > 2) event.minTeamSize else 2) }
+    var teamDescription by remember { mutableStateOf("") }
+    var teamGithubUrl by remember { mutableStateOf("") }
+    var teamLinkedinUrl by remember { mutableStateOf("") }
+    var teamPortfolioUrl by remember { mutableStateOf("") }
+    var targetTeamSize by remember {
+        mutableIntStateOf(
+            if (event.minTeamSize >= 2) event.minTeamSize.coerceAtMost(event.maxTeamSize) else 2.coerceAtMost(event.maxTeamSize)
+        )
+    }
 
-    // Member 2
-    var member2Name by remember { mutableStateOf("") }
-    var member2Email by remember { mutableStateOf("") }
-    var member2Phone by remember { mutableStateOf("") }
-    var member2Dept by remember { mutableStateOf("") }
-    var member2Year by remember { mutableStateOf("3rd Year") }
+    // Step 2: Leader Details
+    var leaderName by remember { mutableStateOf("") }
+    var leaderEmail by remember { mutableStateOf("") }
+    var leaderPhone by remember { mutableStateOf("") }
+    var leaderCollege by remember { mutableStateOf("") }
+    var leaderDept by remember { mutableStateOf("") }
+    var leaderYear by remember { mutableStateOf("3rd Year") }
 
-    // Member 3
-    var member3Name by remember { mutableStateOf("") }
-    var member3Email by remember { mutableStateOf("") }
-    var member3Phone by remember { mutableStateOf("") }
-    var member3Dept by remember { mutableStateOf("") }
-    var member3Year by remember { mutableStateOf("3rd Year") }
+    // Dynamic Teammates List
+    val teammates = remember { mutableStateListOf<TeamMemberInfo>() }
 
-    // Member 4
-    var member4Name by remember { mutableStateOf("") }
-    var member4Email by remember { mutableStateOf("") }
-    var member4Phone by remember { mutableStateOf("") }
-    var member4Dept by remember { mutableStateOf("") }
-    var member4Year by remember { mutableStateOf("3rd Year") }
+    // Synchronize teammates list with targetTeamSize
+    LaunchedEffect(targetTeamSize, isTeam) {
+        if (isTeam) {
+            val neededTeammates = (targetTeamSize - 1).coerceAtLeast(0)
+            while (teammates.size < neededTeammates) {
+                teammates.add(
+                    TeamMemberInfo(
+                        name = "",
+                        email = "",
+                        phone = "",
+                        college = leaderCollege,
+                        department = leaderDept,
+                        yearOfStudy = "3rd Year",
+                        role = "Member"
+                    )
+                )
+            }
+            while (teammates.size > neededTeammates) {
+                teammates.removeAt(teammates.lastIndex)
+            }
+        } else {
+            teammates.clear()
+        }
+    }
 
-    // Member 5
-    var member5Name by remember { mutableStateOf("") }
-    var member5Email by remember { mutableStateOf("") }
-    var member5Phone by remember { mutableStateOf("") }
-    var member5Dept by remember { mutableStateOf("") }
-    var member5Year by remember { mutableStateOf("3rd Year") }
+    // Step 3: Domain Selection
+    val defaultDomains = listOf(
+        "Artificial Intelligence & Machine Learning",
+        "Generative AI",
+        "Web Development",
+        "Mobile App Development",
+        "Blockchain & Web3",
+        "Cybersecurity",
+        "Internet of Things (IoT)",
+        "Robotics & Automation",
+        "FinTech",
+        "Healthcare Technology",
+        "Education Technology",
+        "Renewable Energy & Sustainability",
+        "Agriculture Technology",
+        "Open Innovation",
+        "Other"
+    )
+    val availableDomains = remember(event.availableDomains) {
+        if (event.availableDomains.isNotEmpty()) event.availableDomains else defaultDomains
+    }
+    var selectedDomain by remember { mutableStateOf(availableDomains.firstOrNull() ?: "Artificial Intelligence & Machine Learning") }
+    var customDomain by remember { mutableStateOf("") }
 
-    val yearsList = listOf("1st Year", "2nd Year", "3rd Year", "4th Year / Final", "Post-Grad")
+    // Step 4: Project Information (Optional)
+    var projectTitle by remember { mutableStateOf("") }
+    var problemStatement by remember { mutableStateOf("") }
+    var proposedSolution by remember { mutableStateOf("") }
+    var techStack by remember { mutableStateOf("") }
+    var projectGithubUrl by remember { mutableStateOf("") }
+    var projectDemoUrl by remember { mutableStateOf("") }
 
+    // Step 5: Confirmations
+    var confirmAccurate by remember { mutableStateOf(false) }
+    var confirmRules by remember { mutableStateOf(false) }
+    var confirmPolicy by remember { mutableStateOf(false) }
+
+    val yearsList = listOf("1st Year", "2nd Year", "3rd Year", "4th Year / Final Year", "Post-Graduate", "Other")
+
+    // Prefill from Firebase Auth
     LaunchedEffect(Unit) {
         val authUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
         if (authUser != null) {
-            if (userName.isBlank()) userName = authUser.displayName ?: ""
-            if (userEmail.isBlank()) userEmail = authUser.email ?: ""
-            if (userPhone.isBlank()) userPhone = authUser.phoneNumber ?: ""
+            if (leaderName.isBlank()) leaderName = authUser.displayName ?: ""
+            if (leaderEmail.isBlank()) leaderEmail = authUser.email ?: ""
+            if (leaderPhone.isBlank()) leaderPhone = authUser.phoneNumber ?: ""
         }
     }
 
@@ -2103,21 +2154,78 @@ private fun EventRegistrationDialog(
         ) {
             Scaffold(
                 topBar = {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(if (isDark) Color(0xFF14162B) else Color(0xFFF8FAFC))
                             .statusBarsPadding()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                     ) {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = if (isDark) Color.White else Color(0xFF0F172A))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (currentStep > 1) currentStep-- else onDismiss()
+                                },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = if (isDark) Color.White else Color(0xFF0F172A)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = when (currentStep) {
+                                        1 -> if (isTeam) "Step 1: Team Information" else "Step 1: Registration Mode"
+                                        2 -> if (isTeam) "Step 2: Team Members & Leader" else "Step 2: Participant Details"
+                                        3 -> "Step 3: Hackathon Domain"
+                                        4 -> "Step 4: Project Concept"
+                                        5 -> "Step 5: Review & Submit"
+                                        else -> "Event Registration"
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = event.title,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF7C3AED),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF7C3AED).copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "$currentStep of $totalSteps",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF7C3AED),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Column {
-                            Text("Event Registration Form", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
-                            Text(event.title, fontSize = 11.5.sp, color = Color(0xFF7C3AED), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Visual Stepper Progress Bar
+                        LinearProgressIndicator(
+                            progress = { currentStep.toFloat() / totalSteps.toFloat() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = Color(0xFF7C3AED),
+                            trackColor = if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)
+                        )
                     }
                 },
                 bottomBar = {
@@ -2126,95 +2234,177 @@ private fun EventRegistrationDialog(
                         border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = {
-                                if (userName.isBlank()) {
-                                    Toast.makeText(context, "Please enter your Full Name", Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                                if (userEmail.isBlank() || !userEmail.contains("@")) {
-                                    Toast.makeText(context, "Please enter your valid Email / Gmail", Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                                if (userPhone.isBlank() || userPhone.length < 10) {
-                                    Toast.makeText(context, "Please enter your 10-digit Mobile Number", Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                                if (college.isBlank()) {
-                                    Toast.makeText(context, "Please enter your College or Organization", Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                                if (department.isBlank()) {
-                                    Toast.makeText(context, "Please enter your Department / Branch", Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-
-                                if (isTeam) {
-                                    if (teamName.isBlank()) {
-                                        Toast.makeText(context, "Please enter your Team Name", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    if (member2Name.isBlank()) {
-                                        Toast.makeText(context, "Please enter Team Member 2 Name", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    if (member2Email.isBlank()) {
-                                        Toast.makeText(context, "Please enter Team Member 2 Email", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                }
-
-                                val membersList = mutableListOf<TeamMemberInfo>()
-                                if (isTeam) {
-                                    if (member2Name.isNotBlank()) {
-                                        membersList.add(TeamMemberInfo(member2Name, member2Email, member2Phone, member2Dept.ifBlank { department }, member2Year))
-                                    }
-                                    if (teamSize >= 3 && member3Name.isNotBlank()) {
-                                        membersList.add(TeamMemberInfo(member3Name, member3Email, member3Phone, member3Dept.ifBlank { department }, member3Year))
-                                    }
-                                    if (teamSize >= 4 && member4Name.isNotBlank()) {
-                                        membersList.add(TeamMemberInfo(member4Name, member4Email, member4Phone, member4Dept.ifBlank { department }, member4Year))
-                                    }
-                                    if (teamSize >= 5 && member5Name.isNotBlank()) {
-                                        membersList.add(TeamMemberInfo(member5Name, member5Email, member5Phone, member5Dept.ifBlank { department }, member5Year))
-                                    }
-                                }
-
-                                viewModel.submitRegistration(
-                                    event = event,
-                                    isTeam = isTeam,
-                                    teamName = teamName,
-                                    teamCode = teamCode.ifBlank { null },
-                                    userName = userName,
-                                    userEmail = userEmail,
-                                    userPhone = userPhone,
-                                    college = college,
-                                    department = department,
-                                    yearOfStudy = yearOfStudy,
-                                    skills = skills,
-                                    githubUrl = githubUrl,
-                                    linkedinUrl = linkedinUrl,
-                                    teamMembersDetails = membersList,
-                                    customAnswers = emptyMap(),
-                                    onSuccess = {
-                                        Toast.makeText(context, "Registration Confirmed! Ticket Generated.", Toast.LENGTH_LONG).show()
-                                        onSuccess()
-                                    }
-                                )
-                            },
-                            enabled = !viewModel.isRegistering,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
-                            shape = RoundedCornerShape(12.dp),
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .navigationBarsPadding()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (viewModel.isRegistering) {
-                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Confirm & Generate QR Ticket", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+                            if (currentStep > 1) {
+                                OutlinedButton(
+                                    onClick = { currentStep-- },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Previous", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+
+                            Button(
+                                onClick = {
+                                    // Validation per step
+                                    when (currentStep) {
+                                        1 -> {
+                                            if (isTeam && teamName.trim().isBlank()) {
+                                                Toast.makeText(context, "Please enter your Team Name", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+                                            currentStep = 2
+                                        }
+                                        2 -> {
+                                            if (leaderName.trim().isBlank()) {
+                                                Toast.makeText(context, "Please enter Team Leader Full Name", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+                                            if (leaderEmail.trim().isBlank() || !leaderEmail.contains("@")) {
+                                                Toast.makeText(context, "Please enter a valid Team Leader Email", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+                                            if (leaderPhone.trim().length < 10) {
+                                                Toast.makeText(context, "Please enter a valid 10-digit Phone Number for Leader", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+                                            if (leaderCollege.trim().isBlank()) {
+                                                Toast.makeText(context, "Please enter College / Institution for Leader", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+                                            if (leaderDept.trim().isBlank()) {
+                                                Toast.makeText(context, "Please enter Department / Branch for Leader", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+
+                                            // Validate all teammates if team
+                                            if (isTeam) {
+                                                for (i in teammates.indices) {
+                                                    val m = teammates[i]
+                                                    val num = i + 2
+                                                    if (m.name.trim().isBlank()) {
+                                                        Toast.makeText(context, "Please enter Full Name for Member $num", Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+                                                    if (m.email.trim().isBlank() || !m.email.contains("@")) {
+                                                        Toast.makeText(context, "Please enter a valid Email for Member $num", Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+                                                    if (m.phone.trim().length < 10) {
+                                                        Toast.makeText(context, "Please enter a 10-digit Phone for Member $num", Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+                                                    if (m.college.trim().isBlank()) {
+                                                        Toast.makeText(context, "Please enter College for Member $num", Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+                                                    if (m.department.trim().isBlank()) {
+                                                        Toast.makeText(context, "Please enter Department for Member $num", Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+                                                }
+
+                                                // Duplicate Email Check
+                                                val allEmails = mutableListOf(leaderEmail.trim().lowercase())
+                                                allEmails.addAll(teammates.map { it.email.trim().lowercase() })
+                                                if (allEmails.toSet().size < allEmails.size) {
+                                                    Toast.makeText(context, "Duplicate email detected! Each member must have a unique email address.", Toast.LENGTH_LONG).show()
+                                                    return@Button
+                                                }
+                                            }
+                                            currentStep = 3
+                                        }
+                                        3 -> {
+                                            if (selectedDomain == "Other" && customDomain.trim().isBlank()) {
+                                                Toast.makeText(context, "Please specify your custom hackathon domain", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+                                            currentStep = 4
+                                        }
+                                        4 -> {
+                                            if (event.requireProjectDetails && projectTitle.trim().isBlank()) {
+                                                Toast.makeText(context, "Please enter Project Title", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+                                            currentStep = 5
+                                        }
+                                        5 -> {
+                                            if (!confirmAccurate || !confirmRules || !confirmPolicy) {
+                                                Toast.makeText(context, "Please accept all 3 confirmation checkboxes to proceed", Toast.LENGTH_SHORT).show()
+                                                return@Button
+                                            }
+
+                                            // Final Submission
+                                            viewModel.submitRegistration(
+                                                event = event,
+                                                isTeam = isTeam,
+                                                teamName = if (isTeam) teamName.trim() else null,
+                                                teamCode = null,
+                                                userName = leaderName.trim(),
+                                                userEmail = leaderEmail.trim(),
+                                                userPhone = leaderPhone.trim(),
+                                                college = leaderCollege.trim(),
+                                                department = leaderDept.trim(),
+                                                yearOfStudy = leaderYear.trim(),
+                                                skills = "",
+                                                githubUrl = teamGithubUrl.trim(),
+                                                linkedinUrl = teamLinkedinUrl.trim(),
+                                                teamDescription = teamDescription.trim(),
+                                                teamGithubUrl = teamGithubUrl.trim(),
+                                                teamLinkedinUrl = teamLinkedinUrl.trim(),
+                                                teamPortfolioUrl = teamPortfolioUrl.trim(),
+                                                teamSize = if (isTeam) (1 + teammates.size) else 1,
+                                                domain = if (selectedDomain == "Other") customDomain.trim() else selectedDomain,
+                                                customDomain = if (selectedDomain == "Other") customDomain.trim() else "",
+                                                projectTitle = projectTitle.trim(),
+                                                problemStatement = problemStatement.trim(),
+                                                proposedSolution = proposedSolution.trim(),
+                                                techStack = techStack.trim(),
+                                                projectGithubUrl = projectGithubUrl.trim(),
+                                                projectDemoUrl = projectDemoUrl.trim(),
+                                                teamMembersDetails = teammates.toList(),
+                                                customAnswers = emptyMap(),
+                                                onSuccess = {
+                                                    Toast.makeText(context, "Team Registration Confirmed! QR Ticket Issued.", Toast.LENGTH_LONG).show()
+                                                    onSuccess()
+                                                },
+                                                onError = { err ->
+                                                    Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                                }
+                                            )
+                                        }
+                                    }
+                                },
+                                enabled = !viewModel.isRegistering,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .weight(if (currentStep > 1) 1.5f else 1f)
+                                    .height(50.dp)
+                            ) {
+                                if (viewModel.isRegistering) {
+                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Registering Team...", fontWeight = FontWeight.Bold)
+                                } else if (currentStep == 5) {
+                                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Submit & Generate Pass", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+                                } else {
+                                    Text("Next Step", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
@@ -2224,397 +2414,863 @@ private fun EventRegistrationDialog(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 1. Team vs Individual Selector
-                    if (event.maxTeamSize > 1) {
-                        item {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isDark) Color(0xFF14162B) else Color(0xFFF1F5F9),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(modifier = Modifier.padding(4.dp)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(if (!isTeam) Color(0xFF7C3AED) else Color.Transparent)
-                                            .clickable { isTeam = false }
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("Individual Entry", color = if (!isTeam) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(if (isTeam) Color(0xFF7C3AED) else Color.Transparent)
-                                            .clickable { isTeam = true }
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("Team Entry (${event.minTeamSize}-${event.maxTeamSize} Members)", color = if (isTeam) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 2. Section: Primary Attendee / Team Leader Details
-                    item {
-                        Text(
-                            text = if (isTeam) "TEAM LEADER DETAILS" else "PARTICIPANT DETAILS",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 11.sp,
-                            color = Color(0xFF7C3AED),
-                            letterSpacing = 1.sp
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = userName,
-                            onValueChange = { userName = it },
-                            label = { Text("Full Name *") },
-                            placeholder = { Text("e.g. Rahul Sharma") },
-                            leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null, tint = Color(0xFF7C3AED)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = userEmail,
-                            onValueChange = { userEmail = it },
-                            label = { Text("Gmail / Email Address *") },
-                            placeholder = { Text("e.g. rahul@gmail.com") },
-                            leadingIcon = { Icon(Icons.Rounded.Email, contentDescription = null, tint = Color(0xFF7C3AED)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = userPhone,
-                            onValueChange = { userPhone = it },
-                            label = { Text("Phone Number / WhatsApp *") },
-                            placeholder = { Text("e.g. 9876543210") },
-                            leadingIcon = { Icon(Icons.Rounded.Phone, contentDescription = null, tint = Color(0xFF7C3AED)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = college,
-                            onValueChange = { college = it },
-                            label = { Text("College / University / Organization *") },
-                            placeholder = { Text("e.g. Sona College of Technology") },
-                            leadingIcon = { Icon(Icons.Rounded.School, contentDescription = null, tint = Color(0xFF7C3AED)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = department,
-                            onValueChange = { department = it },
-                            label = { Text("Department / Branch *") },
-                            placeholder = { Text("e.g. Computer Science, AI & DS, ECE") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        Column {
-                            Text("Year of Study *", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                yearsList.take(3).forEach { yr ->
-                                    val isSelected = yearOfStudy == yr
+                    when (currentStep) {
+                        // ──────────────────────────────────────────────
+                        // STEP 1: TEAM INFORMATION & MODE
+                        // ──────────────────────────────────────────────
+                        1 -> {
+                            // Mode selection (if event allows both)
+                            if (event.registrationMode == "both") {
+                                item {
                                     Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (isSelected) Color(0xFF7C3AED) else if (isDark) Color(0xFF1E223D) else Color(0xFFF1F5F9),
-                                        modifier = Modifier.weight(1f).clickable { yearOfStudy = yr }
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = if (isDark) Color(0xFF14162B) else Color(0xFFF1F5F9),
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                                            Text(yr, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
+                                        Row(modifier = Modifier.padding(4.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(if (isTeam) Color(0xFF7C3AED) else Color.Transparent)
+                                                    .clickable { isTeam = true }
+                                                    .padding(vertical = 10.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    "🛡️ Team Registration",
+                                                    color = if (isTeam) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp
+                                                )
+                                            }
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(if (!isTeam) Color(0xFF7C3AED) else Color.Transparent)
+                                                    .clickable { isTeam = false }
+                                                    .padding(vertical = 10.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    "👤 Individual Entry",
+                                                    color = if (!isTeam) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                yearsList.drop(3).forEach { yr ->
-                                    val isSelected = yearOfStudy == yr
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (isSelected) Color(0xFF7C3AED) else if (isDark) Color(0xFF1E223D) else Color(0xFFF1F5F9),
-                                        modifier = Modifier.weight(1f).clickable { yearOfStudy = yr }
-                                    ) {
-                                        Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                                            Text(yr, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
-                                        }
+
+                            if (isTeam) {
+                                item {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(
+                                            text = "TEAM DETAILS",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 11.5.sp,
+                                            color = Color(0xFF7C3AED),
+                                            letterSpacing = 1.sp
+                                        )
+
+                                        OutlinedTextField(
+                                            value = teamName,
+                                            onValueChange = { teamName = it },
+                                            label = { Text("Team Name *") },
+                                            placeholder = { Text("e.g. Neural Pioneers, CyberKnights") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+
+                                        Text(
+                                            text = "Choose a unique, official name for your hackathon team.",
+                                            fontSize = 11.sp,
+                                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                        )
                                     }
                                 }
-                            }
-                        }
-                    }
 
-                    // 3. Section: Team Details (When Team Mode is Active)
-                    if (isTeam) {
-                        item {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "TEAM REGISTRATION DETAILS",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 11.sp,
-                                color = Color(0xFF6366F1),
-                                letterSpacing = 1.sp
-                            )
-                        }
+                                item {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(
+                                            text = "TEAM SIZE (TOTAL MEMBERS)",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 11.5.sp,
+                                            color = Color(0xFF7C3AED),
+                                            letterSpacing = 1.sp
+                                        )
 
-                        item {
-                            OutlinedTextField(
-                                value = teamName,
-                                onValueChange = { teamName = it },
-                                label = { Text("Team Name *") },
-                                placeholder = { Text("e.g. Cyber Ninjas") },
-                                leadingIcon = { Icon(Icons.Rounded.Groups, contentDescription = null, tint = Color(0xFF6366F1)) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Total Team Members:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    listOf(2, 3, 4, 5).forEach { sz ->
-                                        val isSel = teamSize == sz
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = if (isSel) Color(0xFF6366F1) else if (isDark) Color(0xFF1E223D) else Color(0xFFF1F5F9),
-                                            modifier = Modifier.clickable { teamSize = sz }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text("$sz Members", modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
+                                            val minS = event.minTeamSize.coerceAtLeast(2)
+                                            val maxS = event.maxTeamSize.coerceAtLeast(minS)
+                                            (minS..maxS).forEach { size ->
+                                                Surface(
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    color = if (targetTeamSize == size) Color(0xFF7C3AED) else if (isDark) Color(0xFF1E2138) else Color(0xFFF1F5F9),
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clickable { targetTeamSize = size }
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier.padding(vertical = 12.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                    ) {
+                                                        Text(
+                                                            text = "$size",
+                                                            fontWeight = FontWeight.Black,
+                                                            fontSize = 16.sp,
+                                                            color = if (targetTeamSize == size) Color.White else if (isDark) Color.White else Color(0xFF0F172A)
+                                                        )
+                                                        Text(
+                                                            text = if (size == 1) "Member" else "Members",
+                                                            fontSize = 10.sp,
+                                                            color = if (targetTeamSize == size) Color.White.copy(alpha = 0.85f) else Color.Gray
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                item {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text(
+                                            text = "OPTIONAL TEAM LINKS & BIO",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 11.5.sp,
+                                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                            letterSpacing = 1.sp
+                                        )
+
+                                        OutlinedTextField(
+                                            value = teamDescription,
+                                            onValueChange = { teamDescription = it },
+                                            label = { Text("Team Motto / Short Bio (Optional)") },
+                                            placeholder = { Text("What drives your team?") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp),
+                                            minLines = 2
+                                        )
+
+                                        OutlinedTextField(
+                                            value = teamGithubUrl,
+                                            onValueChange = { teamGithubUrl = it },
+                                            label = { Text("Team Organization GitHub (Optional)") },
+                                            placeholder = { Text("https://github.com/team-name") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = teamLinkedinUrl,
+                                            onValueChange = { teamLinkedinUrl = it },
+                                            label = { Text("Team LinkedIn / Website (Optional)") },
+                                            placeholder = { Text("https://linkedin.com/company/team") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                    }
+                                }
+                            } else {
+                                item {
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = if (isDark) Color(0xFF14162B) else Color(0xFFF8FAFC),
+                                        border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Text("Solo Participant Registration", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
+                                            Text(
+                                                "You are registering as an individual participant. On the next step, you will verify your profile details and contact number.",
+                                                fontSize = 12.sp,
+                                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
 
-                        // Member 2 Card
-                        item {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (isDark) Color(0xFF16192E) else Color(0xFFF8FAFC),
-                                border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4C) else Color(0xFFE2E8F0)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Text("TEAM MEMBER 2", fontWeight = FontWeight.ExtraBold, fontSize = 10.5.sp, color = Color(0xFF6366F1))
-                                    OutlinedTextField(
-                                        value = member2Name,
-                                        onValueChange = { member2Name = it },
-                                        label = { Text("Member 2 Full Name *") },
-                                        placeholder = { Text("e.g. Priya Patel") },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    OutlinedTextField(
-                                        value = member2Email,
-                                        onValueChange = { member2Email = it },
-                                        label = { Text("Member 2 Gmail / Email *") },
-                                        placeholder = { Text("e.g. priya@gmail.com") },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        OutlinedTextField(
-                                            value = member2Phone,
-                                            onValueChange = { member2Phone = it },
-                                            label = { Text("Phone Number") },
-                                            placeholder = { Text("9876543211") },
-                                            singleLine = true,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        OutlinedTextField(
-                                            value = member2Dept,
-                                            onValueChange = { member2Dept = it },
-                                            label = { Text("Department") },
-                                            placeholder = { Text("CSE") },
-                                            singleLine = true,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Member 3 Card (if teamSize >= 3)
-                        if (teamSize >= 3) {
+                        // ──────────────────────────────────────────────
+                        // STEP 2: TEAM MEMBERS & LEADER DETAILS
+                        // ──────────────────────────────────────────────
+                        2 -> {
+                            // Leader Card
                             item {
                                 Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = if (isDark) Color(0xFF16192E) else Color(0xFFF8FAFC),
-                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4C) else Color(0xFFE2E8F0)),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isDark) Color(0xFF171932) else Color(0xFFFAF5FF),
+                                    border = BorderStroke(1.5.dp, Color(0xFF7C3AED).copy(alpha = 0.5f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text("TEAM MEMBER 3", fontWeight = FontWeight.ExtraBold, fontSize = 10.5.sp, color = Color(0xFF6366F1))
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("👑", fontSize = 18.sp)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    if (isTeam) "Team Leader (You)" else "Participant Details",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 14.5.sp,
+                                                    color = Color(0xFF7C3AED)
+                                                )
+                                            }
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = Color(0xFF7C3AED)
+                                            ) {
+                                                Text("LEADER", fontSize = 9.5.sp, fontWeight = FontWeight.Black, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                            }
+                                        }
+
                                         OutlinedTextField(
-                                            value = member3Name,
-                                            onValueChange = { member3Name = it },
-                                            label = { Text("Member 3 Full Name") },
-                                            placeholder = { Text("e.g. Amit Kumar") },
+                                            value = leaderName,
+                                            onValueChange = { leaderName = it },
+                                            label = { Text("Full Name *") },
                                             singleLine = true,
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp)
                                         )
+
                                         OutlinedTextField(
-                                            value = member3Email,
-                                            onValueChange = { member3Email = it },
-                                            label = { Text("Member 3 Gmail / Email") },
-                                            placeholder = { Text("e.g. amit@gmail.com") },
+                                            value = leaderEmail,
+                                            onValueChange = { leaderEmail = it },
+                                            label = { Text("Email / Gmail *") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                             singleLine = true,
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp)
                                         )
-                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                                        OutlinedTextField(
+                                            value = leaderPhone,
+                                            onValueChange = { if (it.length <= 15) leaderPhone = it },
+                                            label = { Text("WhatsApp / Phone Number *") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = leaderCollege,
+                                            onValueChange = { leaderCollege = it },
+                                            label = { Text("College / University / Org *") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             OutlinedTextField(
-                                                value = member3Phone,
-                                                onValueChange = { member3Phone = it },
-                                                label = { Text("Phone Number") },
-                                                placeholder = { Text("9876543212") },
+                                                value = leaderDept,
+                                                onValueChange = { leaderDept = it },
+                                                label = { Text("Department / Branch *") },
+                                                placeholder = { Text("e.g. CSE, IT, ECE") },
                                                 singleLine = true,
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier.weight(1.2f),
+                                                shape = RoundedCornerShape(10.dp)
                                             )
+
+                                            // Year of Study dropdown
+                                            var yearExpanded by remember { mutableStateOf(false) }
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                OutlinedTextField(
+                                                    value = leaderYear,
+                                                    onValueChange = {},
+                                                    readOnly = true,
+                                                    label = { Text("Year") },
+                                                    trailingIcon = {
+                                                        IconButton(onClick = { yearExpanded = true }) {
+                                                            Icon(Icons.Rounded.ArrowDropDown, contentDescription = null)
+                                                        }
+                                                    },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                )
+                                                DropdownMenu(
+                                                    expanded = yearExpanded,
+                                                    onDismissRequest = { yearExpanded = false }
+                                                ) {
+                                                    yearsList.forEach { y ->
+                                                        DropdownMenuItem(
+                                                            text = { Text(y) },
+                                                            onClick = {
+                                                                leaderYear = y
+                                                                yearExpanded = false
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (isTeam && teammates.isNotEmpty() && leaderCollege.isNotBlank()) {
+                                            TextButton(
+                                                onClick = {
+                                                    for (i in teammates.indices) {
+                                                        teammates[i] = teammates[i].copy(
+                                                            college = leaderCollege,
+                                                            department = if (teammates[i].department.isBlank()) leaderDept else teammates[i].department
+                                                        )
+                                                    }
+                                                    Toast.makeText(context, "Applied leader college to all members!", Toast.LENGTH_SHORT).show()
+                                                },
+                                                modifier = Modifier.align(Alignment.End)
+                                            ) {
+                                                Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Copy College to all teammates", fontSize = 11.sp, color = Color(0xFF7C3AED))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Additional Teammates Cards
+                            if (isTeam) {
+                                items(teammates.size) { index ->
+                                    val memberNum = index + 2
+                                    var currentMember = teammates[index]
+
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = if (isDark) Color(0xFF14162B) else Color(0xFFFFFFFF),
+                                        border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("👤", fontSize = 16.sp)
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("Member $memberNum", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
+                                                }
+
+                                                if (teammates.size > (event.minTeamSize - 1).coerceAtLeast(1)) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            teammates.removeAt(index)
+                                                            targetTeamSize = 1 + teammates.size
+                                                        },
+                                                        modifier = Modifier.size(28.dp)
+                                                    ) {
+                                                        Icon(Icons.Rounded.Delete, contentDescription = "Remove", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                                                    }
+                                                }
+                                            }
+
                                             OutlinedTextField(
-                                                value = member3Dept,
-                                                onValueChange = { member3Dept = it },
-                                                label = { Text("Department") },
-                                                placeholder = { Text("IT") },
+                                                value = currentMember.name,
+                                                onValueChange = { teammates[index] = currentMember.copy(name = it) },
+                                                label = { Text("Full Name *") },
+                                                placeholder = { Text("Member $memberNum Name") },
                                                 singleLine = true,
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(10.dp)
                                             )
+
+                                            OutlinedTextField(
+                                                value = currentMember.email,
+                                                onValueChange = { teammates[index] = currentMember.copy(email = it) },
+                                                label = { Text("Email Address *") },
+                                                placeholder = { Text("unique.email@domain.com") },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+
+                                            OutlinedTextField(
+                                                value = currentMember.phone,
+                                                onValueChange = { if (it.length <= 15) teammates[index] = currentMember.copy(phone = it) },
+                                                label = { Text("Phone / WhatsApp *") },
+                                                placeholder = { Text("10-digit number") },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+
+                                            OutlinedTextField(
+                                                value = currentMember.college,
+                                                onValueChange = { teammates[index] = currentMember.copy(college = it) },
+                                                label = { Text("College / Institution *") },
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                OutlinedTextField(
+                                                    value = currentMember.department,
+                                                    onValueChange = { teammates[index] = currentMember.copy(department = it) },
+                                                    label = { Text("Department *") },
+                                                    singleLine = true,
+                                                    modifier = Modifier.weight(1.2f),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                )
+
+                                                var mYearExpanded by remember { mutableStateOf(false) }
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    OutlinedTextField(
+                                                        value = currentMember.yearOfStudy,
+                                                        onValueChange = {},
+                                                        readOnly = true,
+                                                        label = { Text("Year") },
+                                                        trailingIcon = {
+                                                            IconButton(onClick = { mYearExpanded = true }) {
+                                                                Icon(Icons.Rounded.ArrowDropDown, contentDescription = null)
+                                                            }
+                                                        },
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        shape = RoundedCornerShape(10.dp)
+                                                    )
+                                                    DropdownMenu(
+                                                        expanded = mYearExpanded,
+                                                        onDismissRequest = { mYearExpanded = false }
+                                                    ) {
+                                                        yearsList.forEach { y ->
+                                                            DropdownMenuItem(
+                                                                text = { Text(y) },
+                                                                onClick = {
+                                                                    teammates[index] = currentMember.copy(yearOfStudy = y)
+                                                                    mYearExpanded = false
+                                                                }
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Add Member button if under maxTeamSize
+                                if (1 + teammates.size < event.maxTeamSize) {
+                                    item {
+                                        OutlinedButton(
+                                            onClick = {
+                                                teammates.add(
+                                                    TeamMemberInfo(
+                                                        name = "",
+                                                        email = "",
+                                                        phone = "",
+                                                        college = leaderCollege,
+                                                        department = leaderDept,
+                                                        yearOfStudy = "3rd Year",
+                                                        role = "Member"
+                                                    )
+                                                )
+                                                targetTeamSize = 1 + teammates.size
+                                            },
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(48.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Add Member ${teammates.size + 2} (${1 + teammates.size + 1}/${event.maxTeamSize})", fontWeight = FontWeight.SemiBold)
                                         }
                                     }
                                 }
                             }
                         }
 
-                        // Member 4 Card (if teamSize >= 4)
-                        if (teamSize >= 4) {
+                        // ──────────────────────────────────────────────
+                        // STEP 3: HACKATHON DOMAIN SELECTION
+                        // ──────────────────────────────────────────────
+                        3 -> {
+                            item {
+                                Text(
+                                    text = "SELECT HACKATHON DOMAIN / TRACK",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 11.5.sp,
+                                    color = Color(0xFF7C3AED),
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Choose the primary domain your team will be building for during the hackathon.",
+                                    fontSize = 11.5.sp,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                            }
+
+                            items(availableDomains.size) { idx ->
+                                val domain = availableDomains[idx]
+                                val isSelected = selectedDomain == domain
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isSelected) Color(0xFF7C3AED).copy(alpha = 0.12f) else if (isDark) Color(0xFF14162B) else Color(0xFFFFFFFF),
+                                    border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) Color(0xFF7C3AED) else if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedDomain = domain }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = when (domain) {
+                                                    "Artificial Intelligence & Machine Learning" -> "🤖"
+                                                    "Generative AI" -> "✨"
+                                                    "Web Development" -> "🌐"
+                                                    "Mobile App Development" -> "📱"
+                                                    "Blockchain & Web3" -> "⛓️"
+                                                    "Cybersecurity" -> "🛡️"
+                                                    "Internet of Things (IoT)" -> "📡"
+                                                    "Robotics & Automation" -> "🦾"
+                                                    "FinTech" -> "💳"
+                                                    "Healthcare Technology" -> "🏥"
+                                                    "Education Technology" -> "🎓"
+                                                    "Renewable Energy & Sustainability" -> "🌱"
+                                                    "Agriculture Technology" -> "🌾"
+                                                    "Open Innovation" -> "💡"
+                                                    else -> "🎯"
+                                                },
+                                                fontSize = 20.sp
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = domain,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 13.5.sp,
+                                                color = if (isSelected) Color(0xFF7C3AED) else if (isDark) Color.White else Color(0xFF0F172A)
+                                            )
+                                        }
+
+                                        if (isSelected) {
+                                            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF7C3AED), modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (selectedDomain == "Other") {
+                                item {
+                                    OutlinedTextField(
+                                        value = customDomain,
+                                        onValueChange = { customDomain = it },
+                                        label = { Text("Enter your preferred hackathon domain *") },
+                                        placeholder = { Text("e.g. SpaceTech, Quantum Computing, Defense Tech") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // ──────────────────────────────────────────────
+                        // STEP 4: PROJECT AND IDEA INFORMATION
+                        // ──────────────────────────────────────────────
+                        4 -> {
+                            item {
+                                Text(
+                                    text = "PROJECT & INNOVATION CONCEPT (OPTIONAL)",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 11.5.sp,
+                                    color = Color(0xFF7C3AED),
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "You can outline your initial concept now or update it during the hackathon check-in.",
+                                    fontSize = 11.5.sp,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                            }
+
+                            item {
+                                OutlinedTextField(
+                                    value = projectTitle,
+                                    onValueChange = { projectTitle = it },
+                                    label = { Text("Project Title") },
+                                    placeholder = { Text("e.g. ZayaSense: Autonomous Healthcare Agent") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+
+                            item {
+                                OutlinedTextField(
+                                    value = problemStatement,
+                                    onValueChange = { problemStatement = it },
+                                    label = { Text("Problem Statement") },
+                                    placeholder = { Text("What real-world bottleneck are you solving?") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    minLines = 2
+                                )
+                            }
+
+                            item {
+                                OutlinedTextField(
+                                    value = proposedSolution,
+                                    onValueChange = { proposedSolution = it },
+                                    label = { Text("Proposed Solution & Architecture") },
+                                    placeholder = { Text("How does your solution work?") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    minLines = 3
+                                )
+                            }
+
+                            item {
+                                OutlinedTextField(
+                                    value = techStack,
+                                    onValueChange = { techStack = it },
+                                    label = { Text("Target Tech Stack") },
+                                    placeholder = { Text("e.g. Kotlin, Compose, Python, Gemini 1.5, Firestore") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+
+                            item {
+                                OutlinedTextField(
+                                    value = projectGithubUrl,
+                                    onValueChange = { projectGithubUrl = it },
+                                    label = { Text("Project GitHub Repository URL (Optional)") },
+                                    placeholder = { Text("https://github.com/myteam/project") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+
+                            item {
+                                OutlinedTextField(
+                                    value = projectDemoUrl,
+                                    onValueChange = { projectDemoUrl = it },
+                                    label = { Text("Live Demo / Video Pitch URL (Optional)") },
+                                    placeholder = { Text("https://youtu.be/... or demo site") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+                        }
+
+                        // ──────────────────────────────────────────────
+                        // STEP 5: REVIEW & CONFIRMATION
+                        // ──────────────────────────────────────────────
+                        5 -> {
+                            item {
+                                Text(
+                                    text = "OFFICIAL REGISTRATION REVIEW",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 11.5.sp,
+                                    color = Color(0xFF7C3AED),
+                                    letterSpacing = 1.sp
+                                )
+                            }
+
+                            // Card 1: Team & Domain
                             item {
                                 Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = if (isDark) Color(0xFF16192E) else Color(0xFFF8FAFC),
-                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4C) else Color(0xFFE2E8F0)),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isDark) Color(0xFF14162B) else Color(0xFFFFFFFF),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text("TEAM MEMBER 4", fontWeight = FontWeight.ExtraBold, fontSize = 10.5.sp, color = Color(0xFF6366F1))
-                                        OutlinedTextField(
-                                            value = member4Name,
-                                            onValueChange = { member4Name = it },
-                                            label = { Text("Member 4 Full Name") },
-                                            placeholder = { Text("e.g. Sneha Roy") },
-                                            singleLine = true,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                        OutlinedTextField(
-                                            value = member4Email,
-                                            onValueChange = { member4Email = it },
-                                            label = { Text("Member 4 Gmail / Email") },
-                                            placeholder = { Text("e.g. sneha@gmail.com") },
-                                            singleLine = true,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = if (isTeam) "🛡️ Team: $teamName" else "👤 Solo Entry",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
+                                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                                            )
+                                            TextButton(onClick = { currentStep = 1 }) {
+                                                Text("Edit", fontSize = 12.sp, color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            OutlinedTextField(
-                                                value = member4Phone,
-                                                onValueChange = { member4Phone = it },
-                                                label = { Text("Phone Number") },
-                                                placeholder = { Text("9876543213") },
-                                                singleLine = true,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            OutlinedTextField(
-                                                value = member4Dept,
-                                                onValueChange = { member4Dept = it },
-                                                label = { Text("Department") },
-                                                placeholder = { Text("ECE") },
-                                                singleLine = true,
-                                                modifier = Modifier.weight(1f)
-                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = Color(0xFF7C3AED).copy(alpha = 0.15f)
+                                            ) {
+                                                Text(
+                                                    text = if (selectedDomain == "Other") customDomain.ifBlank { "Custom Track" } else selectedDomain,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF7C3AED),
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                )
+                                            }
+
+                                            if (isTeam) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = Color(0xFF10B981).copy(alpha = 0.15f)
+                                                ) {
+                                                    Text(
+                                                        text = "${1 + teammates.size} Total Members",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF10B981),
+                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
+
+                            // Card 2: Team Roster
+                            item {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isDark) Color(0xFF14162B) else Color(0xFFFFFFFF),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "👥 Team Members Roster",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp,
+                                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                                            )
+                                            TextButton(onClick = { currentStep = 2 }) {
+                                                Text("Edit", fontSize = 12.sp, color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        // Leader
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = Color(0xFF7C3AED).copy(alpha = 0.12f),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("👑 $leaderName", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF7C3AED))
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("(Team Leader)", fontSize = 11.sp, color = Color(0xFF7C3AED).copy(alpha = 0.8f))
+                                                }
+                                                Text("📧 $leaderEmail • 📱 $leaderPhone", fontSize = 11.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569))
+                                                Text("🏛️ $leaderCollege • $leaderDept ($leaderYear)", fontSize = 11.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                                            }
+                                        }
+
+                                        // Teammates
+                                        teammates.forEachIndexed { i, m ->
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = if (isDark) Color(0xFF1E2138) else Color(0xFFF8FAFC),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                    Text("👤 Member ${i + 2}: ${m.name}", fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
+                                                    Text("📧 ${m.email} • 📱 ${m.phone}", fontSize = 11.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569))
+                                                    Text("🏛️ ${m.college} • ${m.department} (${m.yearOfStudy})", fontSize = 11.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Card 3: Project Info (if entered)
+                            if (projectTitle.isNotBlank() || problemStatement.isNotBlank()) {
+                                item {
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = if (isDark) Color(0xFF14162B) else Color(0xFFFFFFFF),
+                                        border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("💡 Project Concept", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
+                                                TextButton(onClick = { currentStep = 4 }) {
+                                                    Text("Edit", fontSize = 12.sp, color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                            if (projectTitle.isNotBlank()) {
+                                                Text(projectTitle, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF7C3AED))
+                                            }
+                                            if (problemStatement.isNotBlank()) {
+                                                Text("Problem: $problemStatement", fontSize = 11.5.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                            }
+                                            if (techStack.isNotBlank()) {
+                                                Text("Stack: $techStack", fontSize = 11.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Confirmations
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = confirmAccurate, onCheckedChange = { confirmAccurate = it })
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("I certify that all team member information and contact numbers are accurate.", fontSize = 11.5.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
+                                    }
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = confirmRules, onCheckedChange = { confirmRules = it })
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Our team agrees to adhere to the official hackathon rules and code of conduct.", fontSize = 11.5.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
+                                    }
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = confirmPolicy, onCheckedChange = { confirmPolicy = it })
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("We agree to the hackathon terms, conditions, and privacy policy.", fontSize = 11.5.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
+                                    }
+                                }
+                            }
                         }
-                    }
-
-                    // 4. Section: Profiles & Links
-                    item {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "PORTFOLIO & SKILLS (OPTIONAL)",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 11.sp,
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                            letterSpacing = 1.sp
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = skills,
-                            onValueChange = { skills = it },
-                            label = { Text("Primary Skills & Stack") },
-                            placeholder = { Text("e.g. Android, Flutter, Python, AI/ML") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = githubUrl,
-                            onValueChange = { githubUrl = it },
-                            label = { Text("GitHub / Portfolio Profile URL") },
-                            placeholder = { Text("https://github.com/username") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    item {
-                        OutlinedTextField(
-                            value = linkedinUrl,
-                            onValueChange = { linkedinUrl = it },
-                            label = { Text("LinkedIn Profile URL") },
-                            placeholder = { Text("https://linkedin.com/in/username") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
             }
@@ -2731,6 +3387,38 @@ private fun DigitalTicketDialog(
                             }
                         }
 
+                        val trackDisplay = registration.domain.ifBlank { registration.customDomain }
+                        if (trackDisplay.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF7C3AED).copy(alpha = 0.12f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("🎯 Track: ", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF7C3AED))
+                                    Text(trackDisplay, fontSize = 11.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155), fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+
+                        if (registration.isTeam && registration.teamMembers.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isDark) Color(0xFF1B1E38) else Color(0xFFF1F5F9),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("👥 Team Roster (${registration.teamMembers.size} Members):", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFF7C3AED))
+                                    Text(registration.teamMembers.joinToString(" • "), fontSize = 10.5.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569))
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // High-contrast QR Code Container
@@ -2779,7 +3467,10 @@ private fun DigitalTicketDialog(
                                 onClick = {
                                     val shareIntent = Intent().apply {
                                         action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, "Here is my official ticket for ${registration.eventTitle}!\nRegistration ID: ${registration.registrationId}\nParticipant: ${registration.userName}")
+                                        val trackStr = if (trackDisplay.isNotBlank()) "\nTrack: $trackDisplay" else ""
+                                        val teamStr = if (registration.isTeam) "\nTeam: ${registration.teamName ?: "Team"}\nMembers: ${registration.teamMembers.joinToString(", ")}" else ""
+                                        val fullText = "🎟️ Official Event Ticket for ${registration.eventTitle}\nTicket ID: ${registration.ticketId}\nParticipant: ${registration.userName}$teamStr$trackStr\nStatus: ${if (registration.attended) "CHECKED-IN ✅" else "CONFIRMED"}"
+                                        putExtra(Intent.EXTRA_TEXT, fullText)
                                         type = "text/plain"
                                     }
                                     context.startActivity(Intent.createChooser(shareIntent, "Share Event Ticket"))

@@ -1,16 +1,44 @@
 package com.zayaai.app
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -22,8 +50,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.fragment.app.FragmentActivity
-import com.zayaai.app.ui.theme.*
+import com.zayaai.app.ui.theme.LocalIsDarkTheme
+import com.zayaai.app.ui.theme.NeonCyan
+import com.zayaai.app.ui.theme.NeonPurple
 
 @Composable
 fun AppLockScreen(
@@ -40,22 +69,33 @@ fun AppLockScreen(
     var attempts by remember { mutableIntStateOf(0) }
     val maxAttempts = 5
 
-    // Determine if fingerprint is relevant for this lock type
-    val isFingerprintMode = settings.lockType == "Fingerprint" || settings.lockType == "PIN + Fingerprint"
-    val isFingerprintOnly = settings.lockType == "Fingerprint"
-    val showPinInput = !isFingerprintOnly // Show PIN field only when lock type includes PIN
+    val isBiometricType = settings.lockType.equals("Biometric", ignoreCase = true) ||
+            settings.lockType.equals("Fingerprint", ignoreCase = true) ||
+            settings.lockType.contains("Fingerprint", ignoreCase = true)
 
-    // Auto-launch fingerprint — keyed on lockType so it fires when settings actually load
-    LaunchedEffect(settings.lockType) {
-        if (isBiometricAvailable && isFingerprintMode) {
-            val activity = context.findFragmentActivity()
-            if (activity != null) {
-                biometricManager.showBiometricPrompt(
-                    activity = activity,
-                    onSuccess = { onUnlock() },
-                    onError = { /* User cancelled or failed, fall back to UI */ }
-                )
-            }
+    // Helper to prompt biometrics
+    val triggerBiometricAuth: () -> Unit = {
+        val activity = context.findFragmentActivity()
+        if (activity != null) {
+            error = ""
+            biometricManager.showBiometricPrompt(
+                activity = activity,
+                onSuccess = { onUnlock() },
+                onError = { msg ->
+                    if (msg != "Cancelled") {
+                        error = msg
+                    }
+                }
+            )
+        } else {
+            error = "Biometric prompt unavailable"
+        }
+    }
+
+    // Auto-launch fingerprint when screen appears or settings load
+    LaunchedEffect(isBiometricAvailable, settings.lockType) {
+        if (isBiometricAvailable && (isBiometricType || settings.lockType.isEmpty() || settings.lockType == "PIN")) {
+            triggerBiometricAuth()
         }
     }
 
@@ -75,7 +115,7 @@ fun AppLockScreen(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.85f)
+                .fillMaxWidth(0.88f)
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
@@ -84,7 +124,7 @@ fun AppLockScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
-                modifier = Modifier.padding(32.dp),
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Lock Icon
@@ -98,14 +138,14 @@ fun AppLockScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        if (isFingerprintOnly) Icons.Rounded.Fingerprint else Icons.Rounded.Lock,
+                        if (isBiometricAvailable) Icons.Rounded.Fingerprint else Icons.Rounded.Lock,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(36.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
                     "App Locked",
@@ -113,56 +153,101 @@ fun AppLockScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    if (isFingerprintOnly) "Use your fingerprint to unlock AI ZAYA"
+                    if (isBiometricAvailable) "Touch fingerprint sensor or enter PIN"
                     else "Enter your PIN to unlock AI ZAYA",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(32.dp))
 
-                // -- Fingerprint-only mode: big fingerprint button as primary --
-                if (isFingerprintOnly && isBiometricAvailable) {
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Primary Fingerprint Unlock Button if available
+                if (isBiometricAvailable) {
                     Button(
-                        onClick = {
-                            val activity = context.findFragmentActivity()
-                            if (activity != null) {
-                                biometricManager.showBiometricPrompt(
-                                    activity = activity,
-                                    onSuccess = { onUnlock() },
-                                    onError = { msg -> error = msg }
-                                )
-                            } else {
-                                error = "Biometric authentication unavailable"
-                            }
-                        },
+                        onClick = triggerBiometricAuth,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(52.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = NeonCyan
+                            containerColor = NeonPurple
                         )
                     ) {
                         Icon(
                             Icons.Rounded.Fingerprint,
                             contentDescription = "Fingerprint",
-                            tint = Color.Black,
-                            modifier = Modifier.size(28.dp)
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             "Unlock with Fingerprint",
-                            color = Color.Black,
+                            color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            fontSize = 15.sp
                         )
                     }
 
-                    if (error.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        )
+                        Text(
+                            "OR ENTER PIN",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 10.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+                }
+
+                // PIN input fallback
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = {
+                        if (it.length <= 6) {
+                            pin = it
+                            error = ""
+                        }
+                    },
+                    placeholder = { Text("Enter PIN", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        focusedBorderColor = NeonCyan,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        errorBorderColor = Color.Red
+                    ),
+                    isError = error.isNotEmpty()
+                )
+
+                AnimatedVisibility(visible = error.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
+                    Column {
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             error,
                             color = Color(0xFFFF5252),
@@ -172,122 +257,51 @@ fun AppLockScreen(
                     }
                 }
 
-                // -- PIN input (shown for "PIN" and "PIN + Fingerprint" modes) --
-                if (showPinInput) {
-                    OutlinedTextField(
-                        value = pin,
-                        onValueChange = {
-                            if (it.length <= 6) {
-                                pin = it
-                                error = ""
-                            }
-                        },
-                        placeholder = { Text("Enter PIN", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                            focusedBorderColor = NeonCyan,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            errorBorderColor = Color.Red
-                        ),
-                        isError = error.isNotEmpty()
+                if (attempts > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Attempts remaining: ${maxAttempts - attempts}",
+                        color = if (attempts >= 3) Color(0xFFFF5252) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall
                     )
+                }
 
-                    if (error.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            error,
-                            color = Color(0xFFFF5252),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                Spacer(modifier = Modifier.height(18.dp))
 
-                    if (attempts > 0) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Attempts remaining: ${maxAttempts - attempts}",
-                            color = if (attempts >= 3) Color(0xFFFF5252) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Unlock Button (PIN)
-                    Button(
-                        onClick = {
-                            when {
-                                pin.isEmpty() -> {
-                                    error = "Please enter your PIN"
-                                }
-                                attempts >= maxAttempts -> {
-                                    error = "Too many attempts. Please restart the app."
-                                }
-                                pin == settings.pinCode -> {
-                                    onUnlock()
-                                }
-                                settings.pinCode.isEmpty() -> {
-                                    Toast.makeText(context, "No PIN configured. Please set a PIN in Settings.", Toast.LENGTH_LONG).show()
-                                    onUnlock()
-                                }
-                                else -> {
-                                    attempts++
-                                    error = "Incorrect PIN. Please try again."
-                                    pin = ""
-                                }
+                // Unlock Button (PIN)
+                Button(
+                    onClick = {
+                        when {
+                            pin.isEmpty() -> {
+                                error = "Please enter your PIN"
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
-                        enabled = attempts < maxAttempts
-                    ) {
-                        Text("Unlock", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-
-                    // Fingerprint as secondary option for "PIN + Fingerprint"
-                    if (isFingerprintMode && isBiometricAvailable) {
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedButton(
-                            onClick = {
-                                val activity = context.findFragmentActivity()
-                                if (activity != null) {
-                                    biometricManager.showBiometricPrompt(
-                                        activity = activity,
-                                        onSuccess = { onUnlock() },
-                                        onError = { msg -> error = msg }
-                                    )
-                                } else {
-                                    error = "Biometric authentication unavailable"
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Fingerprint,
-                                contentDescription = "Fingerprint",
-                                tint = NeonCyan,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Use Fingerprint", color = NeonCyan, fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                            attempts >= maxAttempts -> {
+                                error = "Too many attempts. Please restart the app."
+                            }
+                            pin == settings.pinCode -> {
+                                onUnlock()
+                            }
+                            settings.pinCode.isEmpty() -> {
+                                Toast.makeText(context, "No PIN configured. Unlocked.", Toast.LENGTH_SHORT).show()
+                                onUnlock()
+                            }
+                            else -> {
+                                attempts++
+                                error = "Incorrect PIN. Please try again."
+                                pin = ""
+                            }
                         }
-                    }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                    enabled = attempts < maxAttempts
+                ) {
+                    Text("Unlock with PIN", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         }
     }
 }
-

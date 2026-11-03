@@ -89,7 +89,7 @@ fun SettingsScreen(
 
     val cleanName = if (userName.isNotBlank() && !userName.equals("User", ignoreCase = true)) userName
     else currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "AI Explorer"
-    val cleanEmail = if (userEmail.isNotBlank()) userEmail else currentUser?.email ?: "user@zayaai.com"
+    val cleanEmail = if (userEmail.isNotBlank()) userEmail else currentUser?.email ?: "zayacodehub@gmail.com"
 
     Scaffold(
         topBar = {
@@ -539,11 +539,11 @@ fun SettingsScreen(
             SettingsCard(isDark = isDark) {
                 SettingsActionItem(
                     title = "Contact Support",
-                    subtitle = "Email support@zayaai.com for help and queries",
+                    subtitle = "Email zayacodehub@gmail.com for help and queries",
                     icon = Icons.Rounded.Mail,
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
-                            data = Uri.parse("mailto:support@zayaai.com")
+                            data = Uri.parse("mailto:zayacodehub@gmail.com")
                             putExtra(Intent.EXTRA_SUBJECT, "AI ZAYA Support Request - $cleanName")
                         }
                         try {

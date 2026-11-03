@@ -47,8 +47,12 @@ data class EventItem(
     val currency: String = "₹",
     val prizePool: String = "",
     val eligibility: String = "",
+    val registrationMode: String = "both", // "both", "team_only", "individual_only"
     val minTeamSize: Int = 1,
-    val maxTeamSize: Int = 1,
+    val maxTeamSize: Int = 5,
+    val availableDomains: List<String> = emptyList(),
+    val allowCustomDomains: Boolean = true,
+    val requireProjectDetails: Boolean = false,
     val capacity: Int = 0, // 0 = unlimited
     val registeredCount: Int = 0,
     val description: String = "",
@@ -69,8 +73,10 @@ data class TeamMemberInfo(
     val name: String = "",
     val email: String = "",
     val phone: String = "",
+    val college: String = "",
     val department: String = "",
-    val yearOfStudy: String = ""
+    val yearOfStudy: String = "",
+    val role: String = "Member" // "Leader", "Member"
 )
 
 @Keep
@@ -92,6 +98,19 @@ data class EventRegistration(
     val teamName: String? = null,
     val teamCode: String? = null,
     val isTeamLeader: Boolean = false,
+    val teamDescription: String = "",
+    val teamGithubUrl: String = "",
+    val teamLinkedinUrl: String = "",
+    val teamPortfolioUrl: String = "",
+    val teamSize: Int = 1,
+    val domain: String = "",
+    val customDomain: String = "",
+    val projectTitle: String = "",
+    val problemStatement: String = "",
+    val proposedSolution: String = "",
+    val techStack: String = "",
+    val projectGithubUrl: String = "",
+    val projectDemoUrl: String = "",
     val teamMembers: List<String> = emptyList(),
     val teamMembersDetails: List<TeamMemberInfo> = emptyList(),
     val answers: Map<String, String> = emptyMap(),
@@ -138,12 +157,13 @@ data class EventAnnouncement(
     val title: String = "",
     val message: String = "",
     val timestamp: Long = System.currentTimeMillis(),
-    val priority: String = "Normal" // "High", "Normal"
+    val priority: String = "Normal" // "Low", "Normal", "High", "Urgent"
 )
 
+@Keep
 data class AttendanceScanResult(
-    val success: Boolean,
-    val message: String,
+    val success: Boolean = false,
+    val message: String = "",
     val registration: EventRegistration? = null
 )
 
