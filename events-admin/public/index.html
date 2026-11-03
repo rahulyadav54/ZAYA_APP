@@ -1003,7 +1003,7 @@
 
         <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
           <button type="button" onclick="closeCreateModal()" class="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">Publish Event</button>
+          <button id="btn-save-event" type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">Publish Event</button>
         </div>
       </form>
     </div>
@@ -1412,6 +1412,18 @@
 
       document.getElementById('breadcrumb-current').innerText = viewId.replace('-', ' ');
 
+      // Refresh data on navigate
+      if (viewId === 'events') renderEventsCatalog();
+      if (viewId === 'participants') renderParticipantsTable();
+      if (viewId === 'teams') renderTeamsView();
+      if (viewId === 'attendance') renderAttendanceLogs();
+      if (viewId === 'announcements') renderAnnouncementsList();
+      if (viewId === 'certificates') renderCertificatesTable();
+      if (viewId === 'overview') {
+        renderOverviewMetrics();
+        renderOverviewEventsTable();
+      }
+
       if (viewId === 'scanner') startScanner();
       else stopScanner();
 
@@ -1497,7 +1509,18 @@
       });
 
       if (filtered.length === 0) {
-        grid.innerHTML = `<div class="col-span-3 py-12 text-center text-slate-400 text-xs">No events match the selected filter. Click "Create Event" to publish one.</div>`;
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 p-8">
+            <div class="w-16 h-16 rounded-2xl bg-brand-50 text-brand-500 mx-auto flex items-center justify-center text-2xl mb-4">
+              <i class="fa-solid fa-calendar-plus"></i>
+            </div>
+            <h4 class="font-black text-slate-800 text-base mb-1">No Events Found</h4>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto mb-5">Create your first hackathon, workshop, or competition. It will synchronize live to the AI ZAYA Android mobile app.</p>
+            <button onclick="openCreateModal()" class="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+              <i class="fa-solid fa-plus mr-1.5"></i>Create Event
+            </button>
+          </div>
+        `;
         return;
       }
 
@@ -1809,10 +1832,32 @@
         description: desc
       };
 
+      const submitBtn = document.getElementById('btn-save-event');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i>Saving to Firestore...`;
+      }
+
       if (db && isCloudLive) {
         try {
           await db.collection("events").doc(eventPayload.id).set(eventPayload, { merge: true });
-        } catch (_) {}
+          console.log("Firestore event saved successfully:", eventPayload.id);
+        } catch (err) {
+          console.error("Firestore Save Error:", err);
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `Publish Event`;
+          }
+          const msg = err.message || err.code || "Database permission denied";
+          showToast("Firestore Error: " + msg, 'error');
+          alert("Database write error: " + msg + "\n\nPlease check that your Firestore Security Rules allow writes to the 'events' collection.");
+          return;
+        }
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `Publish Event`;
       }
 
       const existingIndex = eventsData.findIndex(ev => ev.id === eventPayload.id);
