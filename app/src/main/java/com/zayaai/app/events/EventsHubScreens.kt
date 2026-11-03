@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.zayaai.app.MarkdownText
 import com.zayaai.app.ui.theme.LocalIsDarkTheme
 import java.text.SimpleDateFormat
@@ -834,6 +836,19 @@ private fun FeaturedEventHeroCard(
                     )
                     .padding(12.dp)
             ) {
+                if (event.posterUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = event.posterUrl,
+                        contentDescription = event.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                    )
+                }
                 // Category pill
                 Box(
                     modifier = Modifier
@@ -977,6 +992,22 @@ private fun EventCard(
             .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            if (event.posterUrl.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    AsyncImage(
+                        model = event.posterUrl,
+                        contentDescription = event.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1352,6 +1383,9 @@ private fun EventDetailsDialog(
     val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy, hh:mm a", Locale.getDefault())
     val isRegistered = viewModel.isUserRegistered(event.id)
     var showRegistrationForm by remember { mutableStateOf(false) }
+    val eventRegistrations by viewModel.getEventRegistrationsFlow(event.id).collectAsState(initial = emptyList())
+    val registeredTeams = eventRegistrations.filter { it.isTeam || !it.teamName.isNullOrBlank() }
+    val totalAttendeesCount = eventRegistrations.sumOf { 1 + it.teamMembersDetails.size }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1400,6 +1434,24 @@ private fun EventDetailsDialog(
                                     imageVector = if (viewModel.isBookmarked(event.id)) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
                                     contentDescription = "Save",
                                     tint = if (viewModel.isBookmarked(event.id)) Color(0xFFF59E0B) else Color.White
+                                )
+                            }
+                        }
+
+                        if (event.posterUrl.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp),
+                                shadowElevation = 4.dp
+                            ) {
+                                AsyncImage(
+                                    model = event.posterUrl,
+                                    contentDescription = "Event Poster",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
                         }
@@ -1634,6 +1686,199 @@ private fun EventDetailsDialog(
                         }
                     }
 
+                    // --- REALTIME REGISTERED TEAMS & PARTICIPANTS ROSTER ---
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isDark) Color(0xFF14162B) else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.5.dp, Color(0xFF7C3AED).copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF10B981))
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "REGISTERED TEAMS & ATTENDEES",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF7C3AED),
+                                            letterSpacing = 0.8.sp
+                                        )
+                                    }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(0xFF7C3AED).copy(alpha = 0.15f)
+                                        ) {
+                                            Text(
+                                                text = "${registeredTeams.size} Teams",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF7C3AED),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            )
+                                        }
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(0xFF10B981).copy(alpha = 0.15f)
+                                        ) {
+                                            Text(
+                                                text = "$totalAttendeesCount Attendees",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF10B981),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (eventRegistrations.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(
+                                                Icons.Rounded.Groups,
+                                                contentDescription = null,
+                                                tint = Color(0xFF94A3B8),
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                "No teams registered yet. Be the first to register!",
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF94A3B8)
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        eventRegistrations.forEach { reg ->
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = if (isDark) Color(0xFF1B1E38) else Color(0xFFFFFFFF),
+                                                border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4E) else Color(0xFFE2E8F0)),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                            Text(
+                                                                text = if (reg.isTeam) "🛡️ ${reg.teamName ?: "Team ${reg.userName}"}" else "👤 ${reg.userName} (Solo)",
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 13.sp,
+                                                                color = if (isDark) Color.White else Color(0xFF0F172A),
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                            if (reg.isTeam) {
+                                                                Spacer(modifier = Modifier.width(6.dp))
+                                                                Surface(
+                                                                    shape = RoundedCornerShape(6.dp),
+                                                                    color = Color(0xFF6366F1).copy(alpha = 0.15f)
+                                                                ) {
+                                                                    Text(
+                                                                        "${1 + reg.teamMembersDetails.size} Members",
+                                                                        fontSize = 10.sp,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        color = Color(0xFF6366F1),
+                                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        if (reg.attended) {
+                                                            Surface(
+                                                                shape = RoundedCornerShape(6.dp),
+                                                                color = Color(0xFF10B981).copy(alpha = 0.15f)
+                                                            ) {
+                                                                Text("Checked In ✅", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (reg.college.isNotBlank()) {
+                                                        Text(
+                                                            text = "🏛️ ${reg.college}${if (reg.department.isNotBlank()) " • ${reg.department}" else ""}",
+                                                            fontSize = 11.5.sp,
+                                                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                        )
+                                                    }
+
+                                                    // Team Members List
+                                                    if (reg.isTeam && reg.teamMembersDetails.isNotEmpty()) {
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text(
+                                                            text = "Team Members:",
+                                                            fontSize = 10.5.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFF7C3AED)
+                                                        )
+                                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            // Leader
+                                                            Surface(
+                                                                shape = RoundedCornerShape(8.dp),
+                                                                color = Color(0xFF7C3AED).copy(alpha = 0.12f),
+                                                                border = BorderStroke(0.5.dp, Color(0xFF7C3AED).copy(alpha = 0.3f)),
+                                                                modifier = Modifier.fillMaxWidth()
+                                                            ) {
+                                                                Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                                    Text("👑 ${reg.userName} (Leader)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF7C3AED))
+                                                                    if (reg.department.isNotBlank()) {
+                                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                                        Text("• ${reg.department} (${reg.yearOfStudy})", fontSize = 10.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569))
+                                                                    }
+                                                                }
+                                                            }
+                                                            // Other members
+                                                            reg.teamMembersDetails.forEach { m ->
+                                                                Surface(
+                                                                    shape = RoundedCornerShape(8.dp),
+                                                                    color = if (isDark) Color(0xFF232746) else Color(0xFFF1F5F9),
+                                                                    border = BorderStroke(0.5.dp, if (isDark) Color(0xFF33385C) else Color(0xFFE2E8F0)),
+                                                                    modifier = Modifier.fillMaxWidth()
+                                                                ) {
+                                                                    Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                                        Text("• ${m.name}", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (isDark) Color.White else Color(0xFF0F172A))
+                                                                        if (m.department.isNotBlank()) {
+                                                                            Spacer(modifier = Modifier.width(6.dp))
+                                                                            Text("• ${m.department} (${m.yearOfStudy})", fontSize = 10.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569))
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Markdown Description
                     item {
                         Text(
@@ -1830,6 +2075,13 @@ private fun EventRegistrationDialog(
     var member4Dept by remember { mutableStateOf("") }
     var member4Year by remember { mutableStateOf("3rd Year") }
 
+    // Member 5
+    var member5Name by remember { mutableStateOf("") }
+    var member5Email by remember { mutableStateOf("") }
+    var member5Phone by remember { mutableStateOf("") }
+    var member5Dept by remember { mutableStateOf("") }
+    var member5Year by remember { mutableStateOf("3rd Year") }
+
     val yearsList = listOf("1st Year", "2nd Year", "3rd Year", "4th Year / Final", "Post-Grad")
 
     LaunchedEffect(Unit) {
@@ -1922,6 +2174,9 @@ private fun EventRegistrationDialog(
                                     }
                                     if (teamSize >= 4 && member4Name.isNotBlank()) {
                                         membersList.add(TeamMemberInfo(member4Name, member4Email, member4Phone, member4Dept.ifBlank { department }, member4Year))
+                                    }
+                                    if (teamSize >= 5 && member5Name.isNotBlank()) {
+                                        membersList.add(TeamMemberInfo(member5Name, member5Email, member5Phone, member5Dept.ifBlank { department }, member5Year))
                                     }
                                 }
 
@@ -2154,7 +2409,7 @@ private fun EventRegistrationDialog(
                             ) {
                                 Text("Total Team Members:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    listOf(2, 3, 4).filter { it <= event.maxTeamSize }.forEach { sz ->
+                                    listOf(2, 3, 4, 5).forEach { sz ->
                                         val isSel = teamSize == sz
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),

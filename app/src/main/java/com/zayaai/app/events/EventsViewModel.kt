@@ -103,6 +103,10 @@ class EventsViewModel(application: Application) : AndroidViewModel(application) 
         return repository.isUserRegistered(eventId) || _registrations.value.any { it.eventId == eventId }
     }
 
+    fun getEventRegistrationsFlow(eventId: String): kotlinx.coroutines.flow.Flow<List<EventRegistration>> {
+        return repository.getEventRegistrationsFlow(eventId)
+    }
+
     fun getRegistrationForEvent(eventId: String): EventRegistration? {
         return _registrations.value.firstOrNull { it.eventId == eventId } ?: repository.getRegistrationForEvent(eventId)
     }

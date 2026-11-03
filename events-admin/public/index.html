@@ -951,6 +951,25 @@
           <input type="text" id="ev-title" required placeholder="e.g. AI ZAYA Grand Hackathon 2026" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
         </div>
 
+        <!-- Event Poster Upload & Preview -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="font-bold text-slate-700">Event Poster / Hackathon Banner</label>
+            <span class="text-[11px] text-brand-600 font-semibold">Upload Image or Paste URL</span>
+          </div>
+          <div class="flex items-center gap-2 mb-2">
+            <input type="text" id="ev-poster-url" placeholder="https://... or click Upload to select image" oninput="updatePosterPreview()" class="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-xs">
+            <label class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs cursor-pointer transition flex items-center border border-slate-200">
+              <i class="fa-solid fa-cloud-arrow-up mr-1.5 text-brand-600"></i>Upload Poster
+              <input type="file" id="ev-poster-file" accept="image/*" class="hidden" onchange="handlePosterFileUpload(event)">
+            </label>
+          </div>
+          <div id="ev-poster-preview-container" class="hidden rounded-2xl overflow-hidden border border-slate-200 max-h-48 bg-slate-50 relative">
+            <img id="ev-poster-preview" src="" alt="Poster Preview" class="w-full h-48 object-cover">
+            <button type="button" onclick="clearPosterPreview()" class="absolute top-2 right-2 bg-slate-900/80 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs hover:bg-red-600 transition shadow"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Category *</label>
@@ -1526,8 +1545,9 @@
 
       filtered.forEach(ev => {
         grid.innerHTML += `
-          <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden">
             <div>
+              ${ev.posterUrl ? `<img src="${ev.posterUrl}" alt="${ev.title}" class="w-full h-36 object-cover rounded-2xl mb-3 border border-slate-100 shadow-sm">` : ''}
               <div class="flex items-center justify-between mb-3">
                 <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-100">${ev.category || 'General'}</span>
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${ev.mode === 'Online' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'}">${ev.mode || 'Online'}</span>
@@ -1805,11 +1825,47 @@
       });
     }
 
+
+    // Poster file upload and preview helpers
+    function handlePosterFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64 = evt.target.result;
+        document.getElementById('ev-poster-url').value = base64;
+        updatePosterPreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updatePosterPreview() {
+      const url = document.getElementById('ev-poster-url').value.trim();
+      const container = document.getElementById('ev-poster-preview-container');
+      const img = document.getElementById('ev-poster-preview');
+      if (url) {
+        img.src = url;
+        container.classList.remove('hidden');
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function clearPosterPreview() {
+      const input = document.getElementById('ev-poster-url');
+      if (input) input.value = '';
+      const fileInput = document.getElementById('ev-poster-file');
+      if (fileInput) fileInput.value = '';
+      const container = document.getElementById('ev-poster-preview-container');
+      if (container) container.classList.add('hidden');
+    }
+
     // ─── Modal Actions (Event, Certificate, Broadcast, Invite) ───
     function openCreateModal() {
       document.getElementById('event-modal-title').innerText = "Create New Event";
       document.getElementById('event-form').reset();
       document.getElementById('ev-edit-id').value = "";
+      clearPosterPreview();
       document.getElementById('event-modal').classList.remove('hidden');
       document.getElementById('event-modal').classList.add('flex');
     }
@@ -1830,6 +1886,7 @@
       e.preventDefault();
       const editId = document.getElementById('ev-edit-id').value;
       const title = document.getElementById('ev-title').value.trim();
+      const posterUrl = document.getElementById('ev-poster-url').value.trim() || '';
       const category = document.getElementById('ev-category').value;
       const mode = document.getElementById('ev-mode').value;
       const capacity = parseInt(document.getElementById('ev-capacity').value) || 500;
@@ -1846,6 +1903,7 @@
         mode: mode,
         venue: venue,
         capacity: capacity,
+        posterUrl: posterUrl,
         registeredCount: 0,
         isFree: isFree,
         price: price,
@@ -1903,6 +1961,8 @@
       document.getElementById('event-modal-title').innerText = "Edit Event Details";
       document.getElementById('ev-edit-id').value = ev.id;
       document.getElementById('ev-title').value = ev.title;
+      document.getElementById('ev-poster-url').value = ev.posterUrl || '';
+      updatePosterPreview();
       document.getElementById('ev-category').value = ev.category || 'Hackathons';
       document.getElementById('ev-mode').value = ev.mode || 'Online';
       document.getElementById('ev-capacity').value = ev.capacity || 500;

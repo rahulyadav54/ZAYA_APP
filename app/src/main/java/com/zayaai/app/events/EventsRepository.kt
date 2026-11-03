@@ -267,6 +267,24 @@ class EventsRepository(private val context: Context) {
     }.flowOn(Dispatchers.IO)
 
     /**
+     * Stream all registrations for a specific event in real time.
+     * Allows all participants to view registered teams, member names, and total count.
+     */
+    fun getEventRegistrationsFlow(eventId: String): Flow<List<EventRegistration>> = callbackFlow {
+        val listener = db.collection("events").document(eventId)
+            .collection("registrations")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                val regs = snapshot.documents.mapNotNull { it.toObject(EventRegistration::class.java) }
+                trySend(regs)
+            }
+        awaitClose { listener.remove() }
+    }.flowOn(Dispatchers.IO)
+
+    /**
      * Check if user is registered for an event.
      */
     fun isUserRegistered(eventId: String): Boolean {
