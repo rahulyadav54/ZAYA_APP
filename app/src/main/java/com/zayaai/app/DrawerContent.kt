@@ -55,6 +55,7 @@ fun DrawerContent(
 
             // Main Tools
             SectionTitle("Main Tools")
+            MenuItem(Screen.EventsHub, currentRoute == Screen.EventsHub.route) { onItemSelected(Screen.EventsHub) }
             MenuItem(Screen.AIChat, currentRoute == Screen.AIChat.route) { onItemSelected(Screen.AIChat) }
             MenuItem(Screen.ImageGenerator, currentRoute == Screen.ImageGenerator.route) { onItemSelected(Screen.ImageGenerator) }
             MenuItem(Screen.CodeGenerator, currentRoute == Screen.CodeGenerator.route) { onItemSelected(Screen.CodeGenerator) }

@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -159,7 +160,18 @@ fun ChatScreen(viewModel: ChatViewModel, paddingValues: PaddingValues) {
             items(viewModel.messages, key = { it.timestamp }) { message ->
                 ChatMessageBubble(
                     message = message,
-                    onSpeakMessage = { text -> ttsManager.speak(text) }
+                    isSpeakingThisMessage = isSpeaking,
+                    onSpeakMessage = { text -> ttsManager.speak(text) },
+                    onStopSpeaking = { ttsManager.stop() },
+                    onRegenerate = { viewModel.regenerateLastResponse() },
+                    onShareMessage = { text ->
+                        val shareIntent = android.content.Intent().apply {
+                            action = android.content.Intent.ACTION_SEND
+                            putExtra(android.content.Intent.EXTRA_TEXT, text)
+                            type = "text/plain"
+                        }
+                        context.startActivity(android.content.Intent.createChooser(shareIntent, "Share AI ZAYA Response"))
+                    }
                 )
             }
 
@@ -436,10 +448,18 @@ private fun EmptyChatState(onSuggestionClick: (String) -> Unit = {}) {
 // --- Chat Message Bubble ---
 
 @Composable
-fun ChatMessageBubble(message: Message, onSpeakMessage: (String) -> Unit = {}) {
+fun ChatMessageBubble(
+    message: Message,
+    isSpeakingThisMessage: Boolean = false,
+    onSpeakMessage: (String) -> Unit = {},
+    onStopSpeaking: () -> Unit = {},
+    onRegenerate: () -> Unit = {},
+    onShareMessage: (String) -> Unit = {}
+) {
     val isUser = message.isUser
     val context = LocalContext.current
     val isDark = LocalIsDarkTheme.current
+    var feedback by remember { mutableStateOf<Boolean?>(null) }
 
     Row(
         modifier = Modifier
@@ -452,65 +472,47 @@ fun ChatMessageBubble(message: Message, onSpeakMessage: (String) -> Unit = {}) {
         if (!isUser) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(34.dp)
+                    .clip(CircleShape)
                     .background(
-                        Brush.linearGradient(listOf(NeonPurple, NeonCyan)),
-                        CircleShape
+                        Brush.linearGradient(listOf(Color(0xFF7C3AED), Color(0xFF6366F1), Color(0xFF38BDF8)))
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Z", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = "AI ZAYA",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
         }
 
         Column(
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-            modifier = Modifier.widthIn(max = if (isUser) 300.dp else 340.dp)
+            modifier = if (isUser) {
+                Modifier.widthIn(max = 300.dp)
+            } else {
+                Modifier.weight(1f).padding(end = 4.dp)
+            }
         ) {
-            // Bubble
-            Card(
-                shape = if (isUser)
-                    RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)
-                else
-                    RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.Transparent
-                ),
-                modifier = Modifier.then(
-                    if (!isUser)
-                        Modifier.border(
-                            1.dp,
-                            if (isDark) NeonCyan.copy(alpha = 0.1f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                            RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp)
-                        )
-                    else Modifier
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .background(
-                            if (isUser) {
-                                Brush.linearGradient(listOf(Color(0xFF7C3AED), Color(0xFF6366F1)))
-                            } else {
-                                if (isDark)
-                                    Brush.linearGradient(listOf(Color(0xFF141527), Color(0xFF141527)))
-                                else
-                                    Brush.linearGradient(listOf(Color(0xFFFFFFFF), Color(0xFFFFFFFF)))
-                            }
-                        )
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
+            if (isUser) {
+                // User Bubble
+                Card(
+                    shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
-                    if (isUser) {
-                        // Show attachment badge if present
+                    Column(
+                        modifier = Modifier
+                            .background(Brush.linearGradient(listOf(Color(0xFF7C3AED), Color(0xFF6366F1))))
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                    ) {
                         if (message.attachmentName != null) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
-                                    .background(
-                                        Color.White.copy(alpha = 0.15f),
-                                        RoundedCornerShape(8.dp)
-                                    )
+                                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Icon(
@@ -525,7 +527,7 @@ fun ChatMessageBubble(message: Message, onSpeakMessage: (String) -> Unit = {}) {
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = message.attachmentName ?: "Attachment",
+                                    text = message.attachmentName,
                                     color = Color.White.copy(alpha = 0.9f),
                                     style = MaterialTheme.typography.labelSmall,
                                     maxLines = 1,
@@ -540,58 +542,9 @@ fun ChatMessageBubble(message: Message, onSpeakMessage: (String) -> Unit = {}) {
                             style = MaterialTheme.typography.bodyMedium,
                             lineHeight = 22.sp
                         )
-                    } else {
-                        MarkdownText(
-                            text = message.text,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 22.sp
-                        )
                     }
                 }
-            }
 
-            // Action row for AI messages
-            if (!isUser) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    // Speak button
-                    IconButton(
-                        onClick = { onSpeakMessage(message.text) },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.VolumeUp,
-                            contentDescription = "Speak",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    // Copy button
-                    IconButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("message", message.text))
-                            android.widget.Toast.makeText(context, "Copied!", android.widget.Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            Icons.Rounded.ContentCopy,
-                            contentDescription = "Copy",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                    Text(
-                        text = formatTimestamp(message.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            } else {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = formatTimestamp(message.timestamp),
@@ -599,6 +552,180 @@ fun ChatMessageBubble(message: Message, onSpeakMessage: (String) -> Unit = {}) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.padding(end = 4.dp)
                 )
+            } else {
+                // Professional ChatGPT-Quality AI Response Card
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isDark) Color(0xFF141527) else Color(0xFFFFFFFF),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isDark) Color(0xFF232544) else Color(0xFFE2E8F0)
+                    ),
+                    shadowElevation = if (isDark) 0.dp else 1.5.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                    ) {
+                        // AI Model and Status Header
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "AI ZAYA",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.6.sp,
+                                        fontSize = 12.sp
+                                    ),
+                                    color = if (isDark) Color(0xFFA5B4FC) else Color(0xFF6366F1)
+                                )
+                                Text(
+                                    text = " • Nemotron 3 Ultra",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                                )
+                            }
+
+                            Text(
+                                text = formatTimestamp(message.timestamp),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                            )
+                        }
+
+                        // Rich Markdown Body
+                        MarkdownText(
+                            text = message.text,
+                            color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A),
+                            lineHeight = 24.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider(
+                            color = if (isDark) Color(0xFF20233B) else Color(0xFFF1F5F9),
+                            thickness = 1.dp
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Compact Action Toolbar
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                // 1. Copy
+                                IconButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("AI ZAYA Response", message.text))
+                                        android.widget.Toast.makeText(context, "Response copied to clipboard!", android.widget.Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.ContentCopy,
+                                        contentDescription = "Copy Response",
+                                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+
+                                // 2. Read Aloud / TTS
+                                IconButton(
+                                    onClick = {
+                                        if (isSpeakingThisMessage) {
+                                            onStopSpeaking()
+                                        } else {
+                                            onSpeakMessage(message.text)
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSpeakingThisMessage) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp,
+                                        contentDescription = if (isSpeakingThisMessage) "Stop Speaking" else "Read Aloud",
+                                        tint = if (isSpeakingThisMessage) Color(0xFF10B981) else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                }
+
+                                // 3. Share
+                                IconButton(
+                                    onClick = { onShareMessage(message.text) },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Share,
+                                        contentDescription = "Share Response",
+                                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+
+                                // 4. Regenerate
+                                IconButton(
+                                    onClick = { onRegenerate() },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Refresh,
+                                        contentDescription = "Regenerate Response",
+                                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+
+                            // Like / Dislike feedback
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        feedback = if (feedback == true) null else true
+                                        if (feedback == true) {
+                                            android.widget.Toast.makeText(context, "Thanks for the feedback!", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.ThumbUp,
+                                        contentDescription = "Good response",
+                                        tint = if (feedback == true) Color(0xFF10B981) else if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        feedback = if (feedback == false) null else false
+                                        if (feedback == false) {
+                                            android.widget.Toast.makeText(context, "Feedback noted. We will improve!", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.ThumbDown,
+                                        contentDescription = "Bad response",
+                                        tint = if (feedback == false) Color(0xFFEF4444) else if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

@@ -88,7 +88,8 @@ fun HomeScreen(
             RedesignToolItem("resume_builder", "Resume\nBuilder", Icons.Rounded.ContactPage, "Productivity", listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8)), Screen.ResumeBuilder.route),
             RedesignToolItem("startup_idea", "Startup Idea", Icons.Rounded.Lightbulb, "Productivity", listOf(Color(0xFFF59E0B), Color(0xFFB45309)), Screen.StartupIdea.route),
             RedesignToolItem("ppt_gen", "PPT Gen", Icons.Rounded.Slideshow, "Productivity", listOf(Color(0xFF06B6D4), Color(0xFF0E7490)), Screen.PPTGenerator.route),
-            RedesignToolItem("brain_games", "Brain Games", Icons.Rounded.SportsEsports, "Creative", listOf(Color(0xFFEC4899), Color(0xFF9333EA)), Screen.BrainGames.route)
+            RedesignToolItem("brain_games", "Brain Games", Icons.Rounded.SportsEsports, "Creative", listOf(Color(0xFFEC4899), Color(0xFF9333EA)), Screen.BrainGames.route),
+            RedesignToolItem("events_hub", "Events Hub", Icons.Rounded.Event, "Creative", listOf(Color(0xFF7C3AED), Color(0xFF38BDF8)), Screen.EventsHub.route)
         )
     }
 

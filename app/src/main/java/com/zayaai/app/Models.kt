@@ -73,6 +73,12 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object MaterialDetail : Screen("material_detail", "Material Detail", Icons.Rounded.Description)
     object WebBrowser : Screen("web_browser", "Web Browser", Icons.Rounded.Public)
 
+    // Events Hub
+    object EventsHub : Screen("events_hub", "Events Hub", Icons.Rounded.Event)
+    object EventDetail : Screen("event_detail/{eventId}", "Event Details", Icons.Rounded.Event)
+    object MyEvents : Screen("my_events", "My Events", Icons.Rounded.ConfirmationNumber)
+    object EventScanner : Screen("event_scanner/{eventId}", "Attendance Scanner", Icons.Rounded.QrCodeScanner)
+
     // Brain Games
     object BrainGames : Screen("brain_games", "Brain Games", Icons.Rounded.SportsEsports)
     object MathChallenge : Screen("math_challenge", "Math Challenge", Icons.Rounded.Calculate)

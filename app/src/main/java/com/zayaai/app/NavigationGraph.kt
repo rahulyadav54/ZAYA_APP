@@ -279,6 +279,13 @@ fun NavigationGraph(
                 navController.navigate(screen.route)
             }
         }
+        composable(Screen.EventsHub.route) {
+            val eventsViewModel: com.zayaai.app.events.EventsViewModel = viewModel()
+            com.zayaai.app.events.EventsHubScreen(
+                viewModel = eventsViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable(Screen.MathChallenge.route) {
             MathChallengeScreen(paddingValues = paddingValues)
         }

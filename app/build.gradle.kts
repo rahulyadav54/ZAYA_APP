@@ -94,6 +94,9 @@ dependencies {
     // Material (needed for XML theme reference)
     implementation("com.google.android.material:material:1.12.0")
 
+    // QR Code generation (ZXing)
+    implementation("com.google.zxing:core:3.5.3")
+
     // DataStore & Biometric
     implementation(libs.datastore.preferences)
     implementation(libs.biometric)

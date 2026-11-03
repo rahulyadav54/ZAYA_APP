@@ -1,17 +1,22 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckBox
+import androidx.compose.material.icons.rounded.CheckBoxOutlineBlank
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -22,17 +27,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zayaai.app.ui.theme.NeonCyan
+import com.zayaai.app.ui.theme.LocalIsDarkTheme
+import java.util.regex.Pattern
 
 // --- Syntax Highlighting Colors ---
 private object SyntaxColors {
@@ -47,49 +57,166 @@ private object SyntaxColors {
     val plain = Color(0xFFABB2BF)         // light gray — plain text
 }
 
+// --- Markdown Block Models ---
+sealed class MdBlock {
+    data class Header(val level: Int, val content: String) : MdBlock()
+    data class CodeBlock(val code: String, val language: String = "") : MdBlock()
+    data class Table(
+        val headers: List<String>,
+        val alignments: List<TextAlign>,
+        val rows: List<List<String>>
+    ) : MdBlock()
+    data class Blockquote(val content: String) : MdBlock()
+    data class ListItem(
+        val bullet: String,
+        val content: String,
+        val isTaskList: Boolean = false,
+        val isChecked: Boolean = false
+    ) : MdBlock()
+    data class MathBlock(val formula: String) : MdBlock()
+    data class Paragraph(val content: String) : MdBlock()
+    data object Divider : MdBlock()
+}
+
 /**
- * A composable that renders markdown-formatted text with proper styling.
- * Supports: **bold**, *italic*, `inline code`, ### headers, bullet lists,
- * numbered lists, ---, code blocks with syntax highlighting, copy & expand.
+ * A premier, ChatGPT-grade Markdown renderer for AI ZAYA.
+ * Supports:
+ * - Headings (H1 - H6) with clean typographic hierarchy
+ * - GitHub Flavored Markdown Tables with horizontal scrolling and zebra rows
+ * - Fenced code blocks with language pills, syntax highlighting, and copy button
+ * - Blockquotes with accent border and elegant background
+ * - Bullet lists, numbered lists, and task checkboxes
+ * - LaTeX / Math formula display blocks & inline math
+ * - Inline formatting: bold, italic, strikethrough, inline code pills, clickable links
+ * - Resilient streaming response parsing (handles partial Markdown safely)
  */
 @Composable
 fun MarkdownText(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onBackground,
-    lineHeight: androidx.compose.ui.unit.TextUnit = 22.sp
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    lineHeight: TextUnit = 24.sp
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val uriHandler = LocalUriHandler.current
     val blocks = remember(text) { parseMarkdownBlocks(text) }
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         blocks.forEach { block ->
             when (block) {
                 is MdBlock.Header -> {
-                    val (style, headerColor) = when (block.level) {
-                        1 -> MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold) to NeonCyan
-                        2 -> MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) to NeonCyan.copy(alpha = 0.9f)
-                        else -> MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold) to color
+                    val (fontSize, fontWeight, topPad, botPad) = when (block.level) {
+                        1 -> listOf(21.sp, FontWeight.Bold, 12.dp, 4.dp)
+                        2 -> listOf(18.sp, FontWeight.Bold, 10.dp, 4.dp)
+                        3 -> listOf(16.sp, FontWeight.SemiBold, 8.dp, 2.dp)
+                        else -> listOf(15.sp, FontWeight.SemiBold, 6.dp, 2.dp)
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = parseInlineMarkdown(block.content, headerColor),
-                        style = style,
-                        color = headerColor,
-                        lineHeight = 28.sp
+
+                    val headerColor = if (isDark) {
+                        when (block.level) {
+                            1 -> Color(0xFFFFFFFF)
+                            2 -> Color(0xFFF1F5F9)
+                            else -> Color(0xFFE2E8F0)
+                        }
+                    } else {
+                        when (block.level) {
+                            1 -> Color(0xFF0F172A)
+                            2 -> Color(0xFF1E293B)
+                            else -> Color(0xFF334155)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(topPad as androidx.compose.ui.unit.Dp))
+                    val annotatedHeader = remember(block.content, headerColor, isDark) {
+                        parseInlineMarkdown(block.content, headerColor, isDark)
+                    }
+                    ClickableText(
+                        text = annotatedHeader,
+                        style = TextStyle(
+                            fontSize = fontSize as TextUnit,
+                            fontWeight = fontWeight as FontWeight,
+                            color = headerColor,
+                            lineHeight = ((fontSize as TextUnit).value * 1.35f).sp
+                        ),
+                        onClick = { offset ->
+                            annotatedHeader.getStringAnnotations("URL", offset, offset)
+                                .firstOrNull()?.let { annotation ->
+                                    try { uriHandler.openUri(annotation.item) } catch (_: Exception) {}
+                                }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(botPad as androidx.compose.ui.unit.Dp))
+                }
+
+                is MdBlock.Table -> {
+                    MarkdownTable(
+                        headers = block.headers,
+                        alignments = block.alignments,
+                        rows = block.rows,
+                        isDark = isDark
                     )
                 }
 
                 is MdBlock.CodeBlock -> {
                     SyntaxHighlightedCodeBlock(
                         code = block.code,
-                        language = block.language
+                        language = block.language,
+                        isDark = isDark
                     )
+                }
+
+                is MdBlock.Blockquote -> {
+                    Surface(
+                        shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+                        color = if (isDark) Color(0xFF16182B) else Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.5.dp)
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color(0xFF7C3AED))
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            val quoteColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                            val annotatedQuote = remember(block.content, quoteColor, isDark) {
+                                parseInlineMarkdown(block.content, quoteColor, isDark)
+                            }
+                            ClickableText(
+                                text = annotatedQuote,
+                                style = TextStyle(
+                                    fontSize = 14.5.sp,
+                                    fontStyle = FontStyle.Italic,
+                                    color = quoteColor,
+                                    lineHeight = 22.sp
+                                ),
+                                onClick = { offset ->
+                                    annotatedQuote.getStringAnnotations("URL", offset, offset)
+                                        .firstOrNull()?.let { annotation ->
+                                            try { uriHandler.openUri(annotation.item) } catch (_: Exception) {}
+                                        }
+                                }
+                            )
+                        }
+                    }
                 }
 
                 is MdBlock.Divider -> {
                     HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        color = if (isDark) Color(0xFF2E314D) else Color(0xFFE2E8F0),
+                        thickness = 1.dp
                     )
                 }
 
@@ -97,32 +224,228 @@ fun MarkdownText(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 4.dp),
+                            .padding(start = 2.dp, top = 2.dp, bottom = 2.dp),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Text(
-                            text = block.bullet,
-                            color = NeonCyan,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            modifier = Modifier.width(24.dp)
+                        if (block.isTaskList) {
+                            Icon(
+                                imageVector = if (block.isChecked) Icons.Rounded.CheckBox else Icons.Rounded.CheckBoxOutlineBlank,
+                                contentDescription = if (block.isChecked) "Completed" else "Incomplete",
+                                tint = if (block.isChecked) Color(0xFF10B981) else if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                modifier = Modifier
+                                    .size(19.dp)
+                                    .padding(top = 2.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        } else {
+                            Text(
+                                text = block.bullet,
+                                color = if (isDark) Color(0xFF818CF8) else Color(0xFF6366F1),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.width(if (block.bullet.length > 2) 26.dp else 18.dp)
+                            )
+                        }
+
+                        val itemColor = if (block.isTaskList && block.isChecked) {
+                            if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                        } else color
+
+                        val annotatedItem = remember(block.content, itemColor, isDark) {
+                            parseInlineMarkdown(block.content, itemColor, isDark)
+                        }
+                        ClickableText(
+                            text = annotatedItem,
+                            modifier = Modifier.weight(1f),
+                            style = TextStyle(
+                                fontSize = 14.5.sp,
+                                color = itemColor,
+                                lineHeight = lineHeight
+                            ),
+                            onClick = { offset ->
+                                annotatedItem.getStringAnnotations("URL", offset, offset)
+                                    .firstOrNull()?.let { annotation ->
+                                        try { uriHandler.openUri(annotation.item) } catch (_: Exception) {}
+                                    }
+                            }
                         )
-                        Text(
-                            text = parseInlineMarkdown(block.content, color),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = color,
-                            lineHeight = lineHeight
-                        )
+                    }
+                }
+
+                is MdBlock.MathBlock -> {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isDark) Color(0xFF131525) else Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = block.formula,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontStyle = FontStyle.Italic,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                ),
+                                color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
+                            )
+                        }
                     }
                 }
 
                 is MdBlock.Paragraph -> {
                     if (block.content.isNotBlank()) {
-                        Text(
-                            text = parseInlineMarkdown(block.content, color),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = color,
-                            lineHeight = lineHeight
+                        val annotatedPara = remember(block.content, color, isDark) {
+                            parseInlineMarkdown(block.content, color, isDark)
+                        }
+                        ClickableText(
+                            text = annotatedPara,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = TextStyle(
+                                fontSize = 14.5.sp,
+                                color = color,
+                                lineHeight = lineHeight
+                            ),
+                            onClick = { offset ->
+                                annotatedPara.getStringAnnotations("URL", offset, offset)
+                                    .firstOrNull()?.let { annotation ->
+                                        try { uriHandler.openUri(annotation.item) } catch (_: Exception) {}
+                                    }
+                            }
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- Structured Table Composable ---
+
+@Composable
+private fun MarkdownTable(
+    headers: List<String>,
+    alignments: List<TextAlign>,
+    rows: List<List<String>>,
+    isDark: Boolean
+) {
+    val scrollState = rememberScrollState()
+    val borderColor = if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)
+    val headerBg = if (isDark) Color(0xFF1C1E34) else Color(0xFFF1F5F9)
+    val zebraBg = if (isDark) Color(0xFF141629) else Color(0xFFF8FAFC)
+    val textPrimary = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+    val textSecondary = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isDark) Color(0xFF131524) else Color(0xFFFFFFFF),
+        border = BorderStroke(1.dp, borderColor),
+        shadowElevation = if (isDark) 0.dp else 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(scrollState)
+        ) {
+            Column(modifier = Modifier.width(IntrinsicSize.Max)) {
+                // Table Header Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(headerBg),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    headers.forEachIndexed { colIndex, header ->
+                        val align = alignments.getOrElse(colIndex) { TextAlign.Start }
+                        Box(
+                            modifier = Modifier
+                                .widthIn(min = 120.dp, max = 280.dp)
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            contentAlignment = when (align) {
+                                TextAlign.Center -> Alignment.Center
+                                TextAlign.End -> Alignment.CenterEnd
+                                else -> Alignment.CenterStart
+                            }
+                        ) {
+                            Text(
+                                text = parseInlineMarkdown(header, textPrimary, isDark),
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.5.sp,
+                                    lineHeight = 18.sp
+                                ),
+                                textAlign = align
+                            )
+                        }
+                        if (colIndex < headers.size - 1) {
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(38.dp)
+                                    .background(borderColor)
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = borderColor, thickness = 1.dp)
+
+                // Data Rows with Zebra Striping
+                rows.forEachIndexed { rowIndex, row ->
+                    val isZebra = rowIndex % 2 == 1
+                    val rowBg = if (isZebra) zebraBg else Color.Transparent
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(rowBg),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        headers.indices.forEach { colIndex ->
+                            val cellText = row.getOrElse(colIndex) { "" }
+                            val align = alignments.getOrElse(colIndex) { TextAlign.Start }
+                            Box(
+                                modifier = Modifier
+                                    .widthIn(min = 120.dp, max = 280.dp)
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                contentAlignment = when (align) {
+                                    TextAlign.Center -> Alignment.Center
+                                    TextAlign.End -> Alignment.CenterEnd
+                                    else -> Alignment.CenterStart
+                                }
+                            ) {
+                                Text(
+                                    text = parseInlineMarkdown(cellText, textSecondary, isDark),
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 13.5.sp,
+                                        lineHeight = 19.sp
+                                    ),
+                                    textAlign = align
+                                )
+                            }
+                            if (colIndex < headers.size - 1) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(36.dp)
+                                        .background(borderColor.copy(alpha = 0.5f))
+                                )
+                            }
+                        }
+                    }
+                    if (rowIndex < rows.size - 1) {
+                        HorizontalDivider(color = borderColor.copy(alpha = 0.5f), thickness = 0.5.dp)
                     }
                 }
             }
@@ -135,108 +458,124 @@ fun MarkdownText(
 @Composable
 private fun SyntaxHighlightedCodeBlock(
     code: String,
-    language: String
+    language: String,
+    isDark: Boolean
 ) {
     val context = LocalContext.current
-    val lineCount = code.lines().size
-    val isLong = lineCount > 20
+    var isCopied by remember { mutableStateOf(false) }
+    val lineCount = remember(code) { code.lines().size }
+    val isLong = lineCount > 25
     var isExpanded by remember { mutableStateOf(!isLong) }
-    val displayCode = if (isExpanded || !isLong) code else code.lines().take(15).joinToString("\n") + "\n..."
+    val displayCode = if (isExpanded || !isLong) code else code.lines().take(18).joinToString("\n") + "\n..."
 
-    Column(
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF141624),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFF2D304D)),
+        shadowElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1E1E1E))
+            .padding(vertical = 4.dp)
     ) {
-        // Header bar with language label + copy button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF2D2D3D))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = language.ifBlank { "code" }.uppercase(),
-                color = Color(0xFF858599),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp
-                ),
-                fontSize = 10.sp
-            )
-
+        Column {
+            // Header bar with language label + copy button
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1E2138))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Expand/Collapse button for long code
-                if (isLong) {
-                    IconButton(
-                        onClick = { isExpanded = !isExpanded },
-                        modifier = Modifier.size(28.dp)
+                Text(
+                    text = language.ifBlank { "code" }.uppercase(),
+                    color = Color(0xFFA5B4FC),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    ),
+                    fontSize = 11.sp
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isLong) {
+                        IconButton(
+                            onClick = { isExpanded = !isExpanded },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    // Copy button with feedback
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("code", code))
+                                isCopied = true
+                                Toast.makeText(context, "Code copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                            contentDescription = if (isExpanded) "Collapse" else "Expand",
-                            tint = Color(0xFF858599),
-                            modifier = Modifier.size(16.dp)
+                            imageVector = if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                            contentDescription = "Copy code",
+                            tint = if (isCopied) Color(0xFF10B981) else Color(0xFF94A3B8),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isCopied) "Copied" else "Copy",
+                            color = if (isCopied) Color(0xFF10B981) else Color(0xFF94A3B8),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp)
                         )
                     }
                 }
-
-                // Copy button
-                IconButton(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("code", code))
-                        Toast.makeText(context, "Code copied!", Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ContentCopy,
-                        contentDescription = "Copy code",
-                        tint = Color(0xFF858599),
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
             }
-        }
 
-        // Code content with syntax highlighting
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .animateContentSize()
-                .horizontalScroll(rememberScrollState())
-                .padding(12.dp)
-        ) {
-            Text(
-                text = highlightSyntax(displayCode, language),
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = 20.sp,
-                    fontSize = 13.sp
-                )
-            )
-        }
-
-        // Show expand hint
-        if (isLong && !isExpanded) {
-            Text(
-                text = "  ? ${lineCount - 15} more lines — tap to expand",
-                color = Color(0xFF5C6370),
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
+            // Code content with syntax highlighting
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isExpanded = true }
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            )
+                    .animateContentSize()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(14.dp)
+            ) {
+                Text(
+                    text = highlightSyntax(displayCode, language),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 20.sp,
+                        fontSize = 13.sp
+                    )
+                )
+            }
+
+            // Expand hint
+            if (isLong && !isExpanded) {
+                Text(
+                    text = "  ▾ Show ${lineCount - 18} more lines",
+                    color = Color(0xFF818CF8),
+                    fontSize = 11.5.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isExpanded = true }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                )
+            }
         }
     }
 }
@@ -264,7 +603,6 @@ private fun AnnotatedString.Builder.highlightLine(line: String, lang: String) {
         return
     }
 
-    // Tokenize and highlight
     var i = 0
     val len = line.length
 
@@ -349,257 +687,184 @@ private fun AnnotatedString.Builder.highlightLine(line: String, lang: String) {
                 i++
             }
 
-            // Brackets
-            line[i] in "(){}[]" -> {
-                withStyle(SpanStyle(color = SyntaxColors.plain)) {
-                    append(line[i])
-                }
-                i++
-            }
-
-            // Everything else
             else -> {
-                withStyle(SpanStyle(color = SyntaxColors.plain)) {
-                    append(line[i])
-                }
+                append(line[i])
                 i++
             }
         }
     }
 }
 
-private fun isComment(line: String, lang: String): Boolean {
-    return when {
-        line.startsWith("//") -> true
-        line.startsWith("/*") -> true
-        line.startsWith("*") && lang in listOf("java", "kotlin", "kt", "js", "javascript", "ts", "typescript", "c", "cpp", "swift", "dart") -> true
-        line.startsWith("#") && lang in listOf("python", "py", "ruby", "rb", "bash", "sh", "yaml", "yml", "r") -> true
-        line.startsWith("--") && lang in listOf("sql", "lua", "haskell") -> true
-        line.startsWith("<!--") -> true
-        else -> false
-    }
+private fun isComment(trimmed: String, lang: String): Boolean {
+    return trimmed.startsWith("//") ||
+            trimmed.startsWith("/*") ||
+            trimmed.startsWith("*") ||
+            (trimmed.startsWith("#") && lang in listOf("python", "py", "ruby", "rb", "bash", "sh", "yaml", "yml", "r", "dockerfile")) ||
+            (trimmed.startsWith("--") && lang in listOf("sql", "lua", "haskell"))
 }
 
 private fun isKeyword(word: String, lang: String): Boolean {
-    val keywords = when (lang) {
-        "kotlin", "kt" -> setOf(
-            "fun", "val", "var", "class", "object", "interface", "abstract", "override",
-            "return", "if", "else", "when", "for", "while", "do", "break", "continue",
-            "import", "package", "private", "public", "protected", "internal", "open",
-            "data", "sealed", "enum", "companion", "suspend", "inline", "reified",
-            "by", "lazy", "lateinit", "const", "try", "catch", "finally", "throw",
-            "is", "as", "in", "out", "this", "super", "null", "true", "false",
-            "typealias", "constructor", "init", "get", "set", "operator", "infix",
-            "annotation", "crossinline", "noinline", "tailrec", "vararg", "where"
-        )
-        "java" -> setOf(
-            "public", "private", "protected", "class", "interface", "abstract", "final",
-            "static", "void", "return", "if", "else", "for", "while", "do", "switch",
-            "case", "break", "continue", "new", "try", "catch", "finally", "throw",
-            "throws", "import", "package", "extends", "implements", "this", "super",
-            "null", "true", "false", "instanceof", "synchronized", "volatile", "transient",
-            "native", "enum", "assert", "default", "strictfp"
-        )
-        "python", "py" -> setOf(
-            "def", "class", "return", "if", "elif", "else", "for", "while", "break",
-            "continue", "import", "from", "as", "try", "except", "finally", "raise",
-            "with", "pass", "lambda", "yield", "global", "nonlocal", "assert", "del",
-            "True", "False", "None", "and", "or", "not", "in", "is", "async", "await"
-        )
-        "javascript", "js", "typescript", "ts" -> setOf(
-            "function", "const", "let", "var", "return", "if", "else", "for", "while",
-            "do", "switch", "case", "break", "continue", "new", "try", "catch", "finally",
-            "throw", "import", "export", "from", "default", "class", "extends", "this",
-            "super", "null", "undefined", "true", "false", "typeof", "instanceof",
-            "async", "await", "yield", "of", "in", "delete", "void", "interface", "type",
-            "enum", "implements", "abstract", "private", "public", "protected", "static",
-            "readonly", "declare", "module", "namespace"
-        )
-        "swift" -> setOf(
-            "func", "var", "let", "class", "struct", "enum", "protocol", "extension",
-            "return", "if", "else", "for", "while", "switch", "case", "break", "continue",
-            "import", "public", "private", "internal", "open", "override", "static",
-            "self", "super", "nil", "true", "false", "guard", "defer", "throw", "try",
-            "catch", "typealias", "associatedtype", "where", "init", "deinit", "subscript",
-            "inout", "mutating", "async", "await"
-        )
-        "dart" -> setOf(
-            "void", "var", "final", "const", "class", "abstract", "extends", "implements",
-            "return", "if", "else", "for", "while", "do", "switch", "case", "break",
-            "continue", "import", "export", "this", "super", "null", "true", "false",
-            "new", "try", "catch", "finally", "throw", "async", "await", "yield",
-            "static", "dynamic", "typedef", "enum", "mixin", "with", "late", "required"
-        )
-        "c", "cpp", "c++" -> setOf(
-            "int", "float", "double", "char", "void", "long", "short", "unsigned",
-            "signed", "const", "static", "extern", "register", "volatile", "auto",
-            "return", "if", "else", "for", "while", "do", "switch", "case", "break",
-            "continue", "struct", "union", "enum", "typedef", "sizeof", "include",
-            "define", "ifdef", "ifndef", "endif", "class", "public", "private",
-            "protected", "virtual", "override", "template", "namespace", "using",
-            "new", "delete", "try", "catch", "throw", "true", "false", "nullptr",
-            "this", "inline", "constexpr", "noexcept"
-        )
-        "sql" -> setOf(
-            "SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP",
-            "ALTER", "TABLE", "INDEX", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER",
-            "ON", "AND", "OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "ORDER",
-            "BY", "GROUP", "HAVING", "LIMIT", "OFFSET", "AS", "DISTINCT", "UNION",
-            "NULL", "TRUE", "FALSE", "SET", "VALUES", "INTO", "PRIMARY", "KEY",
-            "select", "from", "where", "insert", "update", "delete", "create", "drop",
-            "alter", "table", "index", "join", "left", "right", "inner", "outer",
-            "on", "and", "or", "not", "in", "exists", "between", "like", "order",
-            "by", "group", "having", "limit", "offset", "as", "distinct", "union",
-            "null", "true", "false", "set", "values", "into", "primary", "key"
-        )
-        "go" -> setOf(
-            "func", "var", "const", "type", "struct", "interface", "return", "if",
-            "else", "for", "range", "switch", "case", "break", "continue", "import",
-            "package", "go", "defer", "chan", "select", "map", "make", "new", "append",
-            "len", "cap", "nil", "true", "false", "iota"
-        )
-        "rust" -> setOf(
-            "fn", "let", "mut", "const", "struct", "enum", "impl", "trait", "pub",
-            "return", "if", "else", "for", "while", "loop", "match", "break", "continue",
-            "use", "mod", "crate", "self", "super", "as", "in", "ref", "move",
-            "async", "await", "unsafe", "where", "type", "dyn", "static", "extern",
-            "true", "false", "Some", "None", "Ok", "Err"
-        )
-        else -> setOf(
-            "function", "fun", "def", "class", "return", "if", "else", "for", "while",
-            "var", "val", "let", "const", "import", "from", "new", "true", "false",
-            "null", "nil", "None", "this", "self", "super", "try", "catch", "throw",
-            "public", "private", "static", "void", "int", "string", "bool", "float",
-            "abstract", "interface", "extends", "implements", "override", "async", "await",
-            "break", "continue", "do", "switch", "case", "default", "enum", "struct",
-            "package", "export", "module", "type"
-        )
-    }
-    return word in keywords
+    val commonKeywords = setOf(
+        "if", "else", "for", "while", "do", "return", "break", "continue",
+        "switch", "case", "default", "try", "catch", "finally", "throw",
+        "new", "this", "super", "null", "true", "false", "import", "package",
+        "as", "in", "is", "when", "by", "val", "var", "fun", "class", "object",
+        "interface", "abstract", "override", "public", "private", "protected",
+        "const", "let", "def", "lambda", "yield", "async", "await", "select",
+        "from", "where", "insert", "update", "delete", "join", "group", "order"
+    )
+    return word in commonKeywords
 }
 
 private fun isBuiltinType(word: String, lang: String): Boolean {
-    val types = when (lang) {
-        "kotlin", "kt" -> setOf(
-            "Int", "Long", "Float", "Double", "Boolean", "String", "Char", "Byte", "Short",
-            "Unit", "Nothing", "Any", "Array", "List", "Map", "Set", "MutableList",
-            "MutableMap", "MutableSet", "Pair", "Triple", "Sequence", "Flow",
-            "StateFlow", "MutableStateFlow", "LiveData", "MutableLiveData"
-        )
-        "java" -> setOf(
-            "String", "Integer", "Long", "Float", "Double", "Boolean", "Character",
-            "Byte", "Short", "Object", "List", "Map", "Set", "ArrayList", "HashMap",
-            "LinkedList", "HashSet", "TreeMap", "Optional", "Stream"
-        )
-        "python", "py" -> setOf(
-            "int", "float", "str", "bool", "list", "dict", "set", "tuple", "bytes",
-            "range", "type", "object", "Exception", "TypeError", "ValueError"
-        )
-        "javascript", "js", "typescript", "ts" -> setOf(
-            "String", "Number", "Boolean", "Object", "Array", "Map", "Set", "Promise",
-            "Date", "RegExp", "Error", "Symbol", "BigInt", "Function", "Proxy",
-            "any", "string", "number", "boolean", "void", "never", "unknown"
-        )
-        else -> setOf(
-            "String", "Int", "Integer", "Float", "Double", "Boolean", "Long", "Char",
-            "List", "Map", "Set", "Array", "Object", "void"
-        )
-    }
+    val types = setOf(
+        "Int", "Long", "Float", "Double", "Boolean", "String", "Char", "Byte",
+        "Short", "Unit", "Any", "List", "Map", "Set", "Array", "int", "float",
+        "double", "bool", "boolean", "char", "void", "object", "number", "string"
+    )
     return word in types
 }
 
 private fun isBuiltinFunction(word: String, lang: String): Boolean {
-    val functions = when (lang) {
-        "kotlin", "kt" -> setOf(
-            "println", "print", "listOf", "mapOf", "setOf", "mutableListOf",
-            "mutableMapOf", "mutableSetOf", "arrayOf", "buildList", "buildMap",
-            "require", "check", "error", "TODO", "repeat", "run", "let", "also",
-            "apply", "with", "takeIf", "takeUnless", "remember", "mutableStateOf",
-            "LaunchedEffect", "rememberCoroutineScope"
-        )
-        "python", "py" -> setOf(
-            "print", "len", "range", "enumerate", "zip", "map", "filter", "sorted",
-            "isinstance", "type", "input", "open", "super", "getattr", "setattr",
-            "hasattr", "iter", "next", "reversed", "abs", "min", "max", "sum"
-        )
-        "javascript", "js", "typescript", "ts" -> setOf(
-            "console", "log", "warn", "error", "parseInt", "parseFloat",
-            "setTimeout", "setInterval", "fetch", "require", "JSON",
-            "Math", "Object", "Array", "Promise", "document", "window"
-        )
-        else -> setOf(
-            "print", "println", "log", "console", "sizeof", "typeof", "instanceof"
-        )
-    }
+    val functions = setOf(
+        "println", "print", "listOf", "mapOf", "setOf", "remember", "mutableStateOf",
+        "LaunchedEffect", "len", "range", "console", "log", "fetch", "JSON"
+    )
     return word in functions
 }
 
-// --- Markdown Block Types ---
+// --- Block-Level Markdown Parser ---
 
-private sealed class MdBlock {
-    data class Header(val level: Int, val content: String) : MdBlock()
-    data class CodeBlock(val code: String, val language: String = "") : MdBlock()
-    data class ListItem(val bullet: String, val content: String) : MdBlock()
-    data class Paragraph(val content: String) : MdBlock()
-    data object Divider : MdBlock()
-}
-
-// --- Block-level Parser ---
+private val tableDividerRegex = Pattern.compile("^\\s*\\|?\\s*:?-{2,}:?\\s*(\\|\\s*:?-{2,}:?\\s*)+\\|?\\s*$")
 
 private fun parseMarkdownBlocks(text: String): List<MdBlock> {
     val blocks = mutableListOf<MdBlock>()
     val lines = text.lines()
     var i = 0
+    val total = lines.size
 
-    while (i < lines.size) {
+    while (i < total) {
         val line = lines[i]
         val trimmed = line.trimStart()
 
         when {
+            // Empty line
+            trimmed.isBlank() -> {
+                i++
+            }
+
             // Code block: ```
             trimmed.startsWith("```") -> {
                 val lang = trimmed.removePrefix("```").trim()
                 val codeLines = mutableListOf<String>()
                 i++
-                while (i < lines.size && !lines[i].trimStart().startsWith("```")) {
+                while (i < total && !lines[i].trimStart().startsWith("```")) {
                     codeLines.add(lines[i])
                     i++
                 }
                 blocks.add(MdBlock.CodeBlock(codeLines.joinToString("\n"), lang))
-                if (i < lines.size) i++ // skip closing ```
+                if (i < total) i++ // skip closing ```
             }
 
-            // Divider: --- or ***
+            // LaTeX display math: $$ formula $$
+            trimmed.startsWith("$$") -> {
+                val mathContent = trimmed.removePrefix("$$").trim()
+                if (mathContent.endsWith("$$") && mathContent.length > 2) {
+                    blocks.add(MdBlock.MathBlock(mathContent.removeSuffix("$$").trim()))
+                    i++
+                } else {
+                    val mathLines = mutableListOf<String>()
+                    if (mathContent.isNotBlank()) mathLines.add(mathContent)
+                    i++
+                    while (i < total && !lines[i].trim().endsWith("$$")) {
+                        mathLines.add(lines[i])
+                        i++
+                    }
+                    if (i < total) {
+                        val closeLine = lines[i].trim().removeSuffix("$$").trim()
+                        if (closeLine.isNotBlank()) mathLines.add(closeLine)
+                        i++
+                    }
+                    blocks.add(MdBlock.MathBlock(mathLines.joinToString("\n")))
+                }
+            }
+
+            // Divider: --- or *** or ___
             trimmed.matches(Regex("^[-*_]{3,}$")) -> {
                 blocks.add(MdBlock.Divider)
                 i++
             }
 
+            // Table detection
+            "|" in line && i + 1 < total && tableDividerRegex.matcher(lines[i + 1].trim()).matches() -> {
+                val headerCells = line.trim().trim('|').split('|').map { it.trim() }
+                val sepCells = lines[i + 1].trim().trim('|').split('|').map { it.trim() }
+
+                val alignments = sepCells.map { cell ->
+                    when {
+                        cell.startsWith(":") && cell.endsWith(":") -> TextAlign.Center
+                        cell.endsWith(":") -> TextAlign.End
+                        else -> TextAlign.Start
+                    }
+                }
+
+                i += 2
+                val rows = mutableListOf<List<String>>()
+                while (i < total) {
+                    val rowLine = lines[i].trim()
+                    if (rowLine.isBlank() || "|" !in rowLine || rowLine.startsWith("#") || rowLine.startsWith("```")) {
+                        break
+                    }
+                    val rowCells = rowLine.trim('|').split('|').map { it.trim() }.toMutableList()
+                    if (rowCells.size < headerCells.size) {
+                        while (rowCells.size < headerCells.size) rowCells.add("")
+                    } else if (rowCells.size > headerCells.size) {
+                        rowCells.subList(headerCells.size, rowCells.size).clear()
+                    }
+                    rows.add(rowCells)
+                    i++
+                }
+                blocks.add(MdBlock.Table(headerCells, alignments, rows))
+            }
+
+            // Blockquote: > or >>>
+            trimmed.startsWith(">") -> {
+                val quoteLines = mutableListOf<String>()
+                while (i < total && lines[i].trimStart().startsWith(">")) {
+                    quoteLines.add(lines[i].trimStart().replaceFirst(Regex("^>+\\s?"), ""))
+                    i++
+                }
+                blocks.add(MdBlock.Blockquote(quoteLines.joinToString("\n")))
+            }
+
             // Headers: # ## ###
             trimmed.startsWith("#") -> {
-                val level = trimmed.takeWhile { it == '#' }.length.coerceAtMost(3)
+                val level = trimmed.takeWhile { it == '#' }.length.coerceAtMost(6)
                 val content = trimmed.drop(level).trimStart()
                 blocks.add(MdBlock.Header(level, content))
                 i++
             }
 
-            // Bullet list: - or * or •
-            trimmed.matches(Regex("^[-*•]\\s+.*")) -> {
-                val content = trimmed.replaceFirst(Regex("^[-*•]\\s+"), "")
-                blocks.add(MdBlock.ListItem("•", content))
+            // Task list: - [ ] or - [x]
+            trimmed.matches(Regex("^[-*•]\\s+\\[[ xX]\\]\\s+.*")) -> {
+                val isChecked = trimmed.contains(Regex("\\[[xX]\\]"))
+                val content = trimmed.replaceFirst(Regex("^[-*•]\\s+\\[[ xX]\\]\\s+"), "")
+                blocks.add(MdBlock.ListItem(bullet = "", content = content, isTaskList = true, isChecked = isChecked))
                 i++
             }
 
-            // Numbered list: 1. 2. etc
+            // Bullet list: - or * or • or +
+            trimmed.matches(Regex("^[-*•+]\\s+.*")) -> {
+                val content = trimmed.replaceFirst(Regex("^[-*•+]\\s+"), "")
+                blocks.add(MdBlock.ListItem(bullet = "•", content = content))
+                i++
+            }
+
+            // Numbered list: 1. 2. etc.
             trimmed.matches(Regex("^\\d+[.):]\\s+.*")) -> {
                 val num = trimmed.takeWhile { it.isDigit() }
                 val content = trimmed.replaceFirst(Regex("^\\d+[.):]\\s+"), "")
-                blocks.add(MdBlock.ListItem("$num.", content))
-                i++
-            }
-
-            // Empty line
-            trimmed.isBlank() -> {
+                blocks.add(MdBlock.ListItem(bullet = "$num.", content = content))
                 i++
             }
 
@@ -607,14 +872,17 @@ private fun parseMarkdownBlocks(text: String): List<MdBlock> {
             else -> {
                 val paraLines = mutableListOf(line)
                 i++
-                while (i < lines.size) {
+                while (i < total) {
                     val nextLine = lines[i].trimStart()
                     if (nextLine.isBlank() ||
                         nextLine.startsWith("#") ||
                         nextLine.startsWith("```") ||
-                        nextLine.matches(Regex("^[-*•]\\s+.*")) ||
+                        nextLine.startsWith(">") ||
+                        nextLine.startsWith("$$") ||
+                        nextLine.matches(Regex("^[-*•+]\\s+.*")) ||
                         nextLine.matches(Regex("^\\d+[.):]\\s+.*")) ||
-                        nextLine.matches(Regex("^[-*_]{3,}$"))
+                        nextLine.matches(Regex("^[-*_]{3,}$")) ||
+                        ("|" in nextLine && i + 1 < total && tableDividerRegex.matcher(lines[i + 1].trim()).matches())
                     ) break
                     paraLines.add(lines[i])
                     i++
@@ -627,67 +895,88 @@ private fun parseMarkdownBlocks(text: String): List<MdBlock> {
     return blocks
 }
 
-// --- Inline Markdown Parser (bold, italic, code, strikethrough) ---
+// --- Inline Markdown Parser ---
 
-private fun parseInlineMarkdown(text: String, defaultColor: Color): AnnotatedString {
+private fun parseInlineMarkdown(text: String, defaultColor: Color, isDark: Boolean): AnnotatedString {
     return buildAnnotatedString {
         var i = 0
         val len = text.length
 
         while (i < len) {
             when {
-                // Bold + Italic: ***text***
-                i + 2 < len && text.substring(i, i + 3) == "***" -> {
-                    val end = text.indexOf("***", i + 3)
-                    if (end != -1) {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic)) {
-                            append(text.substring(i + 3, end))
+                // Markdown link: [Title](https://...)
+                text[i] == '[' -> {
+                    val closeBracket = text.indexOf(']', i + 1)
+                    val openParen = if (closeBracket != -1) text.indexOf('(', closeBracket) else -1
+                    val closeParen = if (openParen == closeBracket + 1) text.indexOf(')', openParen) else -1
+
+                    if (closeBracket != -1 && openParen == closeBracket + 1 && closeParen != -1) {
+                        val title = text.substring(i + 1, closeBracket)
+                        val url = text.substring(openParen + 1, closeParen)
+                        val linkColor = if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB)
+
+                        val start = length
+                        pushStringAnnotation(tag = "URL", annotation = url)
+                        withStyle(
+                            SpanStyle(
+                                color = linkColor,
+                                textDecoration = TextDecoration.Underline,
+                                fontWeight = FontWeight.Medium
+                            )
+                        ) {
+                            append(title)
                         }
-                        i = end + 3
+                        pop()
+                        i = closeParen + 1
                     } else {
-                        append("*")
+                        append("[")
                         i++
                     }
                 }
 
-                // Bold: **text**
-                i + 1 < len && text.substring(i, i + 2) == "**" -> {
-                    val end = text.indexOf("**", i + 2)
+                // Bold + Italic: ***text*** or ___text___
+                i + 2 < len && (text.substring(i, i + 3) == "***" || text.substring(i, i + 3) == "___") -> {
+                    val marker = text.substring(i, i + 3)
+                    val end = text.indexOf(marker, i + 3)
+                    if (end != -1) {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic, color = defaultColor)) {
+                            append(text.substring(i + 3, end))
+                        }
+                        i = end + 3
+                    } else {
+                        append(marker[0])
+                        i++
+                    }
+                }
+
+                // Bold: **text** or __text__
+                i + 1 < len && (text.substring(i, i + 2) == "**" || text.substring(i, i + 2) == "__") -> {
+                    val marker = text.substring(i, i + 2)
+                    val end = text.indexOf(marker, i + 2)
                     if (end != -1) {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = defaultColor)) {
                             append(text.substring(i + 2, end))
                         }
                         i = end + 2
                     } else {
-                        append("*")
+                        append(marker[0])
                         i++
                     }
                 }
 
-                // Italic: *text*
-                text[i] == '*' && i + 1 < len && text[i + 1] != ' ' -> {
-                    val end = text.indexOf('*', i + 1)
-                    if (end != -1 && end > i + 1) {
-                        withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                            append(text.substring(i + 1, end))
-                        }
-                        i = end + 1
-                    } else {
-                        append("*")
-                        i++
-                    }
-                }
-
-                // Inline code: `text`
+                // Inline code: `code`
                 text[i] == '`' -> {
                     val end = text.indexOf('`', i + 1)
                     if (end != -1) {
+                        val codeBg = if (isDark) Color(0xFF23253E) else Color(0xFFEDE9FE)
+                        val codeColor = if (isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED)
                         withStyle(
                             SpanStyle(
                                 fontFamily = FontFamily.Monospace,
-                                color = Color(0xFFE06C75),
-                                background = Color(0xFF2D2D3D),
-                                fontSize = 13.sp
+                                color = codeColor,
+                                background = codeBg,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         ) {
                             append(" ${text.substring(i + 1, end)} ")
@@ -699,11 +988,48 @@ private fun parseInlineMarkdown(text: String, defaultColor: Color): AnnotatedStr
                     }
                 }
 
+                // Inline math: $formula$ (ignoring currency like $2,500)
+                text[i] == '$' && i + 1 < len && !text[i + 1].isDigit() && text[i + 1] != ' ' -> {
+                    val end = text.indexOf('$', i + 1)
+                    if (end != -1 && end > i + 1) {
+                        val mathColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = FontFamily.Monospace,
+                                fontStyle = FontStyle.Italic,
+                                color = mathColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        ) {
+                            append(text.substring(i + 1, end))
+                        }
+                        i = end + 1
+                    } else {
+                        append("$")
+                        i++
+                    }
+                }
+
+                // Italic: *text* or _text_
+                (text[i] == '*' || text[i] == '_') && i + 1 < len && text[i + 1] != ' ' -> {
+                    val marker = text[i]
+                    val end = text.indexOf(marker, i + 1)
+                    if (end != -1 && end > i + 1) {
+                        withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = defaultColor)) {
+                            append(text.substring(i + 1, end))
+                        }
+                        i = end + 1
+                    } else {
+                        append(marker)
+                        i++
+                    }
+                }
+
                 // Strikethrough: ~~text~~
                 i + 1 < len && text.substring(i, i + 2) == "~~" -> {
                     val end = text.indexOf("~~", i + 2)
                     if (end != -1) {
-                        withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) {
+                        withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough, color = defaultColor.copy(alpha = 0.7f))) {
                             append(text.substring(i + 2, end))
                         }
                         i = end + 2
@@ -722,5 +1048,3 @@ private fun parseInlineMarkdown(text: String, defaultColor: Color): AnnotatedStr
         }
     }
 }
-
-

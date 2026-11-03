@@ -394,6 +394,7 @@ fun MainScreenContent(
                         "AI Study" -> Screen.UploadStudyMaterial.route
                         "PPT Gen" -> Screen.PPTGenerator.route
                         "Resume Builder" -> Screen.ResumeBuilder.route
+                        "Events Hub" -> Screen.EventsHub.route
                         else -> Screen.Home.route
                     }
                     navController.navigate(route)
