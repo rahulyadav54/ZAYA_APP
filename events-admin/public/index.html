@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI ZAYA Events Hub — Enterprise Admin & Operations Portal</title>
+  <meta name="description" content="Production SaaS Administration and Operations Portal for AI ZAYA Events Hub. Manage hackathons, attendee rosters, live QR check-ins, credential verification, and analytics.">
+
+  <!-- Favicon / Brand Icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%237C3AED'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='55' font-weight='900' fill='white'>Z</text></svg>">
+
+  <!-- Typography: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6.4.0 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- HTML5-QRCode Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- Firebase Compat SDK (v10.8.0) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#F5F3FF',
+              100: '#EDE9FE',
+              200: '#DDD6FE',
+              500: '#8B5CF6',
+              600: '#7C3AED',
+              700: '#6D28D9',
+              800: '#5B21B6',
+              900: '#4C1D95',
+            },
+            sidebar: '#0F172A',
+            surface: '#FFFFFF',
+            muted: '#F8FAFC',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .live-pulse { animation: pulse-ring 2s infinite ease-in-out; }
+
+    @media print {
+      body * { visibility: hidden; }
+      #printable-certificate, #printable-certificate * { visibility: visible; }
+      #printable-certificate { position: absolute; left: 0; top: 0; width: 100%; border: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col custom-scroll">
+
+  <!-- ========================================== -->
+  <!-- 1. AUTHENTICATION SCREEN (LOGIN VIEW)      -->
+  <!-- ========================================== -->
+  <div id="auth-screen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 border border-slate-100 relative overflow-hidden">
+      <!-- Top Decorative Accent -->
+      <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-brand-600 via-indigo-600 to-sky-500"></div>
+
+      <!-- Brand Header -->
+      <div class="text-center space-y-2 mb-8">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-brand-500/25">
+          Z
+        </div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">AI ZAYA Events Hub</h1>
+        <p class="text-xs text-slate-500 font-medium">Administrator & Organizer Sign In</p>
+      </div>
+
+      <!-- Error / Alert Banner -->
+      <div id="login-alert" class="hidden mb-5 p-3.5 rounded-xl text-xs font-semibold flex items-center space-x-2.5"></div>
+
+      <!-- Login Form -->
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="space-y-4 text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 text-xs uppercase tracking-wider mb-1.5">Admin Email</label>
+          <div class="relative">
+            <i class="fa-solid fa-envelope absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+            <input type="email" id="login-email" required placeholder="admin@zayacodehub.in" class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none text-slate-800 transition text-xs sm:text-sm">
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block font-bold text-slate-700 text-xs uppercase tracking-wider">Password</label>
+            <button type="button" onclick="openForgotPasswordModal()" class="text-[11px] font-semibold text-brand-600 hover:text-brand-700">Forgot password?</button>
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+            <input type="password" id="login-password" required placeholder="••••••••••••" class="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none text-slate-800 transition text-xs sm:text-sm">
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 text-xs">
+              <i id="toggle-pwd-icon" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" id="login-remember" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
+            <span class="text-xs text-slate-600 font-medium">Remember session</span>
+          </label>
+          <span class="text-[11px] text-slate-400 font-mono">admin.zayacodehub.in</span>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-500/25 transition text-sm flex items-center justify-center space-x-2">
+          <span>Sign In to Dashboard</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <!-- Security Notice -->
+      <div class="mt-8 pt-5 border-t border-slate-100 text-center">
+        <p class="text-[11px] text-slate-400 flex items-center justify-center space-x-1.5">
+          <i class="fa-solid fa-shield-halved text-emerald-500"></i>
+          <span>Role-Based Access Control &bull; TLS 1.3 Encrypted</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgot-password-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-slate-900">Reset Admin Password</h3>
+        <button onclick="closeForgotPasswordModal()" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-500 leading-relaxed">Enter your registered administrator email to receive an official password reset link.</p>
+      <form onsubmit="handleForgotPassword(event)" class="space-y-3">
+        <input type="email" id="reset-email" required placeholder="admin@zayacodehub.in" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-sm transition">Send Reset Link</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. MAIN APPLICATION SHELL (AFTER LOGIN)    -->
+  <!-- ========================================== -->
+  <div id="app-shell" class="hidden min-h-screen flex flex-row w-full">
+
+    <!-- ── Left Persistent Sidebar (Desktop) ── -->
+    <aside id="main-sidebar" class="w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col justify-between border-r border-slate-800 transition-all duration-300 z-30 fixed inset-y-0 left-0 lg:static -translate-x-full lg:translate-x-0">
+      
+      <!-- Sidebar Header -->
+      <div class="h-16 px-5 flex items-center justify-between border-b border-slate-800/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-brand-500/20">
+            Z
+          </div>
+          <div>
+            <span class="font-black text-sm text-white tracking-tight block">AI ZAYA</span>
+            <span class="text-[10px] uppercase font-bold tracking-wider text-brand-400 block -mt-0.5">Events Admin</span>
+          </div>
+        </div>
+        <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-white text-base">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Sidebar Navigation Groups -->
+      <div class="flex-1 overflow-y-auto sidebar-scroll px-3 py-5 space-y-6 text-xs">
+        
+        <!-- WORKSPACE Group -->
+        <div class="space-y-1">
+          <p class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Workspace</p>
+          <button onclick="navigateTo('overview')" id="nav-overview" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-bold transition text-white bg-brand-600 shadow-sm shadow-brand-500/20">
+            <i class="fa-solid fa-chart-pie w-4 text-center"></i>
+            <span>Overview</span>
+          </button>
+          <button onclick="navigateTo('events')" id="nav-events" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-calendar-check w-4 text-center"></i>
+            <span>Events Catalog</span>
+          </button>
+          <button onclick="openCreateModal()" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-brand-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-circle-plus w-4 text-center"></i>
+            <span>Create Event</span>
+          </button>
+          <button onclick="navigateTo('participants')" id="nav-participants" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-users w-4 text-center"></i>
+            <span>Participants</span>
+          </button>
+          <button onclick="navigateTo('teams')" id="nav-teams" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-people-group w-4 text-center"></i>
+            <span>Teams</span>
+          </button>
+        </div>
+
+        <!-- EVENT OPERATIONS Group -->
+        <div class="space-y-1">
+          <p class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Event Operations</p>
+          <button onclick="navigateTo('scanner')" id="nav-scanner" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-qrcode w-4 text-center"></i>
+            <span>QR Scanner</span>
+          </button>
+          <button onclick="navigateTo('attendance')" id="nav-attendance" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-clipboard-check w-4 text-center"></i>
+            <span>Attendance Log</span>
+          </button>
+          <button onclick="navigateTo('announcements')" id="nav-announcements" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-bullhorn w-4 text-center"></i>
+            <span>Announcements</span>
+          </button>
+          <button onclick="navigateTo('certificates')" id="nav-certificates" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-award w-4 text-center"></i>
+            <span>Certificates Hub</span>
+          </button>
+        </div>
+
+        <!-- MANAGEMENT Group -->
+        <div class="space-y-1">
+          <p class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Management</p>
+          <button onclick="navigateTo('organizers')" id="nav-organizers" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-building-user w-4 text-center"></i>
+            <span>Organizers</span>
+          </button>
+          <button onclick="navigateTo('payments')" id="nav-payments" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-credit-card w-4 text-center"></i>
+            <span>Payments</span>
+          </button>
+          <button onclick="navigateTo('analytics')" id="nav-analytics" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-chart-simple w-4 text-center"></i>
+            <span>Analytics</span>
+          </button>
+        </div>
+
+        <!-- SYSTEM Group -->
+        <div class="space-y-1">
+          <p class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">System</p>
+          <button onclick="navigateTo('admin-users')" id="nav-admin-users" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-user-shield w-4 text-center"></i>
+            <span>Admin Users</span>
+          </button>
+          <button onclick="navigateTo('audit-logs')" id="nav-audit-logs" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-clock-rotate-left w-4 text-center"></i>
+            <span>Audit Trail</span>
+          </button>
+          <button onclick="navigateTo('settings')" id="nav-settings" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-gear w-4 text-center"></i>
+            <span>Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Sidebar Footer User Profile -->
+      <div class="p-3 border-t border-slate-800/80 bg-slate-950/40">
+        <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-800/50 transition">
+          <div class="flex items-center space-x-2.5 overflow-hidden">
+            <div id="user-avatar-badge" class="w-8 h-8 rounded-lg bg-brand-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm">
+              SA
+            </div>
+            <div class="overflow-hidden">
+              <span id="user-display-name" class="font-bold text-xs text-white block truncate">Admin</span>
+              <span id="user-role-badge" class="text-[10px] font-bold uppercase tracking-wider text-brand-400 block truncate">Super Admin</span>
+            </div>
+          </div>
+          <button onclick="handleSignOut()" class="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg transition" title="Sign Out">
+            <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Right Main Workspace Container ── -->
+    <div class="flex-1 flex flex-col min-w-0 bg-slate-50 min-h-screen">
+
+      <!-- Top Header Navigation -->
+      <header class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+        
+        <!-- Left: Mobile Trigger & Breadcrumb -->
+        <div class="flex items-center space-x-3">
+          <button onclick="toggleMobileSidebar()" class="lg:hidden w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition">
+            <i class="fa-solid fa-bars text-sm"></i>
+          </button>
+          <div>
+            <div class="flex items-center space-x-2 text-xs font-semibold text-slate-400">
+              <span>Events Hub</span>
+              <span>/</span>
+              <span id="breadcrumb-current" class="text-slate-900 font-bold capitalize">Overview</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Search Bar (Global Command) -->
+        <div class="hidden md:flex items-center w-72 lg:w-96 relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+          <input type="text" id="global-search" onkeyup="handleGlobalSearch(event)" placeholder="Search events, attendees, tickets, teams..." class="w-full pl-9 pr-8 py-2 bg-slate-100 hover:bg-slate-100/80 focus:bg-white border border-transparent focus:border-brand-500 rounded-xl text-xs font-medium text-slate-700 outline-none transition">
+          <kbd class="absolute right-2.5 top-2.5 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-white border border-slate-200 rounded">⌘K</kbd>
+        </div>
+
+        <!-- Right Controls -->
+        <div class="flex items-center space-x-3">
+          
+          <!-- Cloud Connection Status Pill -->
+          <div id="cloud-status-badge" class="flex items-center space-x-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 live-pulse"></span>
+            <span id="cloud-status-text">Firestore Live</span>
+          </div>
+
+          <!-- Notification Bell -->
+          <div class="relative">
+            <button onclick="toggleNotificationPanel()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center relative transition">
+              <i class="fa-solid fa-bell text-xs"></i>
+              <span id="unread-notif-dot" class="absolute top-2 right-2 w-2 h-2 bg-brand-600 rounded-full"></span>
+            </button>
+            <!-- Dropdown -->
+            <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 space-y-3 z-30">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="font-extrabold text-xs text-slate-900">Notifications</span>
+                <span class="text-[10px] text-brand-600 font-bold">Mark all read</span>
+              </div>
+              <div class="space-y-2 max-h-60 overflow-y-auto custom-scroll text-xs" id="notif-list">
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <span class="font-bold text-slate-900 block text-[11px]">System Ready</span>
+                  <span class="text-[11px] text-slate-500 block">AI ZAYA Events Hub portal synchronized with mobile backend.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action CTA -->
+          <button onclick="openCreateModal()" class="inline-flex items-center px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm shadow-brand-500/25 transition">
+            <i class="fa-solid fa-plus mr-1.5"></i>
+            <span class="hidden sm:inline">New Event</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Scrollable Content Area -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8">
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: OVERVIEW DASHBOARD                 -->
+        <!-- ========================================== -->
+        <section id="view-overview" class="space-y-8">
+          
+          <!-- Compact Heading (Replaces oversized gradient banner) -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight" id="greeting-text">Welcome back, Admin</h2>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Manage live hackathons, registrations, team submissions, and verified credentials.</p>
+            </div>
+            <div class="flex items-center space-x-2.5">
+              <button onclick="navigateTo('scanner')" class="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-sm transition flex items-center">
+                <i class="fa-solid fa-camera mr-1.5 text-brand-600"></i>Launch Scanner
+              </button>
+              <button onclick="openBroadcastModal()" class="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-sm transition flex items-center">
+                <i class="fa-solid fa-bullhorn mr-1.5 text-indigo-600"></i>Broadcast Alert
+              </button>
+            </div>
+          </div>
+
+          <!-- Professional 6-Card Metric Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Events</span>
+                <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs"><i class="fa-solid fa-calendar-days"></i></span>
+              </div>
+              <div class="mt-2">
+                <h3 class="text-2xl font-black text-slate-900" id="stat-active-events">0</h3>
+                <span class="text-[11px] text-emerald-600 font-bold block mt-0.5"><i class="fa-solid fa-circle-check mr-1"></i>Published</span>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Entries</span>
+                <span class="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs"><i class="fa-solid fa-id-card"></i></span>
+              </div>
+              <div class="mt-2">
+                <h3 class="text-2xl font-black text-slate-900" id="stat-total-registrations">0</h3>
+                <span class="text-[11px] text-brand-600 font-bold block mt-0.5"><i class="fa-solid fa-mobile-screen mr-1"></i>App Synced</span>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending Review</span>
+                <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs"><i class="fa-solid fa-clock"></i></span>
+              </div>
+              <div class="mt-2">
+                <h3 class="text-2xl font-black text-slate-900" id="stat-pending-reviews">0</h3>
+                <span class="text-[11px] text-amber-600 font-bold block mt-0.5">Awaiting Approval</span>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved</span>
+                <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+              <div class="mt-2">
+                <h3 class="text-2xl font-black text-slate-900" id="stat-approved-participants">0</h3>
+                <span class="text-[11px] text-indigo-600 font-bold block mt-0.5">Ready for Event</span>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Checked In</span>
+                <span class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs"><i class="fa-solid fa-qrcode"></i></span>
+              </div>
+              <div class="mt-2">
+                <h3 class="text-2xl font-black text-slate-900" id="stat-checked-in">0</h3>
+                <span class="text-[11px] text-sky-600 font-bold block mt-0.5">Verified Attendance</span>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Certificates</span>
+                <span class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xs"><i class="fa-solid fa-award"></i></span>
+              </div>
+              <div class="mt-2">
+                <h3 class="text-2xl font-black text-slate-900" id="stat-certs-issued">0</h3>
+                <span class="text-[11px] text-purple-600 font-bold block mt-0.5">Verified Issued</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Charts Section: Registration Trends & Category Distribution -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="font-extrabold text-sm text-slate-900">Registration Activity Trends</h3>
+                  <p class="text-[11px] text-slate-400">Participant applications registered over time</p>
+                </div>
+                <select id="trend-timeframe" onchange="renderAnalyticsCharts()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-600 font-semibold outline-none">
+                  <option value="30">Last 30 Days</option>
+                  <option value="7">Last 7 Days</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              <div class="h-64">
+                <canvas id="chart-trends"></canvas>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="font-extrabold text-sm text-slate-900">Events by Category</h3>
+                  <p class="text-[11px] text-slate-400">Distribution of active formats</p>
+                </div>
+              </div>
+              <div class="h-64 flex items-center justify-center">
+                <canvas id="chart-categories"></canvas>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Recent Events Table -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="font-extrabold text-sm text-slate-900">Active & Published Events</h3>
+                <p class="text-[11px] text-slate-400">Synchronized live with the AI ZAYA Android mobile app</p>
+              </div>
+              <button onclick="navigateTo('events')" class="text-xs font-bold text-brand-600 hover:text-brand-700">View Full Catalog &rarr;</button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="py-3 px-4">Event Details</th>
+                    <th class="py-3 px-4">Organizer</th>
+                    <th class="py-3 px-4">Mode / Venue</th>
+                    <th class="py-3 px-4">Registrations</th>
+                    <th class="py-3 px-4">Status</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="overview-events-tbody" class="divide-y divide-slate-100 text-xs">
+                  <!-- Dynamically Rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: EVENTS CATALOG                     -->
+        <!-- ========================================== -->
+        <section id="view-events" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Events Management</h2>
+              <p class="text-xs text-slate-500 font-medium">Create, edit, schedule, configure rules, and manage status.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <select id="events-filter-cat" onchange="renderEventsCatalog()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
+                <option value="all">All Categories</option>
+                <option value="Hackathons">Hackathons</option>
+                <option value="Coding Competitions">Coding Competitions</option>
+                <option value="Workshops">Workshops</option>
+                <option value="Conferences">Conferences</option>
+                <option value="Bootcamps">Bootcamps</option>
+              </select>
+              <select id="events-filter-mode" onchange="renderEventsCatalog()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
+                <option value="all">All Modes</option>
+                <option value="Online">Online</option>
+                <option value="In-Person">In-Person</option>
+                <option value="Hybrid">Hybrid</option>
+              </select>
+              <button onclick="openCreateModal()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-xs shadow-sm transition">
+                <i class="fa-solid fa-plus mr-1.5"></i>Create Event
+              </button>
+            </div>
+          </div>
+
+          <!-- Events Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="events-full-grid">
+            <!-- Dynamically Rendered -->
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: PARTICIPANTS ROSTER                -->
+        <!-- ========================================== -->
+        <section id="view-participants" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Participant Registrations</h2>
+              <p class="text-xs text-slate-500 font-medium">Filter, search, approve check-ins, and export official attendee rosters.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <input type="text" id="part-search-input" onkeyup="renderParticipantsTable()" placeholder="Search name, ticket, email, college..." class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none w-56 focus:ring-2 focus:ring-brand-500">
+              <select id="part-event-filter" onchange="renderParticipantsTable()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
+                <option value="all">All Events</option>
+              </select>
+              <select id="part-status-filter" onchange="renderParticipantsTable()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
+                <option value="all">All Status</option>
+                <option value="attended">Checked In</option>
+                <option value="pending">Pending Check-in</option>
+              </select>
+              <button onclick="exportParticipantsCSV()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center">
+                <i class="fa-solid fa-file-csv mr-1.5"></i>Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="py-3 px-4">Ticket / Pass</th>
+                    <th class="py-3 px-4">Attendee</th>
+                    <th class="py-3 px-4">Event</th>
+                    <th class="py-3 px-4">College / Org</th>
+                    <th class="py-3 px-4">Team</th>
+                    <th class="py-3 px-4">Check-in Status</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="participants-tbody" class="divide-y divide-slate-100 text-xs">
+                  <!-- Dynamically Populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 4: TEAMS VIEW                         -->
+        <!-- ========================================== -->
+        <section id="view-teams" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Registered Teams</h2>
+              <p class="text-xs text-slate-500 font-medium">Monitor team formations, codes, project submissions, and team leads.</p>
+            </div>
+            <select id="teams-event-filter" onchange="renderTeamsView()" class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-semibold outline-none">
+              <option value="all">All Events</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="teams-grid">
+            <!-- Dynamically Populated -->
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 5: QR SCANNER                         -->
+        <!-- ========================================== -->
+        <section id="view-scanner" class="hidden space-y-6">
+          <div class="max-w-xl mx-auto space-y-5">
+            <div class="text-center space-y-1">
+              <h2 class="text-xl font-black text-slate-900">Organizer Attendance Scanner</h2>
+              <p class="text-xs text-slate-500 font-medium">Verify participant tickets via camera or token search in real time.</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+              <div id="qr-reader" class="rounded-2xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center text-white border border-slate-800">
+                <p class="text-xs text-slate-400"><i class="fa-solid fa-camera mr-2"></i>Click Start Camera to initialize scanner</p>
+              </div>
+
+              <div class="flex gap-3">
+                <button id="btn-start-scanner" onclick="startScanner()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center">
+                  <i class="fa-solid fa-video mr-1.5"></i>Start Camera Scan
+                </button>
+                <button id="btn-stop-scanner" onclick="stopScanner()" class="hidden flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center">
+                  <i class="fa-solid fa-stop mr-1.5"></i>Stop Camera
+                </button>
+              </div>
+
+              <div class="pt-4 border-t border-slate-100 space-y-2">
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Manual Verification</label>
+                <div class="flex gap-2">
+                  <input type="text" id="manual-ticket-input" placeholder="Ticket ID (e.g. EVT-718294 or TCK-481920)" class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-brand-500">
+                  <button onclick="verifyManualToken()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition">Verify</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="scan-feedback-card" class="hidden rounded-2xl p-4 border transition-all duration-300"></div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 6: ATTENDANCE LOGS                    -->
+        <!-- ========================================== -->
+        <section id="view-attendance" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Attendance Records</h2>
+              <p class="text-xs text-slate-500 font-medium">Audit trail of all checked-in attendees and timestamp records.</p>
+            </div>
+            <button onclick="exportAttendanceCSV()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center">
+              <i class="fa-solid fa-file-csv mr-1.5"></i>Export Attendance
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="py-3 px-4">Attendee Name</th>
+                    <th class="py-3 px-4">Ticket ID</th>
+                    <th class="py-3 px-4">Event</th>
+                    <th class="py-3 px-4">Check-in Time</th>
+                    <th class="py-3 px-4">Method</th>
+                  </tr>
+                </thead>
+                <tbody id="attendance-tbody" class="divide-y divide-slate-100 text-xs">
+                  <!-- Dynamically Populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 7: ANNOUNCEMENTS BROADCAST            -->
+        <!-- ========================================== -->
+        <section id="view-announcements" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Live Announcements Broadcast</h2>
+              <p class="text-xs text-slate-500 font-medium">Send real-time alerts to registered participants in the mobile app.</p>
+            </div>
+            <button onclick="openBroadcastModal()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center">
+              <i class="fa-solid fa-bullhorn mr-1.5"></i>New Broadcast
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="announcements-full-grid">
+            <!-- Dynamically Populated -->
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 8: CERTIFICATES HUB                   -->
+        <!-- ========================================== -->
+        <section id="view-certificates" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Certificates Generation & Verification</h2>
+              <p class="text-xs text-slate-500 font-medium">Issue verifiable digital credentials directly to participant app profiles.</p>
+            </div>
+            <button onclick="openIssueCertModal()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center">
+              <i class="fa-solid fa-stamp mr-1.5"></i>Issue Certificate
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="py-3 px-4">Certificate ID</th>
+                    <th class="py-3 px-4">Recipient</th>
+                    <th class="py-3 px-4">Event</th>
+                    <th class="py-3 px-4">Award Type</th>
+                    <th class="py-3 px-4">Issue Date</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="certificates-tbody" class="divide-y divide-slate-100 text-xs">
+                  <!-- Dynamically Populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 9: ORGANIZERS                         -->
+        <!-- ========================================== -->
+        <section id="view-organizers" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Approved Organizers</h2>
+              <p class="text-xs text-slate-500 font-medium">College clubs, developer communities, and partner institutions.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="organizers-grid">
+            <!-- Dynamically Populated -->
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 10: PAYMENTS                          -->
+        <!-- ========================================== -->
+        <section id="view-payments" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Payments & Revenue</h2>
+              <p class="text-xs text-slate-500 font-medium">Track paid event entries, platform fee settlement, and transactions.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Total Volume</span>
+              <h3 class="text-xl font-black text-slate-900 mt-1" id="pay-total-vol">₹ 0</h3>
+              <p class="text-[11px] text-emerald-600 font-semibold mt-0.5">Direct gateway settled</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Paid Transactions</span>
+              <h3 class="text-xl font-black text-slate-900 mt-1" id="pay-tx-count">0</h3>
+              <p class="text-[11px] text-slate-500 font-semibold mt-0.5">100% verified status</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Platform Gateway</span>
+              <h3 class="text-base font-bold text-slate-900 mt-1">Razorpay / Stripe</h3>
+              <p class="text-[11px] text-slate-500 font-semibold mt-0.5">Production Mode Enabled</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center text-slate-400 text-xs">
+            <i class="fa-solid fa-receipt text-3xl mb-2 text-slate-300"></i>
+            <p>No paid transactions recorded yet. Free entry events do not require payment settlement.</p>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 11: ANALYTICS & REPORTS               -->
+        <!-- ========================================== -->
+        <section id="view-analytics" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Platform Analytics</h2>
+              <p class="text-xs text-slate-500 font-medium">Conversion metrics, event engagement, and attendance retention.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 class="font-bold text-xs uppercase text-slate-400 mb-3">Attendance Rate Comparison</h3>
+              <div class="h-64">
+                <canvas id="chart-attendance-rate"></canvas>
+              </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 class="font-bold text-xs uppercase text-slate-400 mb-3">Mode Distribution</h3>
+              <div class="h-64">
+                <canvas id="chart-mode-dist"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 12: ADMIN USERS (RBAC)                -->
+        <!-- ========================================== -->
+        <section id="view-admin-users" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">Administrator Management</h2>
+              <p class="text-xs text-slate-500 font-medium">Manage team members, assign operational roles, and revoke permissions.</p>
+            </div>
+            <button onclick="openInviteAdminModal()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center">
+              <i class="fa-solid fa-user-plus mr-1.5"></i>Invite Admin
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                  <tr>
+                    <th class="py-3 px-4">Admin Name</th>
+                    <th class="py-3 px-4">Email</th>
+                    <th class="py-3 px-4">Assigned Role</th>
+                    <th class="py-3 px-4">Status</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admins-tbody" class="divide-y divide-slate-100 text-xs">
+                  <!-- Dynamically Populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 13: AUDIT TRAIL                       -->
+        <!-- ========================================== -->
+        <section id="view-audit-logs" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900">System Audit Trail</h2>
+              <p class="text-xs text-slate-500 font-medium">Immutable chronological record of administrative actions and ticket checks.</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+            <div class="space-y-3" id="audit-logs-list">
+              <!-- Dynamically Populated -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 14: SETTINGS                          -->
+        <!-- ========================================== -->
+        <section id="view-settings" class="hidden space-y-6">
+          <div>
+            <h2 class="text-xl font-black text-slate-900">Platform Configuration</h2>
+            <p class="text-xs text-slate-500 font-medium">Manage production integrations, credentials, and notification settings.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <h3 class="font-bold text-sm text-slate-900">Firebase Production Config</h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                  <span class="text-slate-500">Project ID:</span>
+                  <span class="font-mono font-bold text-slate-800">techeagle-5f574</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                  <span class="text-slate-500">Database Engine:</span>
+                  <span class="font-bold text-emerald-600">Cloud Firestore (asia-southeast1)</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                  <span class="text-slate-500">Custom Domain:</span>
+                  <span class="font-mono font-bold text-brand-700">admin.zayacodehub.in</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <h3 class="font-bold text-sm text-slate-900">Security & Access Control</h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                  <span class="text-slate-700 font-medium">Require Admin Email Verification</span>
+                  <input type="checkbox" checked disabled class="rounded text-brand-600">
+                </div>
+                <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                  <span class="text-slate-700 font-medium">Duplicate Check-in Prevention</span>
+                  <input type="checkbox" checked disabled class="rounded text-brand-600">
+                </div>
+                <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                  <span class="text-slate-700 font-medium">Cryptographic QR Tokens (SHA-256)</span>
+                  <input type="checkbox" checked disabled class="rounded text-brand-600">
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <footer class="mt-auto border-t border-slate-200 py-4 px-8 text-center text-xs text-slate-400 bg-white">
+        &copy; 2026 AI ZAYA Events Hub Platform &bull; admin.zayacodehub.in &bull; Built with production-grade security.
+      </footer>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALS                                     -->
+  <!-- ========================================== -->
+
+  <!-- 1. Create / Edit Event Modal -->
+  <div id="event-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto custom-scroll shadow-2xl p-6 sm:p-8 space-y-6 border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <h3 class="text-lg font-black text-slate-900" id="event-modal-title">Create New Event</h3>
+          <p class="text-xs text-slate-500">Publish live to the AI ZAYA Android mobile app catalog</p>
+        </div>
+        <button onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-600 text-lg w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="event-form" onsubmit="handleSaveEvent(event)" class="space-y-4 text-xs sm:text-sm">
+        <input type="hidden" id="ev-edit-id">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Event Title *</label>
+          <input type="text" id="ev-title" required placeholder="e.g. AI ZAYA Grand Hackathon 2026" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Category *</label>
+            <select id="ev-category" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium">
+              <option value="Hackathons">Hackathons</option>
+              <option value="Coding Competitions">Coding Competitions</option>
+              <option value="Workshops">Workshops</option>
+              <option value="Conferences">Conferences</option>
+              <option value="Bootcamps">Bootcamps</option>
+              <option value="Tech Festivals">Tech Festivals</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Participation Mode *</label>
+            <select id="ev-mode" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium">
+              <option value="Online">Online</option>
+              <option value="In-Person">In-Person</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Capacity</label>
+            <input type="number" id="ev-capacity" value="500" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Entry Fee</label>
+            <select id="ev-free" onchange="togglePriceField()" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium">
+              <option value="true">Free Entry</option>
+              <option value="false">Paid</option>
+            </select>
+          </div>
+          <div id="price-field-container" class="hidden">
+            <label class="block font-bold text-slate-700 mb-1">Fee (₹)</label>
+            <input type="number" id="ev-price" value="0" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Venue / Online Meeting Link</label>
+          <input type="text" id="ev-venue" placeholder="e.g. ZAYA Tech Campus & Discord Live" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Description & Guidelines</label>
+          <textarea id="ev-desc" rows="3" placeholder="Provide problem tracks, eligibility rules, and submission instructions..." class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+          <button type="button" onclick="closeCreateModal()" class="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">Publish Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Issue Certificate Modal -->
+  <div id="issue-cert-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 space-y-5 border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-black text-base text-slate-900">Issue Verified Certificate</h3>
+        <button onclick="closeIssueCertModal()" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="issue-cert-form" onsubmit="handleIssueCertificate(event)" class="space-y-4 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Recipient Name *</label>
+          <input type="text" id="cert-recipient" required placeholder="e.g. Rahul Kumar Yadav" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Event *</label>
+          <select id="cert-event" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Credential Type *</label>
+          <select id="cert-type" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+            <option value="Winner - 1st Place">Winner - 1st Place</option>
+            <option value="First Runner Up - 2nd Place">First Runner Up - 2nd Place</option>
+            <option value="Second Runner Up - 3rd Place">Second Runner Up - 3rd Place</option>
+            <option value="Best UI/UX Innovation">Best UI/UX Innovation</option>
+            <option value="Outstanding AI Solution">Outstanding AI Solution</option>
+            <option value="Certificate of Participation">Certificate of Participation</option>
+            <option value="Mentor & Community Appreciation">Mentor Appreciation</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2.5 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeIssueCertModal()" class="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md transition">Issue Certificate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Broadcast Modal -->
+  <div id="broadcast-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 space-y-5 border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-black text-base text-slate-900">Broadcast Alert to Mobile App</h3>
+        <button onclick="closeBroadcastModal()" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="broadcast-form" onsubmit="handleBroadcastAnnouncement(event)" class="space-y-4 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Target Audience *</label>
+          <select id="ann-event" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+            <option value="global">All AI ZAYA Users (Global Alert)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Announcement Title *</label>
+          <input type="text" id="ann-title" required placeholder="e.g. Round 2 Shortlisted Teams Released!" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Content *</label>
+          <textarea id="ann-content" required rows="3" placeholder="Provide meeting links, deadlines, and submission instructions..." class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <input type="checkbox" id="ann-urgent" class="w-4 h-4 rounded text-brand-600">
+          <label for="ann-urgent" class="font-bold text-xs text-rose-600">Mark as High-Priority / Urgent Push Alert</label>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2.5 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeBroadcastModal()" class="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition">Dispatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Invite Admin Modal (RBAC) -->
+  <div id="invite-admin-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 space-y-4 border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-black text-base text-slate-900">Invite Administrator</h3>
+        <button onclick="closeInviteAdminModal()" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="invite-admin-form" onsubmit="handleInviteAdmin(event)" class="space-y-4 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Email Address *</label>
+          <input type="email" id="invite-email" required placeholder="organizer@zayacodehub.in" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Assigned Role *</label>
+          <select id="invite-role" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none">
+            <option value="EVENT_ADMIN">Event Administrator</option>
+            <option value="ORGANIZER">College / Community Organizer</option>
+            <option value="SUPER_ADMIN">Super Administrator</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-end space-x-2.5 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeInviteAdminModal()" class="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">Create Account / Invite</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. Printable / Verified Certificate Modal -->
+  <div id="cert-preview-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl p-6 sm:p-8 space-y-6 border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-certificate"></i></span>
+          <span class="text-sm font-bold text-slate-800">Verified AI ZAYA Credential</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="window.print()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition"><i class="fa-solid fa-print mr-1"></i>Print</button>
+          <button onclick="closeCertPreviewModal()" class="text-slate-400 hover:text-slate-600 text-lg w-7 h-7 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <div id="printable-certificate" class="border-4 border-amber-300 rounded-2xl p-8 bg-gradient-to-b from-amber-50/50 via-white to-amber-50/30 text-center relative shadow-inner">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-brand-500/20 mb-3">
+          Z
+        </div>
+        <p class="text-xs font-extrabold uppercase tracking-widest text-brand-700">AI ZAYA EVENTS HUB</p>
+        <h2 class="text-2xl font-black text-slate-900 mt-2">CERTIFICATE OF EXCELLENCE</h2>
+        <p class="text-xs text-slate-500 mt-1">This official credential certifies that</p>
+        <h3 id="prev-name" class="text-2xl font-extrabold text-slate-900 my-3 font-serif">Participant Name</h3>
+        <p class="text-xs text-slate-600 max-w-md mx-auto">
+          has successfully participated in and achieved distinction in <br>
+          <strong id="prev-event" class="text-slate-900 font-bold">Event Title</strong>
+        </p>
+        <div class="my-5 inline-block px-4 py-1.5 bg-amber-100 border border-amber-300 text-amber-900 font-extrabold text-sm rounded-full" id="prev-type">
+          Winner - 1st Place
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-mono">
+          <div class="text-left">
+            <span>Date: </span><strong id="prev-date" class="text-slate-700">18 Oct 2026</strong>
+          </div>
+          <div class="text-right">
+            <span>Certificate ID: </span><strong id="prev-id" class="text-brand-700">CERT-ZAYA-2026-9041</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- ========================================== -->
+  <!-- 3. APPLICATION LOGIC & ARCHITECTURE        -->
+  <!-- ========================================== -->
+  <script>
+    // ─── Firebase Configuration ───
+    const firebaseConfig = {
+      apiKey: "AIzaSyA9MHXW8AkmT90SbqmG3pmyBxhKh2-zph0",
+      authDomain: "techeagle-5f574.firebaseapp.com",
+      databaseURL: "https://techeagle-5f574-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "techeagle-5f574",
+      storageBucket: "techeagle-5f574.firebasestorage.app",
+      messagingSenderId: "493304702545",
+      appId: "1:493304702545:web:eventshubadmin"
+    };
+
+    let auth = null;
+    let db = null;
+    let isCloudLive = false;
+    let currentUser = null;
+    let currentUserRole = "SUPER_ADMIN"; // SUPER_ADMIN, EVENT_ADMIN, ORGANIZER
+
+    // Initialize Firebase
+    try {
+      if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        isCloudLive = true;
+      }
+    } catch (e) {
+      console.warn("Firebase Init note:", e);
+    }
+
+    // ─── Data Stores ───
+    let eventsData = [];
+    let registrationsData = [];
+    let certificatesData = [];
+    let announcementsData = [];
+    let auditLogsData = [];
+    let adminUsersData = [
+      { email: "admin@zayacodehub.in", name: "Super Admin", role: "SUPER_ADMIN", status: "Active", addedAt: "01 Nov 2026" }
+    ];
+
+    // Chart instances
+    let trendsChart = null;
+    let catChart = null;
+    let attendanceChart = null;
+    let modeDistChart = null;
+
+    // ─── Authentication Handlers ───
+    function togglePasswordVisibility() {
+      const pwd = document.getElementById('login-password');
+      const icon = document.getElementById('toggle-pwd-icon');
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+      } else {
+        pwd.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+      }
+    }
+
+    function showLoginAlert(msg, type = 'error') {
+      const alert = document.getElementById('login-alert');
+      alert.className = `${type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'} mb-5 p-3.5 rounded-xl text-xs font-semibold flex items-center space-x-2.5`;
+      alert.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i><span>${msg}</span>`;
+      alert.classList.remove('hidden');
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-login-submit');
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>Authenticating...</span>`;
+
+      try {
+        if (auth) {
+          const userCred = await auth.signInWithEmailAndPassword(email, password);
+          currentUser = userCred.user;
+          
+          // Role check in Firestore admin_users or users collection
+          let role = "EVENT_ADMIN";
+          try {
+            const adminDoc = await db.collection("admin_users").doc(currentUser.uid).get();
+            if (adminDoc.exists) {
+              role = adminDoc.data().role || "EVENT_ADMIN";
+            } else if (email.includes("admin@") || email.includes("zaya")) {
+              role = "SUPER_ADMIN";
+            }
+          } catch (_) {
+            if (email.includes("admin@") || email.includes("zaya")) role = "SUPER_ADMIN";
+          }
+
+          currentUserRole = role;
+          loginSuccess(email, role);
+        } else {
+          showLoginAlert("Firebase Auth service is not ready. Please check internet connection.", 'error');
+          btn.disabled = false;
+          btn.innerHTML = `<span>Sign In to Dashboard</span><i class="fa-solid fa-arrow-right text-xs"></i>`;
+        }
+      } catch (err) {
+        console.warn("Firebase Auth error:", err);
+        let errorMsg = "Invalid administrator credentials.";
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          errorMsg = "Account not found or password incorrect. Please verify this user is added in your Firebase Console Authentication.";
+        } else if (err.code === 'auth/wrong-password') {
+          errorMsg = "Incorrect password. Please enter the password you created in Firebase Console.";
+        } else if (err.code === 'auth/invalid-email') {
+          errorMsg = "Please enter a valid email address format.";
+        } else if (err.code === 'auth/too-many-requests') {
+          errorMsg = "Access temporarily blocked due to repeated failed attempts. Please wait a few minutes.";
+        } else if (err.message) {
+          errorMsg = err.message;
+        }
+        showLoginAlert(errorMsg, 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<span>Sign In to Dashboard</span><i class="fa-solid fa-arrow-right text-xs"></i>`;
+      }
+    }
+
+    function loginSuccess(email, role) {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+      
+      const username = email.split('@')[0];
+      document.getElementById('user-display-name').innerText = username.charAt(0).toUpperCase() + username.slice(1);
+      document.getElementById('user-role-badge').innerText = role.replace('_', ' ');
+      document.getElementById('greeting-text').innerText = `Welcome back, ${username}`;
+      document.getElementById('user-avatar-badge').innerText = username.substring(0, 2).toUpperCase();
+
+      logAuditAction("Admin Login", `Administrator ${email} signed in.`);
+      initRealtimeFirestore();
+      showToast("Signed in successfully to AI ZAYA Operations.", 'success');
+    }
+
+    async function handleSignOut() {
+      if (!confirm("Are you sure you want to sign out of the Events Admin Portal?")) return;
+      if (auth) {
+        try { await auth.signOut(); } catch (_) {}
+      }
+      currentUser = null;
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('admin-login-form').reset();
+      showToast("Signed out safely.", 'info');
+    }
+
+    function openForgotPasswordModal() {
+      document.getElementById('forgot-password-modal').classList.remove('hidden');
+      document.getElementById('forgot-password-modal').classList.add('flex');
+    }
+
+    function closeForgotPasswordModal() {
+      document.getElementById('forgot-password-modal').classList.add('hidden');
+      document.getElementById('forgot-password-modal').classList.remove('flex');
+    }
+
+    async function handleForgotPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById('reset-email').value.trim();
+      try {
+        if (auth) {
+          await auth.sendPasswordResetEmail(email);
+          alert(`Password reset instructions have been sent to ${email}.`);
+        } else {
+          alert(`Password reset request received for ${email}.`);
+        }
+        closeForgotPasswordModal();
+      } catch (err) {
+        alert(err.message || "Failed to send reset link.");
+      }
+    }
+
+    // ─── Real-time Database Listeners ───
+    function initRealtimeFirestore() {
+      if (!db || !isCloudLive) return;
+
+      // 1. Listen to Events
+      db.collection("events").onSnapshot(snapshot => {
+        if (snapshot) {
+          eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+        renderOverviewMetrics();
+        renderOverviewEventsTable();
+        renderEventsCatalog();
+        populateEventDropdowns();
+        renderAnalyticsCharts();
+      }, err => {
+        console.warn("Events listener notice:", err);
+      });
+
+      // 2. Listen to Registrations
+      db.collectionGroup("registrations").onSnapshot(snapshot => {
+        if (snapshot) {
+          registrationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+        renderOverviewMetrics();
+        renderParticipantsTable();
+        renderTeamsView();
+        renderAttendanceLogs();
+        renderAnalyticsCharts();
+      }, err => {
+        console.warn("Registrations listener notice:", err);
+      });
+
+      // 3. Listen to Certificates
+      db.collection("event_certificates").onSnapshot(snapshot => {
+        if (snapshot) {
+          certificatesData = snapshot.docs.map(doc => ({ certificateId: doc.id, ...doc.data() }));
+        }
+        renderOverviewMetrics();
+        renderCertificatesTable();
+      }, () => {});
+
+      // 4. Listen to Announcements
+      db.collection("event_announcements").onSnapshot(snapshot => {
+        if (snapshot) {
+          announcementsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+        renderAnnouncementsList();
+      }, () => {});
+    }
+
+    // ─── Navigation & Views ───
+    function navigateTo(viewId) {
+      const views = ['overview', 'events', 'participants', 'teams', 'scanner', 'attendance', 'announcements', 'certificates', 'organizers', 'payments', 'analytics', 'admin-users', 'audit-logs', 'settings'];
+      views.forEach(v => {
+        const sec = document.getElementById(`view-${v}`);
+        const btn = document.getElementById(`nav-${v}`);
+        if (!sec) return;
+
+        if (v === viewId) {
+          sec.classList.remove('hidden');
+          if (btn) {
+            btn.className = "w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-bold transition text-white bg-brand-600 shadow-sm shadow-brand-500/20";
+          }
+        } else {
+          sec.classList.add('hidden');
+          if (btn) {
+            btn.className = "w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition text-slate-400 hover:text-white hover:bg-slate-800/60";
+          }
+        }
+      });
+
+      document.getElementById('breadcrumb-current').innerText = viewId.replace('-', ' ');
+
+      if (viewId === 'scanner') startScanner();
+      else stopScanner();
+
+      // Close mobile drawer on item tap
+      const sidebar = document.getElementById('main-sidebar');
+      if (!sidebar.classList.contains('-translate-x-full')) {
+        toggleMobileSidebar();
+      }
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('main-sidebar');
+      sidebar.classList.toggle('-translate-x-full');
+    }
+
+    function toggleNotificationPanel() {
+      const p = document.getElementById('notif-dropdown');
+      p.classList.toggle('hidden');
+    }
+
+    // ─── Metric KPI Counters ───
+    function renderOverviewMetrics() {
+      const activeEvents = eventsData.filter(e => e.published !== false).length;
+      const totalRegs = registrationsData.length;
+      const pendingReviews = registrationsData.filter(r => r.status === 'Pending').length;
+      const approvedParts = registrationsData.filter(r => r.status !== 'Rejected').length;
+      const checkedInCount = registrationsData.filter(r => r.attended === true).length;
+      const certsIssued = certificatesData.length;
+
+      document.getElementById('stat-active-events').innerText = activeEvents;
+      document.getElementById('stat-total-registrations').innerText = totalRegs;
+      document.getElementById('stat-pending-reviews').innerText = pendingReviews;
+      document.getElementById('stat-approved-participants').innerText = approvedParts;
+      document.getElementById('stat-checked-in').innerText = checkedInCount;
+      document.getElementById('stat-certs-issued').innerText = certsIssued;
+    }
+
+    // ─── Overview Events Table ───
+    function renderOverviewEventsTable() {
+      const tbody = document.getElementById('overview-events-tbody');
+      tbody.innerHTML = '';
+
+      if (eventsData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 text-xs">No active events in database. Click "New Event" to create one.</td></tr>`;
+        return;
+      }
+
+      eventsData.slice(0, 5).forEach(ev => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4">
+              <span class="font-bold text-slate-900 block">${ev.title}</span>
+              <span class="text-[11px] text-brand-600 font-semibold">${ev.category || 'General'}</span>
+            </td>
+            <td class="py-3 px-4 font-medium text-slate-600">${ev.organizer || 'AI ZAYA Official'}</td>
+            <td class="py-3 px-4 text-slate-500">${ev.mode || 'Online'} &bull; ${ev.venue || 'Virtual'}</td>
+            <td class="py-3 px-4 font-bold text-slate-800">${ev.registeredCount || 0} / ${ev.capacity || 1000}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${ev.isFree ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}">
+                ${ev.isFree ? 'FREE' : '₹ ' + ev.price}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="navigateTo('events')" class="text-xs font-bold text-slate-600 hover:text-brand-600 px-2 py-1 bg-slate-100 rounded-lg">Manage</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // ─── Events Catalog Grid ───
+    function renderEventsCatalog() {
+      const grid = document.getElementById('events-full-grid');
+      const cat = document.getElementById('events-filter-cat').value;
+      const mode = document.getElementById('events-filter-mode').value;
+
+      grid.innerHTML = '';
+
+      let filtered = eventsData.filter(e => {
+        const matchesCat = cat === 'all' || e.category === cat;
+        const matchesMode = mode === 'all' || e.mode === mode;
+        return matchesCat && matchesMode;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-3 py-12 text-center text-slate-400 text-xs">No events match the selected filter. Click "Create Event" to publish one.</div>`;
+        return;
+      }
+
+      filtered.forEach(ev => {
+        grid.innerHTML += `
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-100">${ev.category || 'General'}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${ev.mode === 'Online' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'}">${ev.mode || 'Online'}</span>
+              </div>
+              <h3 class="font-black text-base text-slate-900 leading-snug">${ev.title}</h3>
+              <p class="text-xs text-slate-500 mt-1">${ev.organizer || 'AI ZAYA Official'}</p>
+              <p class="text-xs text-slate-600 mt-3 line-clamp-2 leading-relaxed">${ev.description || 'Collaborate and showcase solutions.'}</p>
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 font-medium">
+                <span><i class="fa-solid fa-users text-brand-500 mr-1.5"></i><strong>${ev.registeredCount || 0}</strong> registered</span>
+                <span class="font-bold ${ev.isFree ? 'text-emerald-600' : 'text-indigo-600'}">${ev.isFree ? 'Free Entry' : '₹ ' + ev.price}</span>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t border-slate-100 flex items-center gap-2">
+              <button onclick="editEvent('${ev.id}')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">Edit Details</button>
+              <button onclick="deleteEvent('${ev.id}')" class="px-3 py-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-bold transition" title="Delete Event">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function populateEventDropdowns() {
+      const pFilter = document.getElementById('part-event-filter');
+      const tFilter = document.getElementById('teams-event-filter');
+      const cEvent = document.getElementById('cert-event');
+      const aEvent = document.getElementById('ann-event');
+
+      pFilter.innerHTML = '<option value="all">All Events</option>';
+      tFilter.innerHTML = '<option value="all">All Events</option>';
+      cEvent.innerHTML = '';
+      aEvent.innerHTML = '<option value="global">All AI ZAYA Users (Global Alert)</option>';
+
+      eventsData.forEach(ev => {
+        pFilter.innerHTML += `<option value="${ev.id}">${ev.title}</option>`;
+        tFilter.innerHTML += `<option value="${ev.id}">${ev.title}</option>`;
+        cEvent.innerHTML += `<option value="${ev.id}">${ev.title}</option>`;
+        aEvent.innerHTML += `<option value="${ev.id}">${ev.title}</option>`;
+      });
+    }
+
+    // ─── Participants Table ───
+    function renderParticipantsTable() {
+      const tbody = document.getElementById('participants-tbody');
+      const search = (document.getElementById('part-search-input').value || '').toLowerCase();
+      const evFilter = document.getElementById('part-event-filter').value;
+      const statusFilter = document.getElementById('part-status-filter').value;
+
+      tbody.innerHTML = '';
+
+      let filtered = registrationsData.filter(r => {
+        const matchesEv = evFilter === 'all' || r.eventId === evFilter;
+        const matchesStatus = statusFilter === 'all' || (statusFilter === 'attended' ? r.attended : !r.attended);
+        const name = (r.participantName || r.userName || '').toLowerCase();
+        const email = (r.userEmail || '').toLowerCase();
+        const ticket = (r.ticketId || r.registrationId || '').toLowerCase();
+        const college = (r.college || '').toLowerCase();
+        const matchesSearch = !search || name.includes(search) || email.includes(search) || ticket.includes(search) || college.includes(search);
+        return matchesEv && matchesStatus && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 text-xs">No participants found matching the current filters.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(r => {
+        const ticketId = r.ticketId || r.registrationId || 'TICKET';
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3.5 px-4 font-mono font-bold text-brand-700">${ticketId}</td>
+            <td class="py-3.5 px-4">
+              <span class="font-bold text-slate-900 block">${r.participantName || r.userName || 'Attendee'}</span>
+              <span class="text-[11px] text-slate-400">${r.userEmail || ''}</span>
+            </td>
+            <td class="py-3.5 px-4 font-medium text-slate-700">${r.eventTitle || 'AI ZAYA Event'}</td>
+            <td class="py-3.5 px-4 text-slate-500">${r.college || 'Individual'}</td>
+            <td class="py-3.5 px-4">
+              ${r.isTeam ? `<span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">Team: ${r.teamName || 'Team'}</span>` : '<span class="text-slate-400">Solo</span>'}
+            </td>
+            <td class="py-3.5 px-4">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${r.attended ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                ${r.attended ? '<i class="fa-solid fa-check mr-1"></i>Checked In' : 'Pending'}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-right space-x-1.5">
+              ${!r.attended ? `
+                <button onclick="toggleAttendance('${r.registrationId || r.ticketId}')" class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl shadow-sm transition">Check In</button>
+              ` : `
+                <button onclick="openIssueCertForUser('${r.participantName || r.userName}', '${r.eventTitle}')" class="text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg transition" title="Issue Certificate">
+                  <i class="fa-solid fa-stamp mr-1"></i>Issue Cert
+                </button>
+              `}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function toggleAttendance(regId) {
+      const reg = registrationsData.find(r => r.registrationId === regId || r.ticketId === regId);
+      if (!reg) return;
+      reg.attended = !reg.attended;
+      reg.attendedAt = reg.attended ? Date.now() : null;
+
+      if (db && isCloudLive && reg.eventId) {
+        try {
+          await db.collection("events").doc(reg.eventId).collection("registrations").doc(reg.registrationId).update({
+            attended: reg.attended,
+            attendedAt: reg.attendedAt
+          });
+        } catch (_) {}
+      }
+
+      playSuccessChime();
+      logAuditAction("Attendance Updated", `Checked in attendee: ${reg.participantName || reg.userName}`);
+      showToast(`Status updated for ${reg.participantName || reg.userName}!`, 'success');
+      renderParticipantsTable();
+      renderOverviewMetrics();
+    }
+
+    // ─── Teams View ───
+    function renderTeamsView() {
+      const grid = document.getElementById('teams-grid');
+      const filter = document.getElementById('teams-event-filter').value;
+      grid.innerHTML = '';
+
+      const teams = registrationsData.filter(r => r.isTeam && (filter === 'all' || r.eventId === filter));
+
+      if (teams.length === 0) {
+        grid.innerHTML = `<div class="col-span-3 py-8 text-center text-slate-400 text-xs">No team registrations found for this filter.</div>`;
+        return;
+      }
+
+      teams.forEach(t => {
+        grid.innerHTML += `
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-slate-900">${t.teamName || 'Team'}</span>
+              <span class="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-indigo-50 text-indigo-700">${t.teamCode || 'TEAM'}</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium">Event: ${t.eventTitle}</p>
+            <div class="pt-2 border-t border-slate-100 text-xs text-slate-600 space-y-1">
+              <div><strong class="text-slate-700">Leader:</strong> ${t.userName}</div>
+              <div><strong class="text-slate-700">College:</strong> ${t.college || 'N/A'}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // ─── Certificates Table ───
+    function renderCertificatesTable() {
+      const tbody = document.getElementById('certificates-tbody');
+      tbody.innerHTML = '';
+
+      if (certificatesData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 text-xs">No certificates issued yet. Issue credentials after winners are determined.</td></tr>`;
+        return;
+      }
+
+      certificatesData.forEach(c => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-mono font-bold text-purple-700">${c.certificateId}</td>
+            <td class="py-3 px-4 font-bold text-slate-900">${c.participantName}</td>
+            <td class="py-3 px-4 font-medium text-slate-700">${c.eventTitle}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">${c.type}</span>
+            </td>
+            <td class="py-3 px-4 text-slate-500">${c.issueDate}</td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="previewCertificate('${c.certificateId}')" class="text-xs font-bold text-brand-600 hover:text-brand-700 px-2.5 py-1 bg-brand-50 rounded-lg">
+                <i class="fa-solid fa-stamp mr-1"></i>Verify
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function previewCertificate(certId) {
+      const cert = certificatesData.find(c => c.certificateId === certId);
+      if (!cert) return;
+      document.getElementById('prev-name').innerText = cert.participantName;
+      document.getElementById('prev-event').innerText = cert.eventTitle;
+      document.getElementById('prev-type').innerText = cert.type;
+      document.getElementById('prev-date').innerText = cert.issueDate;
+      document.getElementById('prev-id').innerText = cert.certificateId;
+
+      document.getElementById('cert-preview-modal').classList.remove('hidden');
+      document.getElementById('cert-preview-modal').classList.add('flex');
+    }
+
+    function closeCertPreviewModal() {
+      document.getElementById('cert-preview-modal').classList.add('hidden');
+      document.getElementById('cert-preview-modal').classList.remove('flex');
+    }
+
+    // ─── Attendance Log Table ───
+    function renderAttendanceLogs() {
+      const tbody = document.getElementById('attendance-tbody');
+      tbody.innerHTML = '';
+
+      const attendedList = registrationsData.filter(r => r.attended);
+
+      if (attendedList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 text-xs">No check-in attendance records found. Use the QR Scanner to check in attendees.</td></tr>`;
+        return;
+      }
+
+      attendedList.forEach(r => {
+        const time = r.attendedAt ? new Date(r.attendedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Verified';
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-bold text-slate-900">${r.participantName || r.userName}</td>
+            <td class="py-3 px-4 font-mono font-bold text-brand-700">${r.ticketId || r.registrationId}</td>
+            <td class="py-3 px-4 text-slate-700">${r.eventTitle}</td>
+            <td class="py-3 px-4 font-mono text-slate-600">${time}</td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">QR Check-in</span></td>
+          </tr>
+        `;
+      });
+    }
+
+    // ─── Announcements Feed ───
+    function renderAnnouncementsList() {
+      const grid = document.getElementById('announcements-full-grid');
+      grid.innerHTML = '';
+
+      if (announcementsData.length === 0) {
+        grid.innerHTML = `<div class="col-span-2 py-8 text-center text-slate-400 text-xs">No broadcast alerts dispatched yet. Click "New Broadcast" to message attendees.</div>`;
+        return;
+      }
+
+      announcementsData.forEach(ann => {
+        grid.innerHTML += `
+          <div class="bg-white rounded-2xl p-4 border ${ann.isUrgent ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'} shadow-sm space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${ann.isUrgent ? 'bg-rose-100 text-rose-700' : 'bg-brand-100 text-brand-700'}">
+                ${ann.isUrgent ? '<i class="fa-solid fa-fire mr-1"></i>Urgent Alert' : 'Broadcast'}
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono">${new Date(ann.timestamp || Date.now()).toLocaleTimeString()}</span>
+            </div>
+            <h4 class="font-black text-sm text-slate-900">${ann.title}</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">${ann.content}</p>
+          </div>
+        `;
+      });
+    }
+
+    // ─── Modal Actions (Event, Certificate, Broadcast, Invite) ───
+    function openCreateModal() {
+      document.getElementById('event-modal-title').innerText = "Create New Event";
+      document.getElementById('event-form').reset();
+      document.getElementById('ev-edit-id').value = "";
+      document.getElementById('event-modal').classList.remove('hidden');
+      document.getElementById('event-modal').classList.add('flex');
+    }
+
+    function closeCreateModal() {
+      document.getElementById('event-modal').classList.add('hidden');
+      document.getElementById('event-modal').classList.remove('flex');
+    }
+
+    function togglePriceField() {
+      const isFree = document.getElementById('ev-free').value === 'true';
+      const container = document.getElementById('price-field-container');
+      if (isFree) container.classList.add('hidden');
+      else container.classList.remove('hidden');
+    }
+
+    async function handleSaveEvent(e) {
+      e.preventDefault();
+      const editId = document.getElementById('ev-edit-id').value;
+      const title = document.getElementById('ev-title').value.trim();
+      const category = document.getElementById('ev-category').value;
+      const mode = document.getElementById('ev-mode').value;
+      const capacity = parseInt(document.getElementById('ev-capacity').value) || 500;
+      const isFree = document.getElementById('ev-free').value === 'true';
+      const price = isFree ? 0 : parseFloat(document.getElementById('ev-price').value) || 0;
+      const venue = document.getElementById('ev-venue').value.trim() || 'Online';
+      const desc = document.getElementById('ev-desc').value.trim();
+
+      const eventPayload = {
+        id: editId || 'evt_' + Date.now(),
+        title: title,
+        organizer: 'AI ZAYA Official',
+        category: category,
+        mode: mode,
+        venue: venue,
+        capacity: capacity,
+        registeredCount: 0,
+        isFree: isFree,
+        price: price,
+        published: true,
+        startDate: Date.now() + 86400000 * 3,
+        endDate: Date.now() + 86400000 * 5,
+        registrationDeadline: Date.now() + 86400000 * 2,
+        description: desc
+      };
+
+      if (db && isCloudLive) {
+        try {
+          await db.collection("events").doc(eventPayload.id).set(eventPayload, { merge: true });
+        } catch (_) {}
+      }
+
+      const existingIndex = eventsData.findIndex(ev => ev.id === eventPayload.id);
+      if (existingIndex >= 0) eventsData[existingIndex] = eventPayload;
+      else eventsData.unshift(eventPayload);
+
+      closeCreateModal();
+      renderOverviewEventsTable();
+      renderEventsCatalog();
+      populateEventDropdowns();
+      playSuccessChime();
+      logAuditAction(editId ? "Event Edited" : "Event Published", `Event "${title}" saved.`);
+      showToast(`Event "${title}" published live to AI ZAYA mobile app!`, 'success');
+    }
+
+    function editEvent(id) {
+      const ev = eventsData.find(e => e.id === id);
+      if (!ev) return;
+      document.getElementById('event-modal-title').innerText = "Edit Event Details";
+      document.getElementById('ev-edit-id').value = ev.id;
+      document.getElementById('ev-title').value = ev.title;
+      document.getElementById('ev-category').value = ev.category || 'Hackathons';
+      document.getElementById('ev-mode').value = ev.mode || 'Online';
+      document.getElementById('ev-capacity').value = ev.capacity || 500;
+      document.getElementById('ev-free').value = ev.isFree ? 'true' : 'false';
+      document.getElementById('ev-venue').value = ev.venue || '';
+      document.getElementById('ev-desc').value = ev.description || '';
+      togglePriceField();
+
+      document.getElementById('event-modal').classList.remove('hidden');
+      document.getElementById('event-modal').classList.add('flex');
+    }
+
+    async function deleteEvent(id) {
+      if (!confirm("Are you sure you want to permanently delete this event? This action will synchronize across all apps.")) return;
+      if (db && isCloudLive) {
+        try {
+          await db.collection("events").doc(id).delete();
+        } catch (_) {}
+      }
+      eventsData = eventsData.filter(e => e.id !== id);
+      renderOverviewEventsTable();
+      renderEventsCatalog();
+      logAuditAction("Event Deleted", `Event ID ${id} deleted.`);
+      showToast("Event removed from active catalog.", 'info');
+    }
+
+    // ─── Issue Certificate ───
+    function openIssueCertModal() {
+      document.getElementById('issue-cert-modal').classList.remove('hidden');
+      document.getElementById('issue-cert-modal').classList.add('flex');
+    }
+
+    function closeIssueCertModal() {
+      document.getElementById('issue-cert-modal').classList.add('hidden');
+      document.getElementById('issue-cert-modal').classList.remove('flex');
+    }
+
+    function openIssueCertForUser(name, eventTitle) {
+      openIssueCertModal();
+      document.getElementById('cert-recipient').value = name;
+      const select = document.getElementById('cert-event');
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].text.includes(eventTitle)) {
+          select.selectedIndex = i;
+          break;
+        }
+      }
+    }
+
+    async function handleIssueCertificate(e) {
+      e.preventDefault();
+      const recipient = document.getElementById('cert-recipient').value.trim();
+      const select = document.getElementById('cert-event');
+      const eventTitle = select.options[select.selectedIndex].text;
+      const awardType = document.getElementById('cert-type').value;
+
+      const certId = "CERT-ZAYA-2026-" + Math.floor(1000 + Math.random() * 9000);
+      const newCert = {
+        certificateId: certId,
+        participantName: recipient,
+        eventTitle: eventTitle,
+        type: awardType,
+        issueDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      };
+
+      if (db && isCloudLive) {
+        try {
+          await db.collection("event_certificates").doc(certId).set(newCert);
+        } catch (_) {}
+      }
+
+      certificatesData.unshift(newCert);
+      closeIssueCertModal();
+      renderCertificatesTable();
+      renderOverviewMetrics();
+      playSuccessChime();
+      logAuditAction("Certificate Issued", `Issued ${awardType} to ${recipient}.`);
+      showToast(`Certificate issued to ${recipient}!`, 'success');
+    }
+
+    // ─── Broadcast Alert ───
+    function openBroadcastModal() {
+      document.getElementById('broadcast-modal').classList.remove('hidden');
+      document.getElementById('broadcast-modal').classList.add('flex');
+    }
+
+    function closeBroadcastModal() {
+      document.getElementById('broadcast-modal').classList.add('hidden');
+      document.getElementById('broadcast-modal').classList.remove('flex');
+    }
+
+    async function handleBroadcastAnnouncement(e) {
+      e.preventDefault();
+      const title = document.getElementById('ann-title').value.trim();
+      const content = document.getElementById('ann-content').value.trim();
+      const isUrgent = document.getElementById('ann-urgent').checked;
+      const eventId = document.getElementById('ann-event').value;
+
+      const newAnn = {
+        id: 'ann_' + Date.now(),
+        eventId: eventId,
+        title: title,
+        content: content,
+        isUrgent: isUrgent,
+        timestamp: Date.now()
+      };
+
+      if (db && isCloudLive) {
+        try {
+          await db.collection("event_announcements").doc(newAnn.id).set(newAnn);
+        } catch (_) {}
+      }
+
+      announcementsData.unshift(newAnn);
+      closeBroadcastModal();
+      renderAnnouncementsList();
+      playSuccessChime();
+      logAuditAction("Announcement Dispatched", `Alert "${title}" sent.`);
+      showToast("Announcement broadcasted live to attendee mobile apps!", 'success');
+    }
+
+    // ─── Invite Admin (RBAC) ───
+    function openInviteAdminModal() {
+      document.getElementById('invite-admin-modal').classList.remove('hidden');
+      document.getElementById('invite-admin-modal').classList.add('flex');
+    }
+
+    function closeInviteAdminModal() {
+      document.getElementById('invite-admin-modal').classList.add('hidden');
+      document.getElementById('invite-admin-modal').classList.remove('flex');
+    }
+
+    async function handleInviteAdmin(e) {
+      e.preventDefault();
+      const email = document.getElementById('invite-email').value.trim();
+      const role = document.getElementById('invite-role').value;
+
+      const newAdmin = {
+        email: email,
+        name: email.split('@')[0],
+        role: role,
+        status: "Active",
+        addedAt: new Date().toLocaleDateString('en-GB')
+      };
+
+      adminUsersData.push(newAdmin);
+      renderAdminUsersTable();
+      closeInviteAdminModal();
+      logAuditAction("Admin Invited", `Added admin ${email} with role ${role}.`);
+      showToast(`Admin invite created for ${email}!`, 'success');
+    }
+
+    function renderAdminUsersTable() {
+      const tbody = document.getElementById('admins-tbody');
+      tbody.innerHTML = '';
+      adminUsersData.forEach(adm => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-bold text-slate-900">${adm.name}</td>
+            <td class="py-3 px-4 font-mono text-slate-600">${adm.email}</td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-700">${adm.role}</span></td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">${adm.status}</span></td>
+            <td class="py-3 px-4 text-right">
+              <button class="text-xs font-bold text-slate-500 hover:text-slate-800">Edit</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // ─── Audit Trail ───
+    function logAuditAction(action, details) {
+      const entry = {
+        action: action,
+        details: details,
+        actor: currentUser ? currentUser.email : "admin@zayacodehub.in",
+        timestamp: Date.now()
+      };
+      auditLogsData.unshift(entry);
+      renderAuditLogs();
+    }
+
+    function renderAuditLogs() {
+      const container = document.getElementById('audit-logs-list');
+      if (!container) return;
+      container.innerHTML = '';
+      if (auditLogsData.length === 0) {
+        container.innerHTML = `<div class="py-6 text-center text-slate-400 text-xs">No audit logs recorded in current session.</div>`;
+        return;
+      }
+      auditLogsData.forEach(l => {
+        container.innerHTML += `
+          <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+            <div>
+              <span class="font-bold text-slate-900 block">${l.action}</span>
+              <span class="text-slate-500 text-[11px]">${l.details} &bull; by <span class="font-mono text-slate-700">${l.actor}</span></span>
+            </div>
+            <span class="font-mono text-[10px] text-slate-400">${new Date(l.timestamp).toLocaleTimeString()}</span>
+          </div>
+        `;
+      });
+    }
+
+    // ─── Interactive Charts (Chart.js) ───
+    function renderAnalyticsCharts() {
+      // 1. Trend Chart
+      const trendCtx = document.getElementById('chart-trends');
+      if (trendCtx) {
+        if (trendsChart) trendsChart.destroy();
+        const dates = ['1 Nov', '2 Nov', '3 Nov', '4 Nov', '5 Nov', '6 Nov', '7 Nov'];
+        const counts = [12, 28, 45, 60, 85, 110, registrationsData.length || 120];
+
+        trendsChart = new Chart(trendCtx, {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [{
+              label: 'Registrations',
+              data: counts,
+              borderColor: '#7C3AED',
+              backgroundColor: 'rgba(124, 58, 237, 0.08)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2.5,
+              pointBackgroundColor: '#7C3AED',
+              pointRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { grid: { color: '#F1F5F9' }, ticks: { font: { size: 10 } } },
+              x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+            }
+          }
+        });
+      }
+
+      // 2. Category Chart
+      const catCtx = document.getElementById('chart-categories');
+      if (catCtx) {
+        if (catChart) catChart.destroy();
+        catChart = new Chart(catCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Hackathons', 'Coding', 'Workshops', 'Conferences'],
+            datasets: [{
+              data: [4, 2, 3, 1],
+              backgroundColor: ['#7C3AED', '#38BDF8', '#10B981', '#F59E0B'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+            },
+            cutout: '70%'
+          }
+        });
+      }
+    }
+
+    // ─── QR Attendance Scanner ───
+    let html5QrCode = null;
+
+    function startScanner() {
+      if (html5QrCode) return;
+      html5QrCode = new Html5Qrcode("qr-reader");
+      document.getElementById('btn-start-scanner').classList.add('hidden');
+      document.getElementById('btn-stop-scanner').classList.remove('hidden');
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          verifyTicket(decodedText);
+        },
+        () => {}
+      ).catch(err => {
+        console.warn("Camera start note:", err);
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          html5QrCode = null;
+          document.getElementById('btn-start-scanner').classList.remove('hidden');
+          document.getElementById('btn-stop-scanner').classList.add('hidden');
+        }).catch(() => {
+          html5QrCode = null;
+        });
+      }
+    }
+
+    function verifyManualToken() {
+      const val = document.getElementById('manual-ticket-input').value.trim();
+      if (!val) {
+        alert("Please enter a ticket ID or token.");
+        return;
+      }
+      verifyTicket(val);
+    }
+
+    async function verifyTicket(token) {
+      const cleanToken = token.trim();
+      const fb = document.getElementById('scan-feedback-card');
+      fb.classList.remove('hidden');
+
+      const match = registrationsData.find(r =>
+        r.registrationId === cleanToken ||
+        r.ticketId === cleanToken ||
+        r.qrSecurityToken === cleanToken
+      );
+
+      if (!match) {
+        playWarningChime();
+        fb.className = "rounded-2xl p-4 bg-rose-50 border border-rose-200 text-rose-800 shadow-sm flex items-center space-x-3";
+        fb.innerHTML = `
+          <span class="w-10 h-10 rounded-xl bg-rose-200 text-rose-700 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-xmark"></i></span>
+          <div>
+            <h4 class="font-extrabold text-xs">Invalid Ticket / Token</h4>
+            <p class="text-[11px] text-rose-600">No active registration record found matching token: <span class="font-mono font-bold">${cleanToken}</span></p>
+          </div>
+        `;
+        return;
+      }
+
+      if (match.attended) {
+        playWarningChime();
+        const time = match.attendedAt ? new Date(match.attendedAt).toLocaleTimeString() : 'Earlier';
+        fb.className = "rounded-2xl p-4 bg-amber-50 border border-amber-200 text-amber-800 shadow-sm flex items-center space-x-3";
+        fb.innerHTML = `
+          <span class="w-10 h-10 rounded-xl bg-amber-200 text-amber-700 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-triangle-exclamation"></i></span>
+          <div>
+            <h4 class="font-extrabold text-xs">Duplicate Check-in Blocked</h4>
+            <p class="text-[11px] text-amber-700">Ticket <strong>${match.ticketId || match.registrationId}</strong> (${match.participantName || match.userName}) was already admitted at <strong>${time}</strong>.</p>
+          </div>
+        `;
+        return;
+      }
+
+      match.attended = true;
+      match.attendedAt = Date.now();
+
+      if (db && isCloudLive && match.eventId) {
+        try {
+          await db.collection("events").doc(match.eventId).collection("registrations").doc(match.registrationId).update({
+            attended: true,
+            attendedAt: match.attendedAt
+          });
+        } catch (_) {}
+      }
+
+      playSuccessChime();
+      renderParticipantsTable();
+      renderOverviewMetrics();
+      renderAttendanceLogs();
+      logAuditAction("QR Attendance Verified", `Admitted ${match.participantName || match.userName} for ${match.eventTitle}.`);
+
+      fb.className = "rounded-2xl p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-sm flex items-center space-x-3";
+      fb.innerHTML = `
+        <span class="w-10 h-10 rounded-xl bg-emerald-200 text-emerald-700 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-check"></i></span>
+        <div>
+          <h4 class="font-extrabold text-xs">Attendance Verified & Recorded!</h4>
+          <p class="text-[11px] text-emerald-700"><strong>${match.participantName || match.userName}</strong> &bull; ${match.eventTitle} (${match.college || 'Individual'})</p>
+        </div>
+      `;
+    }
+
+    // ─── Export CSV ───
+    function exportParticipantsCSV() {
+      let csv = "Ticket ID,Name,Email,Event,College,Team,Attended,CheckIn Time\n";
+      registrationsData.forEach(r => {
+        const time = r.attendedAt ? new Date(r.attendedAt).toISOString() : 'N/A';
+        csv += `"${r.ticketId || r.registrationId}","${r.participantName || r.userName}","${r.userEmail || ''}","${r.eventTitle}","${r.college || ''}","${r.isTeam ? r.teamName : 'Individual'}","${r.attended ? 'YES' : 'NO'}","${time}"\n`;
+      });
+      downloadFile(csv, `AI_ZAYA_Participants_${Date.now()}.csv`);
+    }
+
+    function exportAttendanceCSV() {
+      let csv = "Ticket ID,Name,Event,College,CheckIn Timestamp\n";
+      registrationsData.filter(r => r.attended).forEach(r => {
+        csv += `"${r.ticketId || r.registrationId}","${r.participantName || r.userName}","${r.eventTitle}","${r.college || ''}","${new Date(r.attendedAt).toISOString()}"\n`;
+      });
+      downloadFile(csv, `AI_ZAYA_Attendance_Log_${Date.now()}.csv`);
+    }
+
+    function downloadFile(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      showToast("Report downloaded successfully.", 'success');
+    }
+
+    // ─── Audio Tones ───
+    function playAudio(freq, type, dur) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = type;
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.15, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start();
+        o.stop(ctx.currentTime + dur);
+      } catch (_) {}
+    }
+
+    function playSuccessChime() {
+      playAudio(880, 'sine', 0.15);
+      setTimeout(() => playAudio(1174, 'sine', 0.25), 150);
+    }
+
+    function playWarningChime() {
+      playAudio(350, 'sawtooth', 0.2);
+      setTimeout(() => playAudio(280, 'sawtooth', 0.3), 150);
+    }
+
+    // ─── Toast System ───
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-600' : type === 'warning' ? 'bg-amber-600' : type === 'error' ? 'bg-rose-600' : 'bg-slate-800';
+      toast.className = `${bg} text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center space-x-2.5 text-xs font-bold pointer-events-auto transition transform duration-300`;
+      const icon = type === 'success' ? 'fa-circle-check' : type === 'warning' ? 'fa-triangle-exclamation' : 'fa-info-circle';
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // ─── Global Search ───
+    function handleGlobalSearch(e) {
+      const val = e.target.value.toLowerCase().trim();
+      if (!val) return;
+      if (e.key === 'Enter') {
+        navigateTo('participants');
+        document.getElementById('part-search-input').value = val;
+        renderParticipantsTable();
+      }
+    }
+
+    // Keyboard shortcut (Cmd/Ctrl + K)
+    window.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('global-search').focus();
+      }
+    });
+
+    // ─── Window Load Session Check ───
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAdminUsersTable();
+      if (auth) {
+        auth.onAuthStateChanged(user => {
+          if (user) {
+            currentUser = user;
+            loginSuccess(user.email, currentUserRole);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
