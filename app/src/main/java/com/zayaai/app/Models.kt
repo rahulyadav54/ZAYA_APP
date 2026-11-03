@@ -49,6 +49,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object StudyTools : Screen("study_tools", "AI Study Tools", Icons.Rounded.School)
     
     // App Settings
+    object Profile : Screen("profile", "Profile", Icons.Rounded.Person)
+    object EditProfile : Screen("edit_profile", "Edit Profile", Icons.Rounded.Edit)
     object Notifications : Screen("notifications", "Notifications", Icons.Rounded.Notifications)
     object AppLock : Screen("app_lock", "App Lock", Icons.Rounded.Lock)
     object About : Screen("about", "About App", Icons.Rounded.Info)

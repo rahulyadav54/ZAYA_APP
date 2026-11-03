@@ -312,14 +312,15 @@ fun MainScreenContent(
             RedesignBottomTab("Tools", Icons.Rounded.GridView, Screen.StudentTools.route),
             RedesignBottomTab("Voice", Icons.Rounded.Mic, Screen.Voice.route, isCenterButton = true),
             RedesignBottomTab("History", Icons.Rounded.History, Screen.History.route),
-            RedesignBottomTab("Profile", Icons.Rounded.Person, Screen.Settings.route)
+            RedesignBottomTab("Profile", Icons.Rounded.Person, Screen.Profile.route)
         )
     }
 
     val showBottomBar = currentRoute in bottomTabs.map { it.route } ||
             currentRoute == Screen.StudentTools.route ||
             currentRoute == Screen.Voice.route ||
-            currentRoute == Screen.AIChat.route
+            currentRoute == Screen.AIChat.route ||
+            currentRoute == Screen.Profile.route
 
     Box(
         modifier = Modifier
@@ -331,7 +332,10 @@ fun MainScreenContent(
                 val isEventsScreen = currentRoute == Screen.EventsHub.route ||
                         currentRoute == Screen.EventDetail.route ||
                         currentRoute == Screen.MyEvents.route ||
-                        currentRoute == Screen.EventScanner.route
+                        currentRoute == Screen.EventScanner.route ||
+                        currentRoute == Screen.Profile.route ||
+                        currentRoute == Screen.EditProfile.route ||
+                        currentRoute == Screen.Settings.route
                 if (!isEventsScreen) {
                     RedesignTopBar(
                         currentRoute = currentRoute,
@@ -549,6 +553,7 @@ private fun RedesignBottomBar(
                     Screen.StudentTools.route -> currentRoute == Screen.StudentTools.route
                     Screen.Voice.route -> currentRoute == Screen.Voice.route
                     Screen.History.route -> currentRoute == Screen.History.route
+                    Screen.Profile.route -> currentRoute == Screen.Profile.route || currentRoute == Screen.EditProfile.route
                     Screen.Settings.route -> currentRoute == Screen.Settings.route
                     else -> currentRoute == tab.route
                 }

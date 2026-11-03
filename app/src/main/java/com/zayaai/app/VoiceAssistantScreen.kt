@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
     val isSpeaking by viewModel.isSpeaking.collectAsState()
     val voiceState = viewModel.voiceState
     val aiResponse = viewModel.aiResponse
+    val isDark = LocalIsDarkTheme.current
 
     val config = remember(voiceState) { VoiceAnimations.configFor(voiceState) }
 
@@ -86,11 +88,16 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
+                    colors = if (isDark) listOf(
                         Color(0xFF0A0A18),
                         Color(0xFF12082A),
                         Color(0xFF0A0614),
                         Color(0xFF000000)
+                    ) else listOf(
+                        Color(0xFFFAFAFE),
+                        Color(0xFFF3E8FF),
+                        Color(0xFFEDE9FE),
+                        Color(0xFFF8FAFC)
                     )
                 )
             )
@@ -129,7 +136,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                     letterSpacing = 2.5.sp,
                     fontSize = 17.sp
                 ),
-                color = Color.White.copy(alpha = 0.9f)
+                color = if (isDark) Color.White.copy(alpha = 0.9f) else Color(0xFF1E1B4B)
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -139,7 +146,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                 if (viewModel.isTeacherMode) "Interactive Voice Learning • Ask any question"
                 else "Real-Time AI Voice • Speak naturally anytime",
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.5.sp, fontSize = 12.sp),
-                color = Color.White.copy(alpha = 0.55f)
+                color = if (isDark) Color.White.copy(alpha = 0.55f) else Color(0xFF6B7280)
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -158,8 +165,10 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                 label = "status"
             ) { text ->
                 Surface(
-                    color = Color.White.copy(alpha = 0.06f),
-                    shape = RoundedCornerShape(20.dp)
+                    color = if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFFFFFFF),
+                    shape = RoundedCornerShape(20.dp),
+                    border = if (isDark) null else BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shadowElevation = if (isDark) 0.dp else 2.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
@@ -171,10 +180,10 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                                 .size(8.dp)
                                 .background(
                                     when (voiceState) {
-                                        VoiceState.LISTENING -> Color(0xFF00E5FF)
+                                        VoiceState.LISTENING -> if (isDark) Color(0xFF00E5FF) else Color(0xFF2563EB)
                                         VoiceState.PROCESSING -> Color(0xFFAD1DEB)
-                                        VoiceState.SPEAKING -> Color(0xFF00E676)
-                                        VoiceState.IDLE -> Color.White.copy(alpha = 0.3f)
+                                        VoiceState.SPEAKING -> if (isDark) Color(0xFF00E676) else Color(0xFF10B981)
+                                        VoiceState.IDLE -> if (isDark) Color.White.copy(alpha = 0.3f) else Color(0xFF94A3B8)
                                     },
                                     CircleShape
                                 )
@@ -186,7 +195,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                                 fontWeight = FontWeight.Medium,
                                 letterSpacing = 1.sp
                             ),
-                            color = Color.White.copy(alpha = 0.7f)
+                            color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF1E293B)
                         )
                     }
                 }
@@ -301,7 +310,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                         Text(
                             text = partialText,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light),
-                            color = Color(0xFF00E5FF).copy(alpha = 0.8f),
+                            color = if (isDark) Color(0xFF00E5FF).copy(alpha = 0.8f) else Color(0xFF7C3AED),
                             textAlign = TextAlign.Center,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -326,7 +335,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                                 fontWeight = FontWeight.Normal,
                                 letterSpacing = 0.5.sp
                             ),
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF334155),
                             textAlign = TextAlign.Center,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -348,10 +357,10 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                             modifier = Modifier
                                 .fillMaxWidth(0.85f)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.04f))
+                                .background(if (isDark) Color.White.copy(alpha = 0.04f) else Color(0xFFFFFFFF))
                                 .border(
                                     1.dp,
-                                    Color.White.copy(alpha = 0.06f),
+                                    if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFE2E8F0),
                                     RoundedCornerShape(16.dp)
                                 )
                                 .padding(16.dp)
@@ -359,7 +368,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                             Text(
                                 text = aiResponse,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.65f),
+                                color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF0F172A),
                                 maxLines = 4,
                                 overflow = TextOverflow.Ellipsis,
                                 lineHeight = 22.sp
@@ -424,6 +433,7 @@ private fun BottomControlButton(
     isActive: Boolean = false,
     onClick: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -433,10 +443,16 @@ private fun BottomControlButton(
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(42.dp)
                 .background(
-                    if (isActive) Color(0xFF00E5FF).copy(alpha = 0.12f)
-                    else Color.White.copy(alpha = 0.05f),
+                    if (isActive) (if (isDark) Color(0xFF00E5FF).copy(alpha = 0.15f) else PrimaryPurple.copy(alpha = 0.15f))
+                    else if (isDark) Color.White.copy(alpha = 0.05f) else Color(0xFFFFFFFF),
+                    CircleShape
+                )
+                .border(
+                    1.dp,
+                    if (isActive) (if (isDark) Color(0xFF00E5FF).copy(alpha = 0.4f) else PrimaryPurple.copy(alpha = 0.4f))
+                    else if (isDark) Color.Transparent else Color(0xFFE2E8F0),
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -444,8 +460,9 @@ private fun BottomControlButton(
             Icon(
                 icon,
                 contentDescription = label,
-                tint = if (isActive) Color(0xFF00E5FF)
-                else Color.White.copy(alpha = if (enabled) 0.4f else 0.15f),
+                tint = if (isActive) (if (isDark) Color(0xFF00E5FF) else PrimaryPurple)
+                else if (isDark) Color.White.copy(alpha = if (enabled) 0.5f else 0.2f)
+                else if (enabled) Color(0xFF475569) else Color(0xFF94A3B8),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -453,9 +470,11 @@ private fun BottomControlButton(
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (isActive) Color(0xFF00E5FF).copy(alpha = 0.8f)
-            else Color.White.copy(alpha = if (enabled) 0.35f else 0.15f),
-            fontSize = 10.sp
+            color = if (isActive) (if (isDark) Color(0xFF00E5FF).copy(alpha = 0.9f) else PrimaryPurple)
+            else if (isDark) Color.White.copy(alpha = if (enabled) 0.5f else 0.2f)
+            else if (enabled) Color(0xFF475569) else Color(0xFF94A3B8),
+            fontSize = 10.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
         )
     }
 }

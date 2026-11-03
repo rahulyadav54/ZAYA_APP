@@ -9,6 +9,12 @@ data class User(
     val uid: String = "",
     val email: String = "",
     val name: String = "",
+    val photoUrl: String? = null,
+    val phone: String = "",
+    val college: String = "",
+    val department: String = "",
+    val yearOfStudy: String = "",
+    val bio: String = "",
     val role: String = "user",
     val password: String = "", // For Firestore-only users (hash in production!)
     val createdAt: Long = System.currentTimeMillis()
@@ -16,6 +22,35 @@ data class User(
 
 class UserRepository {
     private val db: FirebaseFirestore = Firebase.firestore
+
+    suspend fun updateUserProfile(
+        uid: String,
+        name: String,
+        photoUrl: String?,
+        phone: String = "",
+        college: String = "",
+        department: String = "",
+        yearOfStudy: String = "",
+        bio: String = ""
+    ): Result<Unit> {
+        return try {
+            val updates = mutableMapOf<String, Any?>(
+                "name" to name,
+                "phone" to phone,
+                "college" to college,
+                "department" to department,
+                "yearOfStudy" to yearOfStudy,
+                "bio" to bio
+            )
+            if (photoUrl != null) {
+                updates["photoUrl"] = photoUrl
+            }
+            db.collection("users").document(uid).set(updates, com.google.firebase.firestore.SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     suspend fun saveUserToFirestore(user: User): Result<Unit> {
         return try {

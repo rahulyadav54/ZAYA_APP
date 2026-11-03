@@ -51,6 +51,23 @@ fun NavigationGraph(
                 }
             )
         }
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                onProfileUpdate = onProfileUpdate,
+                paddingValues = paddingValues
+            )
+        }
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                onProfileUpdate = onProfileUpdate,
+                paddingValues = paddingValues
+            )
+        }
+
         composable(Screen.Settings.route) {
             SettingsScreen(
                 userName = userName,
@@ -58,7 +75,8 @@ fun NavigationGraph(
                 securityViewModel = securityViewModel,
                 onLogout = { authViewModel.signOut() },
                 onProfileUpdate = onProfileUpdate,
-                paddingValues = paddingValues
+                paddingValues = paddingValues,
+                navController = navController
             )
         }
 

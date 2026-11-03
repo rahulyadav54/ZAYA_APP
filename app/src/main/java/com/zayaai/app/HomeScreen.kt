@@ -1,5 +1,8 @@
 package com.zayaai.app
 
+import androidx.compose.runtime.DisposableEffect
+import java.util.Calendar
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,6 +51,27 @@ data class RedesignToolItem(
     val brush: Brush = Brush.linearGradient(gradientColors)
 )
 
+
+fun getTimeBasedGreeting(name: String): Pair<String, String> {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val cleanName = if (name.isBlank() || name.equals("User", ignoreCase = true) || name.equals("Rahul", ignoreCase = true)) {
+        val fb = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        fb?.displayName?.takeIf { it.isNotBlank() }
+            ?: fb?.email?.substringBefore("@")?.replaceFirstChar { it.uppercaseChar() }
+            ?: "Explorer"
+    } else {
+        name
+    }
+    val firstName = cleanName.trim().split(" ").firstOrNull()?.replaceFirstChar { it.uppercaseChar() } ?: "Explorer"
+
+    return when (hour) {
+        in 5..11 -> Pair("Good Morning, $firstName! ☀️", "Ready to explore something new today?")
+        in 12..16 -> Pair("Good Afternoon, $firstName! 🌤️", "What would you like to accomplish today?")
+        in 17..20 -> Pair("Good Evening, $firstName! 🌆", "Let's review your progress and explore new ideas.")
+        else -> Pair("Good Night, $firstName! 🌙", "Wrapping up the day? Feel free to explore anytime.")
+    }
+}
+
 @Composable
 fun HomeScreen(
     userName: String,
@@ -56,9 +80,32 @@ fun HomeScreen(
 ) {
     val isDark = LocalIsDarkTheme.current
 
-    // Clean display name (defaults to "Rahul" if none provided to match mockup)
+    // Clean display name (never hardcode dummy name)
     val displayName = remember(userName) {
-        if (userName.isBlank() || userName.equals("User", ignoreCase = true)) "Rahul" else userName
+        if (userName.isBlank() || userName.equals("User", ignoreCase = true) || userName.equals("Rahul", ignoreCase = true)) {
+            val fb = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+            fb?.displayName?.takeIf { it.isNotBlank() }
+                ?: fb?.email?.substringBefore("@")?.replaceFirstChar { it.uppercaseChar() }
+                ?: "Explorer"
+        } else {
+            userName
+        }
+    }
+
+    // Dynamic Time-Based Greeting with Lifecycle Resume auto-refresh
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var greetingState by remember { mutableStateOf(getTimeBasedGreeting(displayName)) }
+
+    DisposableEffect(lifecycleOwner, displayName) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                greetingState = getTimeBasedGreeting(displayName)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Selected Category Filter Pill
@@ -120,7 +167,7 @@ fun HomeScreen(
         item(key = "home_header") {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Hello, $displayName 👋",
+                text = greetingState.first,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 24.sp
@@ -129,10 +176,10 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Explore powerful AI tools to study, create, code, write and be more productive.",
+                text = greetingState.second,
                 style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 12.5.sp,
-                    lineHeight = 17.sp
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

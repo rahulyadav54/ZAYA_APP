@@ -80,6 +80,7 @@ fun DrawerContent(
 
         // App Settings
         SectionTitle("General")
+        MenuItem(Screen.Profile, currentRoute == Screen.Profile.route) { onItemSelected(Screen.Profile) }
         MenuItem(Screen.Settings, currentRoute == Screen.Settings.route) { onItemSelected(Screen.Settings) }
         MenuItem(Screen.About, currentRoute == Screen.About.route) { onItemSelected(Screen.About) }
 
