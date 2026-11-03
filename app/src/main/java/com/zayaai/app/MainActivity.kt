@@ -345,7 +345,9 @@ fun MainScreenContent(
                             }
                         },
                         onNotificationClick = {
-                            navController.navigate(Screen.History.route)
+                            navController.navigate(Screen.Notifications.route) {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }
@@ -489,16 +491,25 @@ private fun RedesignTopBar(
             }
         }
 
-        // Right Icon: Notification Bell
-        IconButton(
-            onClick = onNotificationClick,
-            modifier = Modifier.size(38.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.NotificationsNone,
-                contentDescription = "Notifications",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(24.dp)
+        // Right Icon: Notification Bell with Live Indicator Badge
+        Box(contentAlignment = Alignment.TopEnd) {
+            IconButton(
+                onClick = onNotificationClick,
+                modifier = Modifier.size(38.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.NotificationsNone,
+                    contentDescription = "Notifications",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .padding(top = 5.dp, end = 5.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF7C3AED))
             )
         }
     }

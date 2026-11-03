@@ -230,10 +230,35 @@ fun EventsHubScreen(
     }
 
     
+    var liveAnnouncementsList by remember { mutableStateOf<List<EventAnnouncement>>(emptyList()) }
+    var isLoadingAnnouncements by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showNotificationDialog) {
+        if (showNotificationDialog) {
+            isLoadingAnnouncements = true
+            try {
+                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    .collection("announcements")
+                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(10)
+                    .get()
+                    .addOnSuccessListener { snap ->
+                        liveAnnouncementsList = snap.documents.mapNotNull { it.toObject(EventAnnouncement::class.java) }
+                        isLoadingAnnouncements = false
+                    }
+                    .addOnFailureListener {
+                        isLoadingAnnouncements = false
+                    }
+            } catch (_: Exception) {
+                isLoadingAnnouncements = false
+            }
+        }
+    }
+
     if (showNotificationDialog) {
         Dialog(onDismissRequest = { showNotificationDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = if (isDark) Color(0xFF141629) else Color.White,
                 border = BorderStroke(1.dp, if (isDark) Color(0xFF282B48) else Color(0xFFE2E8F0)),
                 modifier = Modifier.fillMaxWidth().padding(16.dp)
@@ -245,29 +270,96 @@ fun EventsHubScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Campaign, contentDescription = null, tint = Color(0xFF7C3AED))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Announcements", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF7C3AED).copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Rounded.Campaign, contentDescription = null, tint = Color(0xFF7C3AED), modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("Live Announcements", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
+                                Text("Real-time alerts from organizers", fontSize = 11.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                            }
                         }
                         IconButton(onClick = { showNotificationDialog = false }, modifier = Modifier.size(28.dp)) {
                             Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.Gray)
                         }
                     }
+
                     Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = "Official updates, deadline reminders, and schedule changes from organizers will appear here in real-time.",
-                        fontSize = 13.sp,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                        lineHeight = 18.sp
-                    )
+
+                    if (isLoadingAnnouncements) {
+                        Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color(0xFF7C3AED), modifier = Modifier.size(28.dp))
+                        }
+                    } else if (liveAnnouncementsList.isEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDark) Color(0xFF191C36) else Color(0xFFF8FAFC),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = Color(0xFF7C3AED), modifier = Modifier.size(28.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("No New Announcements", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (isDark) Color.White else Color(0xFF1E293B))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Broadcasts, schedule updates, and deadline reminders published from the admin portal will appear here in real-time.",
+                                    fontSize = 11.5.sp,
+                                    color = Color(0xFF94A3B8),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(liveAnnouncementsList) { ann ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isDark) Color(0xFF191C36) else Color(0xFFF8FAFC),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4C) else Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(ann.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
+                                            if (ann.priority == "High") {
+                                                Box(
+                                                    modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(Color(0xFFEF4444).copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text("URGENT", color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.ExtraBold)
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(ann.message, fontSize = 12.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569), lineHeight = 16.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
                         onClick = { showNotificationDialog = false },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Got it")
+                        Text("Dismiss", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }

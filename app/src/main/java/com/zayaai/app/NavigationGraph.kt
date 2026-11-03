@@ -62,6 +62,13 @@ fun NavigationGraph(
             )
         }
 
+        composable(Screen.Notifications.route) {
+            NotificationsScreen(
+                navController = navController,
+                innerPadding = paddingValues
+            )
+        }
+
         // Main Tools
         composable(Screen.AIChat.route) {
             ChatScreen(viewModel = chatViewModel, paddingValues = paddingValues)
