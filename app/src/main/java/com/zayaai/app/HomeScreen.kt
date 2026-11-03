@@ -2,6 +2,19 @@ package com.zayaai.app
 
 import androidx.compose.runtime.DisposableEffect
 import java.util.Calendar
+import android.provider.Settings
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -185,10 +198,13 @@ fun HomeScreen(
             )
         }
 
-        // ─── 2. AI Chat Hero Card ───
-        item(key = "home_hero_card") {
-            AIChatHeroCard(
-                onCardClick = {
+        // ─── 2. Animated Auto-Sliding Promotional Hero Carousel ───
+        item(key = "home_hero_carousel") {
+            HomeHeroCarousel(
+                onEventsHubClick = {
+                    onToolClick(Tool("Events Hub", "Explore hackathons and tech events", Icons.Rounded.Event, PrimaryPurple))
+                },
+                onAIChatClick = {
                     onToolClick(Tool("AI Chat", "Advanced conversational AI", Icons.AutoMirrored.Rounded.Chat, PrimaryPurple))
                 }
             )
@@ -324,23 +340,278 @@ fun HomeScreen(
     }
 }
 
-// ─── AI Chat Hero Card (Featured Banner with 3D Robot Assistant) ───
+// ─── Animated Auto-Sliding Promotional Hero Carousel ───
 @Composable
-private fun AIChatHeroCard(onCardClick: () -> Unit) {
+private fun HomeHeroCarousel(
+    onEventsHubClick: () -> Unit,
+    onAIChatClick: () -> Unit
+) {
+    val context = LocalContext.current
     val isDark = LocalIsDarkTheme.current
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
+    val scope = rememberCoroutineScope()
 
+    // Respect Android accessibility and reduced-motion preferences
+    val isReducedMotion = remember(context) {
+        try {
+            val animDuration = Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f
+            )
+            val transDuration = Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.TRANSITION_ANIMATION_SCALE,
+                1f
+            )
+            animDuration == 0f || transDuration == 0f
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    // Lifecycle observer to prevent leaks and pause autoplay when app is paused/backgrounded
+    var isAppResumed by remember { mutableStateOf(true) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isAppResumed = true
+            } else if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                isAppResumed = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Autoplay Timer (4.5 seconds): auto-pauses when user drags, when reduced motion is preferred, or when app is in background
+    LaunchedEffect(isDragged, isAppResumed, isReducedMotion) {
+        if (!isReducedMotion && isAppResumed && !isDragged) {
+            while (true) {
+                kotlinx.coroutines.delay(4500)
+                val nextPage = (pagerState.currentPage + 1) % 2
+                pagerState.animateScrollToPage(
+                    page = nextPage,
+                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                )
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(148.dp)
+        ) { page ->
+            if (page == 0) {
+                EventsHubBannerSlide(
+                    isDark = isDark,
+                    onSlideClick = onEventsHubClick
+                )
+            } else {
+                AIChatBannerSlide(
+                    isDark = isDark,
+                    onSlideClick = onAIChatClick
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Animated Pagination Indicators with Tap-to-jump support
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(2) { index ->
+                val isSelected = pagerState.currentPage == index
+                val width by animateDpAsState(
+                    targetValue = if (isSelected) 22.dp else 7.dp,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "indicator_width"
+                )
+                val indicatorColor by animateColorAsState(
+                    targetValue = if (isSelected) PrimaryPurple else if (isDark) Color(0xFF333652) else Color(0xFFCBD5E1),
+                    animationSpec = tween(durationMillis = 300),
+                    label = "indicator_color"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .height(6.dp)
+                        .width(width)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(indicatorColor)
+                        .clickable {
+                            scope.launch {
+                                if (isReducedMotion) {
+                                    pagerState.scrollToPage(index)
+                                } else {
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            }
+                        }
+                )
+            }
+        }
+    }
+}
+
+// ─── Slide 1: Events Hub Banner ───
+@Composable
+private fun EventsHubBannerSlide(
+    isDark: Boolean,
+    onSlideClick: () -> Unit
+) {
     Surface(
         shape = RoundedCornerShape(22.dp),
         color = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
+            .fillMaxHeight()
             .shadow(
                 elevation = if (isDark) 0.dp else 4.dp,
                 shape = RoundedCornerShape(22.dp)
             )
             .clip(RoundedCornerShape(22.dp))
-            .clickable(onClick = onCardClick)
+            .clickable(onClick = onSlideClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    if (isDark) {
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF1E113C),
+                                Color(0xFF16143A),
+                                Color(0xFF0F172A)
+                            )
+                        )
+                    } else {
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF4F46E5),
+                                Color(0xFF7C3AED),
+                                Color(0xFF9333EA)
+                            )
+                        )
+                    }
+                )
+                .then(
+                    if (isDark) {
+                        Modifier.border(
+                            1.dp,
+                            Color(0xFF38BDF8).copy(alpha = 0.25f),
+                            RoundedCornerShape(22.dp)
+                        )
+                    } else Modifier
+                )
+                .padding(horizontal = 18.dp, vertical = 14.dp)
+        ) {
+            // Left Content: Heading, Subtitle & CTA Button
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.68f),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Discover. Participate. Innovate.",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.5.sp,
+                            letterSpacing = (-0.2).sp
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = "Explore upcoming hackathons, tech events, workshops and competitions.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.5.sp,
+                            lineHeight = 15.sp
+                        ),
+                        color = Color.White.copy(alpha = 0.88f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // CTA Button: Explore Events →
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = if (isDark) Color(0xFF38BDF8).copy(alpha = 0.15f) else Color.White,
+                    border = if (isDark) BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)) else null,
+                    modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text(
+                            text = "Explore Events",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            ),
+                            color = if (isDark) Color(0xFF38BDF8) else Color(0xFF4F46E5)
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                            contentDescription = null,
+                            tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF4F46E5),
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
+            }
+
+            // Right Graphic: 3D Holographic Events / Trophy Graphic
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(100.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                FuturisticEventsGraphic()
+            }
+        }
+    }
+}
+
+// ─── Slide 2: AI Chat Banner ───
+@Composable
+private fun AIChatBannerSlide(
+    isDark: Boolean,
+    onSlideClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = Color.Transparent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .shadow(
+                elevation = if (isDark) 0.dp else 4.dp,
+                shape = RoundedCornerShape(22.dp)
+            )
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(onClick = onSlideClick)
     ) {
         Box(
             modifier = Modifier
@@ -364,65 +635,212 @@ private fun AIChatHeroCard(onCardClick: () -> Unit) {
                         )
                     }
                 )
-                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .then(
+                    if (isDark) {
+                        Modifier.border(
+                            1.dp,
+                            Color(0xFF8B5CF6).copy(alpha = 0.25f),
+                            RoundedCornerShape(22.dp)
+                        )
+                    } else Modifier
+                )
+                .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
-            // Left Content: Title, Subtitle, Action Button
+            // Left Content: Heading, Subtitle & CTA Button
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.65f),
+                    .fillMaxWidth(0.68f),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
                     Text(
-                        text = "AI Chat",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        text = "Your AI. Your Possibilities.",
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
+                            fontSize = 17.sp,
+                            letterSpacing = (-0.2).sp
                         ),
-                        color = Color.White
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = "Chat with AI ZAYA\nfor anything",
+                        text = "Chat, code, create, write and explore with AI ZAYA.",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
+                            fontSize = 11.5.sp,
+                            lineHeight = 15.sp
                         ),
-                        color = Color.White.copy(alpha = 0.85f)
+                        color = Color.White.copy(alpha = 0.88f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                // Circle Arrow Button
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .background(
-                            if (isDark) Color(0xFF7C3AED) else Color.White,
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                // CTA Button: Start Chatting →
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = if (isDark) Color(0xFF8B5CF6).copy(alpha = 0.20f) else Color.White,
+                    border = if (isDark) BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.5f)) else null,
+                    modifier = Modifier.clip(RoundedCornerShape(50.dp))
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                        contentDescription = "Open AI Chat",
-                        tint = if (isDark) Color.White else PrimaryPurple,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text(
+                            text = "Start Chatting",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            ),
+                            color = if (isDark) Color.White else PrimaryPurple
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                            contentDescription = null,
+                            tint = if (isDark) Color.White else PrimaryPurple,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
                 }
             }
 
-            // Right Graphic: Sleek Futuristic 3D Assistant Robot Character with Cached Drawing
+            // Right Graphic: Sleek Futuristic 3D Assistant Robot Character
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .size(105.dp),
+                    .size(100.dp),
                 contentAlignment = Alignment.Center
             ) {
                 FuturisticRobotGraphic()
             }
         }
     }
+}
+
+// ─── Procedural Vector Graphic: Futuristic Events & Hackathon Trophy ───
+@Composable
+private fun FuturisticEventsGraphic() {
+    Spacer(
+        modifier = Modifier
+            .size(100.dp)
+            .drawWithCache {
+                val w = size.width
+                val h = size.height
+
+                val auraBrush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF38BDF8).copy(alpha = 0.40f), Color(0xFF7C3AED).copy(alpha = 0.15f), Color.Transparent),
+                    center = Offset(w * 0.5f, h * 0.5f),
+                    radius = w * 0.52f
+                )
+                val trophyBrush = Brush.verticalGradient(
+                    listOf(Color(0xFFFDE047), Color(0xFFF59E0B), Color(0xFFD97706))
+                )
+                val platformBrush = Brush.verticalGradient(
+                    listOf(Color(0xFF38BDF8), Color(0xFF1E293B))
+                )
+                val cyberCyan = Color(0xFF38BDF8)
+                val cyberPurple = Color(0xFFA855F7)
+
+                onDrawBehind {
+                    // 1. Holographic Aura Glow
+                    drawCircle(brush = auraBrush, center = Offset(w * 0.5f, h * 0.5f), radius = w * 0.5f)
+
+                    // 2. Holographic Elliptical Platform Base
+                    drawOval(
+                        brush = platformBrush,
+                        topLeft = Offset(w * 0.18f, h * 0.72f),
+                        size = Size(w * 0.64f, h * 0.22f)
+                    )
+                    drawOval(
+                        color = cyberCyan.copy(alpha = 0.8f),
+                        topLeft = Offset(w * 0.18f, h * 0.72f),
+                        size = Size(w * 0.64f, h * 0.22f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
+                    )
+
+                    // 3. Cyber Light Beam Upward
+                    drawOval(
+                        color = cyberCyan.copy(alpha = 0.2f),
+                        topLeft = Offset(w * 0.28f, h * 0.68f),
+                        size = Size(w * 0.44f, h * 0.15f)
+                    )
+
+                    // 4. Tech Trophy Base
+                    drawRoundRect(
+                        brush = trophyBrush,
+                        topLeft = Offset(w * 0.44f, h * 0.58f),
+                        size = Size(w * 0.12f, h * 0.16f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.04f, h * 0.04f)
+                    )
+
+                    // Trophy Cup Body
+                    val cupPath = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(w * 0.32f, h * 0.28f)
+                        lineTo(w * 0.68f, h * 0.28f)
+                        lineTo(w * 0.60f, h * 0.58f)
+                        lineTo(w * 0.40f, h * 0.58f)
+                        close()
+                    }
+                    drawPath(path = cupPath, brush = trophyBrush)
+
+                    // Trophy Handles
+                    drawArc(
+                        color = Color(0xFFF59E0B),
+                        startAngle = 120f,
+                        sweepAngle = 180f,
+                        useCenter = false,
+                        topLeft = Offset(w * 0.22f, h * 0.32f),
+                        size = Size(w * 0.18f, h * 0.20f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5.dp.toPx())
+                    )
+                    drawArc(
+                        color = Color(0xFFF59E0B),
+                        startAngle = -60f,
+                        sweepAngle = 180f,
+                        useCenter = false,
+                        topLeft = Offset(w * 0.60f, h * 0.32f),
+                        size = Size(w * 0.18f, h * 0.20f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5.dp.toPx())
+                    )
+
+                    // 5. Floating Glowing Star Emblem on the Trophy
+                    drawCircle(
+                        color = Color.White,
+                        radius = w * 0.05f,
+                        center = Offset(w * 0.5f, h * 0.42f)
+                    )
+                    drawCircle(
+                        color = cyberCyan,
+                        radius = w * 0.03f,
+                        center = Offset(w * 0.5f, h * 0.42f)
+                    )
+
+                    // 6. Holographic Orbit Rings
+                    drawArc(
+                        color = cyberCyan.copy(alpha = 0.6f),
+                        startAngle = -30f,
+                        sweepAngle = 140f,
+                        useCenter = false,
+                        topLeft = Offset(w * 0.12f, h * 0.22f),
+                        size = Size(w * 0.76f, h * 0.40f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = 1.5.dp.toPx(),
+                            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                        )
+                    )
+
+                    // 7. Floating Tech Sparks / Energy Dots
+                    drawCircle(color = Color(0xFFFDE047), radius = 2.5.dp.toPx(), center = Offset(w * 0.26f, h * 0.24f))
+                    drawCircle(color = cyberCyan, radius = 2.5.dp.toPx(), center = Offset(w * 0.76f, h * 0.22f))
+                    drawCircle(color = cyberPurple, radius = 2.dp.toPx(), center = Offset(w * 0.34f, h * 0.64f))
+                    drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(w * 0.68f, h * 0.62f))
+                }
+            }
+    )
 }
 
 /**
