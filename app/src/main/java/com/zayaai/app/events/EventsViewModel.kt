@@ -124,13 +124,17 @@ class EventsViewModel(application: Application) : AndroidViewModel(application) 
         isTeam: Boolean,
         teamName: String?,
         teamCode: String?,
+        userName: String,
+        userEmail: String,
+        userPhone: String,
         college: String,
         department: String,
         yearOfStudy: String,
         skills: String,
         githubUrl: String,
         linkedinUrl: String,
-        customAnswers: Map<String, String>,
+        teamMembersDetails: List<TeamMemberInfo> = emptyList(),
+        customAnswers: Map<String, String> = emptyMap(),
         onSuccess: (EventRegistration) -> Unit
     ) {
         viewModelScope.launch {
@@ -140,12 +144,16 @@ class EventsViewModel(application: Application) : AndroidViewModel(application) 
                 isTeam = isTeam,
                 teamName = teamName,
                 teamCode = teamCode,
+                userName = userName,
+                userEmail = userEmail,
+                userPhone = userPhone,
                 college = college,
                 department = department,
                 yearOfStudy = yearOfStudy,
                 skills = skills,
                 githubUrl = githubUrl,
                 linkedinUrl = linkedinUrl,
+                teamMembersDetails = teamMembersDetails,
                 customAnswers = customAnswers
             )
             isRegistering = false

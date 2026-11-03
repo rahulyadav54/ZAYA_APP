@@ -101,17 +101,22 @@ class EventsRepository(private val context: Context) {
         isTeam: Boolean,
         teamName: String?,
         teamCode: String?,
+        userName: String,
+        userEmail: String,
+        userPhone: String,
         college: String,
         department: String,
         yearOfStudy: String,
         skills: String,
         githubUrl: String,
         linkedinUrl: String,
-        customAnswers: Map<String, String>
+        teamMembersDetails: List<TeamMemberInfo> = emptyList(),
+        customAnswers: Map<String, String> = emptyMap()
     ): Result<EventRegistration> = withContext(Dispatchers.IO) {
         val userId = getCurrentUserId()
-        val userName = getCurrentUserName()
-        val userEmail = getCurrentUserEmail()
+        val resolvedUserName = userName.trim().ifBlank { getCurrentUserName() }
+        val resolvedUserEmail = userEmail.trim().ifBlank { getCurrentUserEmail() }
+        val resolvedUserPhone = userPhone.trim().ifBlank { auth.currentUser?.phoneNumber ?: "" }
 
         // 1. Deadline validation
         if (event.registrationDeadline > 0 && System.currentTimeMillis() > event.registrationDeadline) {
@@ -160,14 +165,20 @@ class EventsRepository(private val context: Context) {
             teamCode?.ifBlank { null } ?: "TEAM-${UUID.randomUUID().toString().take(6).uppercase()}"
         } else null
 
+        val memberNames = if (isTeam) {
+            val names = mutableListOf(resolvedUserName)
+            names.addAll(teamMembersDetails.map { it.name.trim() }.filter { it.isNotBlank() })
+            names
+        } else emptyList()
+
         val registration = EventRegistration(
             registrationId = regId,
             eventId = event.id,
             eventTitle = event.title,
             userId = userId,
-            userName = userName,
-            userEmail = userEmail,
-            userPhone = auth.currentUser?.phoneNumber ?: "",
+            userName = resolvedUserName,
+            userEmail = resolvedUserEmail,
+            userPhone = resolvedUserPhone,
             college = college.trim(),
             department = department.trim(),
             yearOfStudy = yearOfStudy.trim(),
@@ -175,10 +186,11 @@ class EventsRepository(private val context: Context) {
             githubUrl = githubUrl.trim(),
             linkedinUrl = linkedinUrl.trim(),
             isTeam = isTeam,
-            teamName = if (isTeam) (teamName?.trim()?.ifBlank { "Team $userName" } ?: "Team $userName") else null,
+            teamName = if (isTeam) (teamName?.trim()?.ifBlank { "Team $resolvedUserName" } ?: "Team $resolvedUserName") else null,
             teamCode = effectiveTeamCode,
             isTeamLeader = isTeam && teamCode.isNullOrBlank(),
-            teamMembers = if (isTeam) listOf(userName) else emptyList(),
+            teamMembers = memberNames,
+            teamMembersDetails = teamMembersDetails,
             answers = customAnswers,
             status = "Approved",
             ticketId = ticketId,
@@ -203,11 +215,18 @@ class EventsRepository(private val context: Context) {
         localRegistrations.removeAll { it.eventId == event.id && it.userId == userId }
         localRegistrations.add(registration)
 
+        EventsNotificationHelper.showNotification(
+            context = context,
+            notificationId = regId.hashCode(),
+            title = "Registration Confirmed! 🎟️",
+            message = "You have registered for ${event.title}. Your QR pass is available in My Tickets."
+        )
+
         Result.success(registration)
     }
 
     /**
-     * Get real registrations for current user.
+     * Get real registrations for current user with real-time updates and notifications.
      */
     fun getUserRegistrationsFlow(): Flow<List<EventRegistration>> = callbackFlow {
         val userId = getCurrentUserId()
@@ -223,6 +242,19 @@ class EventsRepository(private val context: Context) {
 
                 val remote = snapshot.documents.mapNotNull { it.toObject(EventRegistration::class.java) }
                 if (remote.isNotEmpty()) {
+                    // Check for real-time check-in status changes
+                    remote.forEach { newReg ->
+                        val wasNotAttended = localRegistrations.any { it.registrationId == newReg.registrationId && !it.attended }
+                        if (newReg.attended && wasNotAttended) {
+                            EventsNotificationHelper.showNotification(
+                                context = context,
+                                notificationId = (newReg.registrationId + "_checkin").hashCode(),
+                                title = "Check-in Verified! ✅",
+                                message = "Welcome to ${newReg.eventTitle}! Your ticket has been verified by the organizer."
+                            )
+                        }
+                    }
+
                     localRegistrations.clear()
                     localRegistrations.addAll(remote)
                     trySend(remote)

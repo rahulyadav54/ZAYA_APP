@@ -65,6 +65,15 @@ data class EventItem(
 )
 
 @Keep
+data class TeamMemberInfo(
+    val name: String = "",
+    val email: String = "",
+    val phone: String = "",
+    val department: String = "",
+    val yearOfStudy: String = ""
+)
+
+@Keep
 data class EventRegistration(
     val registrationId: String = "",
     val eventId: String = "",
@@ -84,6 +93,7 @@ data class EventRegistration(
     val teamCode: String? = null,
     val isTeamLeader: Boolean = false,
     val teamMembers: List<String> = emptyList(),
+    val teamMembersDetails: List<TeamMemberInfo> = emptyList(),
     val answers: Map<String, String> = emptyMap(),
     val status: String = "Approved", // "Approved", "Pending", "Waitlisted", "Cancelled", "Attended"
     val ticketId: String = "",

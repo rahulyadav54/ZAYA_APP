@@ -1598,24 +1598,37 @@
 
       filtered.forEach(r => {
         const ticketId = r.ticketId || r.registrationId || 'TICKET';
+        const phone = r.userPhone || r.phone || '';
+        const deptYear = (r.department ? r.department : '') + (r.yearOfStudy ? ` • ${r.yearOfStudy}` : '');
+        const teamInfo = r.isTeam 
+          ? `<div class="space-y-0.5">
+               <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-100 block truncate max-w-[150px]">Team: ${r.teamName || 'Team'}</span>
+               <span class="text-[10px] text-slate-400 block">${(r.teamMembers && r.teamMembers.length > 0) ? r.teamMembers.length + ' members' : 'Team Entry'}</span>
+             </div>`
+          : '<span class="text-slate-400">Solo</span>';
+
         tbody.innerHTML += `
-          <tr class="hover:bg-slate-50 transition">
+          <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="viewParticipantDetails('${r.registrationId || r.ticketId}')">
             <td class="py-3.5 px-4 font-mono font-bold text-brand-700">${ticketId}</td>
             <td class="py-3.5 px-4">
               <span class="font-bold text-slate-900 block">${r.participantName || r.userName || 'Attendee'}</span>
-              <span class="text-[11px] text-slate-400">${r.userEmail || ''}</span>
+              <span class="text-[11px] text-slate-500 block"><i class="fa-solid fa-envelope text-slate-400 mr-1 text-[9px]"></i>${r.userEmail || ''}</span>
+              ${phone ? `<span class="text-[11px] text-emerald-600 font-semibold block"><i class="fa-solid fa-phone text-emerald-500 mr-1 text-[9px]"></i>${phone}</span>` : ''}
             </td>
             <td class="py-3.5 px-4 font-medium text-slate-700">${r.eventTitle || 'AI ZAYA Event'}</td>
-            <td class="py-3.5 px-4 text-slate-500">${r.college || 'Individual'}</td>
             <td class="py-3.5 px-4">
-              ${r.isTeam ? `<span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">Team: ${r.teamName || 'Team'}</span>` : '<span class="text-slate-400">Solo</span>'}
+              <span class="text-slate-700 font-medium block">${r.college || 'Individual'}</span>
+              ${deptYear ? `<span class="text-[11px] text-slate-400 block">${deptYear}</span>` : ''}
+            </td>
+            <td class="py-3.5 px-4">
+              ${teamInfo}
             </td>
             <td class="py-3.5 px-4">
               <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${r.attended ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                 ${r.attended ? '<i class="fa-solid fa-check mr-1"></i>Checked In' : 'Pending'}
               </span>
             </td>
-            <td class="py-3.5 px-4 text-right space-x-1.5">
+            <td class="py-3.5 px-4 text-right space-x-1.5" onclick="event.stopPropagation()">
               ${!r.attended ? `
                 <button onclick="toggleAttendance('${r.registrationId || r.ticketId}')" class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl shadow-sm transition">Check In</button>
               ` : `
@@ -1623,6 +1636,9 @@
                   <i class="fa-solid fa-stamp mr-1"></i>Issue Cert
                 </button>
               `}
+              <button onclick="viewParticipantDetails('${r.registrationId || r.ticketId}')" class="text-xs font-bold text-slate-600 hover:text-brand-600 px-2 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 transition" title="View Full Details">
+                <i class="fa-solid fa-eye"></i>
+              </button>
             </td>
           </tr>
         `;
@@ -1641,7 +1657,15 @@
             attended: reg.attended,
             attendedAt: reg.attendedAt
           });
-        } catch (_) {}
+          if (reg.userId) {
+            await db.collection("users").doc(reg.userId).collection("event_registrations").doc(reg.registrationId).update({
+              attended: reg.attended,
+              attendedAt: reg.attendedAt
+            });
+          }
+        } catch (e) {
+          console.warn("Sync error:", e);
+        }
       }
 
       playSuccessChime();
@@ -2235,7 +2259,15 @@
             attended: true,
             attendedAt: match.attendedAt
           });
-        } catch (_) {}
+          if (match.userId) {
+            await db.collection("users").doc(match.userId).collection("event_registrations").doc(match.registrationId).update({
+              attended: true,
+              attendedAt: match.attendedAt
+            });
+          }
+        } catch (e) {
+          console.warn("QR Sync error:", e);
+        }
       }
 
       playSuccessChime();
@@ -2356,5 +2388,13 @@
       }
     });
   </script>
+
+  <!-- Participant Dossier Modal -->
+  <div id="part-details-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl p-6 sm:p-7 space-y-4 border border-slate-100">
+      <div id="part-details-content" class="space-y-4"></div>
+    </div>
+  </div>
+
 </body>
 </html>

@@ -1702,14 +1702,52 @@ private fun EventRegistrationDialog(
     val isDark = LocalIsDarkTheme.current
 
     var isTeam by remember { mutableStateOf(event.maxTeamSize > 1) }
-    var teamName by remember { mutableStateOf("") }
-    var teamCode by remember { mutableStateOf("") }
+    var userName by remember { mutableStateOf("") }
+    var userEmail by remember { mutableStateOf("") }
+    var userPhone by remember { mutableStateOf("") }
     var college by remember { mutableStateOf("") }
     var department by remember { mutableStateOf("") }
     var yearOfStudy by remember { mutableStateOf("3rd Year") }
     var skills by remember { mutableStateOf("") }
     var githubUrl by remember { mutableStateOf("") }
     var linkedinUrl by remember { mutableStateOf("") }
+
+    // Team Details
+    var teamName by remember { mutableStateOf("") }
+    var teamCode by remember { mutableStateOf("") }
+    var teamSize by remember { mutableIntStateOf(if (event.minTeamSize > 2) event.minTeamSize else 2) }
+
+    // Member 2
+    var member2Name by remember { mutableStateOf("") }
+    var member2Email by remember { mutableStateOf("") }
+    var member2Phone by remember { mutableStateOf("") }
+    var member2Dept by remember { mutableStateOf("") }
+    var member2Year by remember { mutableStateOf("3rd Year") }
+
+    // Member 3
+    var member3Name by remember { mutableStateOf("") }
+    var member3Email by remember { mutableStateOf("") }
+    var member3Phone by remember { mutableStateOf("") }
+    var member3Dept by remember { mutableStateOf("") }
+    var member3Year by remember { mutableStateOf("3rd Year") }
+
+    // Member 4
+    var member4Name by remember { mutableStateOf("") }
+    var member4Email by remember { mutableStateOf("") }
+    var member4Phone by remember { mutableStateOf("") }
+    var member4Dept by remember { mutableStateOf("") }
+    var member4Year by remember { mutableStateOf("3rd Year") }
+
+    val yearsList = listOf("1st Year", "2nd Year", "3rd Year", "4th Year / Final", "Post-Grad")
+
+    LaunchedEffect(Unit) {
+        val authUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (authUser != null) {
+            if (userName.isBlank()) userName = authUser.displayName ?: ""
+            if (userEmail.isBlank()) userEmail = authUser.email ?: ""
+            if (userPhone.isBlank()) userPhone = authUser.phoneNumber ?: ""
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1733,7 +1771,7 @@ private fun EventRegistrationDialog(
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Column {
-                            Text("Event Registration", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
+                            Text("Event Registration Form", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (isDark) Color.White else Color(0xFF0F172A))
                             Text(event.title, fontSize = 11.5.sp, color = Color(0xFF7C3AED), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
@@ -1746,21 +1784,70 @@ private fun EventRegistrationDialog(
                     ) {
                         Button(
                             onClick = {
-                                if (college.isBlank()) {
-                                    Toast.makeText(context, "Please enter your college or institute", Toast.LENGTH_SHORT).show()
+                                if (userName.isBlank()) {
+                                    Toast.makeText(context, "Please enter your Full Name", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
+                                if (userEmail.isBlank() || !userEmail.contains("@")) {
+                                    Toast.makeText(context, "Please enter your valid Email / Gmail", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                if (userPhone.isBlank() || userPhone.length < 10) {
+                                    Toast.makeText(context, "Please enter your 10-digit Mobile Number", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                if (college.isBlank()) {
+                                    Toast.makeText(context, "Please enter your College or Organization", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                if (department.isBlank()) {
+                                    Toast.makeText(context, "Please enter your Department / Branch", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+
+                                if (isTeam) {
+                                    if (teamName.isBlank()) {
+                                        Toast.makeText(context, "Please enter your Team Name", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (member2Name.isBlank()) {
+                                        Toast.makeText(context, "Please enter Team Member 2 Name", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (member2Email.isBlank()) {
+                                        Toast.makeText(context, "Please enter Team Member 2 Email", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                }
+
+                                val membersList = mutableListOf<TeamMemberInfo>()
+                                if (isTeam) {
+                                    if (member2Name.isNotBlank()) {
+                                        membersList.add(TeamMemberInfo(member2Name, member2Email, member2Phone, member2Dept.ifBlank { department }, member2Year))
+                                    }
+                                    if (teamSize >= 3 && member3Name.isNotBlank()) {
+                                        membersList.add(TeamMemberInfo(member3Name, member3Email, member3Phone, member3Dept.ifBlank { department }, member3Year))
+                                    }
+                                    if (teamSize >= 4 && member4Name.isNotBlank()) {
+                                        membersList.add(TeamMemberInfo(member4Name, member4Email, member4Phone, member4Dept.ifBlank { department }, member4Year))
+                                    }
+                                }
+
                                 viewModel.submitRegistration(
                                     event = event,
                                     isTeam = isTeam,
                                     teamName = teamName,
                                     teamCode = teamCode.ifBlank { null },
+                                    userName = userName,
+                                    userEmail = userEmail,
+                                    userPhone = userPhone,
                                     college = college,
                                     department = department,
                                     yearOfStudy = yearOfStudy,
                                     skills = skills,
                                     githubUrl = githubUrl,
                                     linkedinUrl = linkedinUrl,
+                                    teamMembersDetails = membersList,
                                     customAnswers = emptyMap(),
                                     onSuccess = {
                                         Toast.makeText(context, "Registration Confirmed! Ticket Generated.", Toast.LENGTH_LONG).show()
@@ -1793,7 +1880,7 @@ private fun EventRegistrationDialog(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Team vs Individual selector
+                    // 1. Team vs Individual Selector
                     if (event.maxTeamSize > 1) {
                         item {
                             Surface(
@@ -1823,35 +1910,58 @@ private fun EventRegistrationDialog(
                                             .padding(vertical = 8.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text("Team (${event.minTeamSize}-${event.maxTeamSize} Members)", color = if (isTeam) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                                        Text("Team Entry (${event.minTeamSize}-${event.maxTeamSize} Members)", color = if (isTeam) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
                                     }
                                 }
                             }
                         }
                     }
 
-                    if (isTeam) {
-                        item {
-                            OutlinedTextField(
-                                value = teamName,
-                                onValueChange = { teamName = it },
-                                label = { Text("Team Name (Optional)") },
-                                placeholder = { Text("e.g. Code Wizards") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                    // 2. Section: Primary Attendee / Team Leader Details
+                    item {
+                        Text(
+                            text = if (isTeam) "TEAM LEADER DETAILS" else "PARTICIPANT DETAILS",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.sp,
+                            color = Color(0xFF7C3AED),
+                            letterSpacing = 1.sp
+                        )
+                    }
 
-                        item {
-                            OutlinedTextField(
-                                value = teamCode,
-                                onValueChange = { teamCode = it },
-                                label = { Text("Have a Team Code? (Optional)") },
-                                placeholder = { Text("Enter 6-char code to join existing team") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                    item {
+                        OutlinedTextField(
+                            value = userName,
+                            onValueChange = { userName = it },
+                            label = { Text("Full Name *") },
+                            placeholder = { Text("e.g. Rahul Sharma") },
+                            leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null, tint = Color(0xFF7C3AED)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    item {
+                        OutlinedTextField(
+                            value = userEmail,
+                            onValueChange = { userEmail = it },
+                            label = { Text("Gmail / Email Address *") },
+                            placeholder = { Text("e.g. rahul@gmail.com") },
+                            leadingIcon = { Icon(Icons.Rounded.Email, contentDescription = null, tint = Color(0xFF7C3AED)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    item {
+                        OutlinedTextField(
+                            value = userPhone,
+                            onValueChange = { userPhone = it },
+                            label = { Text("Phone Number / WhatsApp *") },
+                            placeholder = { Text("e.g. 9876543210") },
+                            leadingIcon = { Icon(Icons.Rounded.Phone, contentDescription = null, tint = Color(0xFF7C3AED)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
 
                     item {
@@ -1859,7 +1969,8 @@ private fun EventRegistrationDialog(
                             value = college,
                             onValueChange = { college = it },
                             label = { Text("College / University / Organization *") },
-                            placeholder = { Text("e.g. Indian Institute of Technology") },
+                            placeholder = { Text("e.g. Sona College of Technology") },
+                            leadingIcon = { Icon(Icons.Rounded.School, contentDescription = null, tint = Color(0xFF7C3AED)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -1869,10 +1980,260 @@ private fun EventRegistrationDialog(
                         OutlinedTextField(
                             value = department,
                             onValueChange = { department = it },
-                            label = { Text("Department / Branch") },
-                            placeholder = { Text("e.g. Computer Science, IT, Electronics") },
+                            label = { Text("Department / Branch *") },
+                            placeholder = { Text("e.g. Computer Science, AI & DS, ECE") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    item {
+                        Column {
+                            Text("Year of Study *", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                yearsList.take(3).forEach { yr ->
+                                    val isSelected = yearOfStudy == yr
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) Color(0xFF7C3AED) else if (isDark) Color(0xFF1E223D) else Color(0xFFF1F5F9),
+                                        modifier = Modifier.weight(1f).clickable { yearOfStudy = yr }
+                                    ) {
+                                        Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                                            Text(yr, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                yearsList.drop(3).forEach { yr ->
+                                    val isSelected = yearOfStudy == yr
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) Color(0xFF7C3AED) else if (isDark) Color(0xFF1E223D) else Color(0xFFF1F5F9),
+                                        modifier = Modifier.weight(1f).clickable { yearOfStudy = yr }
+                                    ) {
+                                        Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                                            Text(yr, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Section: Team Details (When Team Mode is Active)
+                    if (isTeam) {
+                        item {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "TEAM REGISTRATION DETAILS",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 11.sp,
+                                color = Color(0xFF6366F1),
+                                letterSpacing = 1.sp
+                            )
+                        }
+
+                        item {
+                            OutlinedTextField(
+                                value = teamName,
+                                onValueChange = { teamName = it },
+                                label = { Text("Team Name *") },
+                                placeholder = { Text("e.g. Cyber Ninjas") },
+                                leadingIcon = { Icon(Icons.Rounded.Groups, contentDescription = null, tint = Color(0xFF6366F1)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Total Team Members:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf(2, 3, 4).filter { it <= event.maxTeamSize }.forEach { sz ->
+                                        val isSel = teamSize == sz
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (isSel) Color(0xFF6366F1) else if (isDark) Color(0xFF1E223D) else Color(0xFFF1F5F9),
+                                            modifier = Modifier.clickable { teamSize = sz }
+                                        ) {
+                                            Text("$sz Members", modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else if (isDark) Color(0xFF94A3B8) else Color(0xFF475569))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Member 2 Card
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isDark) Color(0xFF16192E) else Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4C) else Color(0xFFE2E8F0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text("TEAM MEMBER 2", fontWeight = FontWeight.ExtraBold, fontSize = 10.5.sp, color = Color(0xFF6366F1))
+                                    OutlinedTextField(
+                                        value = member2Name,
+                                        onValueChange = { member2Name = it },
+                                        label = { Text("Member 2 Full Name *") },
+                                        placeholder = { Text("e.g. Priya Patel") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    OutlinedTextField(
+                                        value = member2Email,
+                                        onValueChange = { member2Email = it },
+                                        label = { Text("Member 2 Gmail / Email *") },
+                                        placeholder = { Text("e.g. priya@gmail.com") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        OutlinedTextField(
+                                            value = member2Phone,
+                                            onValueChange = { member2Phone = it },
+                                            label = { Text("Phone Number") },
+                                            placeholder = { Text("9876543211") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        OutlinedTextField(
+                                            value = member2Dept,
+                                            onValueChange = { member2Dept = it },
+                                            label = { Text("Department") },
+                                            placeholder = { Text("CSE") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Member 3 Card (if teamSize >= 3)
+                        if (teamSize >= 3) {
+                            item {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isDark) Color(0xFF16192E) else Color(0xFFF8FAFC),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4C) else Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text("TEAM MEMBER 3", fontWeight = FontWeight.ExtraBold, fontSize = 10.5.sp, color = Color(0xFF6366F1))
+                                        OutlinedTextField(
+                                            value = member3Name,
+                                            onValueChange = { member3Name = it },
+                                            label = { Text("Member 3 Full Name") },
+                                            placeholder = { Text("e.g. Amit Kumar") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        OutlinedTextField(
+                                            value = member3Email,
+                                            onValueChange = { member3Email = it },
+                                            label = { Text("Member 3 Gmail / Email") },
+                                            placeholder = { Text("e.g. amit@gmail.com") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            OutlinedTextField(
+                                                value = member3Phone,
+                                                onValueChange = { member3Phone = it },
+                                                label = { Text("Phone Number") },
+                                                placeholder = { Text("9876543212") },
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            OutlinedTextField(
+                                                value = member3Dept,
+                                                onValueChange = { member3Dept = it },
+                                                label = { Text("Department") },
+                                                placeholder = { Text("IT") },
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Member 4 Card (if teamSize >= 4)
+                        if (teamSize >= 4) {
+                            item {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isDark) Color(0xFF16192E) else Color(0xFFF8FAFC),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF282C4C) else Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text("TEAM MEMBER 4", fontWeight = FontWeight.ExtraBold, fontSize = 10.5.sp, color = Color(0xFF6366F1))
+                                        OutlinedTextField(
+                                            value = member4Name,
+                                            onValueChange = { member4Name = it },
+                                            label = { Text("Member 4 Full Name") },
+                                            placeholder = { Text("e.g. Sneha Roy") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        OutlinedTextField(
+                                            value = member4Email,
+                                            onValueChange = { member4Email = it },
+                                            label = { Text("Member 4 Gmail / Email") },
+                                            placeholder = { Text("e.g. sneha@gmail.com") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            OutlinedTextField(
+                                                value = member4Phone,
+                                                onValueChange = { member4Phone = it },
+                                                label = { Text("Phone Number") },
+                                                placeholder = { Text("9876543213") },
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            OutlinedTextField(
+                                                value = member4Dept,
+                                                onValueChange = { member4Dept = it },
+                                                label = { Text("Department") },
+                                                placeholder = { Text("ECE") },
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Section: Profiles & Links
+                    item {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "PORTFOLIO & SKILLS (OPTIONAL)",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.sp,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            letterSpacing = 1.sp
                         )
                     }
 
@@ -1881,7 +2242,7 @@ private fun EventRegistrationDialog(
                             value = skills,
                             onValueChange = { skills = it },
                             label = { Text("Primary Skills & Stack") },
-                            placeholder = { Text("e.g. Android, Flutter, Python, GenAI") },
+                            placeholder = { Text("e.g. Android, Flutter, Python, AI/ML") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
