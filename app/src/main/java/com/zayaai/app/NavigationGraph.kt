@@ -38,7 +38,11 @@ fun NavigationGraph(
             HomeScreen(userName = userName, innerPadding = paddingValues, onToolClick = onToolClick)
         }
         composable(Screen.Voice.route) {
-            VoiceAssistantScreen(viewModel = voiceViewModel, paddingValues = paddingValues)
+            VoiceAssistantScreen(
+                viewModel = voiceViewModel,
+                paddingValues = paddingValues,
+                navController = navController
+            )
         }
         composable(Screen.History.route) {
             ConversationHistoryScreen(

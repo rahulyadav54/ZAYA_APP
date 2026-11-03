@@ -41,6 +41,29 @@ class VoiceViewModel(context: Context, private val repository: AiZayaRepository)
     var isTeacherMode by mutableStateOf(false)
         private set
 
+    // Tools control mode  —  Voice controls in-app tools and screens directly
+    var isToolsControlMode by mutableStateOf(true)
+        private set
+
+    fun toggleToolsControlMode() {
+        isToolsControlMode = !isToolsControlMode
+    }
+
+    // Background service status
+    val isBackgroundRunning: StateFlow<Boolean> = VoiceAssistantService.isRunning
+
+    fun toggleBackgroundService(context: Context) {
+        if (isBackgroundRunning.value) {
+            VoiceAssistantService.stop(context)
+        } else {
+            VoiceAssistantService.start(context)
+        }
+    }
+
+    // Navigation callbacks to control in-app screens
+    var onNavigateAction: ((String) -> Unit)? = null
+    var onGoBackAction: (() -> Unit)? = null
+
     // Conversation history for display
     private val _conversationHistory = mutableStateListOf<Pair<String, String>>()
     val conversationHistory: List<Pair<String, String>> = _conversationHistory
@@ -210,6 +233,42 @@ IDENTITY:
         voiceState = VoiceState.PROCESSING
         viewModelScope.launch {
             try {
+                // ── 0. IN-APP TOOLS & VOICE CONTROL DISPATCHER ──
+                if (isToolsControlMode) {
+                    val appAction = AppVoiceCommandHandler.matchCommand(text)
+                    if (appAction != null) {
+                        when (appAction) {
+                            is AppVoiceAction.Navigate -> {
+                                val feedback = appAction.spokenFeedback
+                                aiResponse = feedback
+                                _conversationHistory.add(text to feedback)
+                                voiceState = VoiceState.SPEAKING
+                                ttsManager.speak(feedback) {
+                                    voiceState = VoiceState.IDLE
+                                    if (isContinuousMode) {
+                                        scheduleAutoListen(1200)
+                                    }
+                                }
+                                delay(350)
+                                onNavigateAction?.invoke(appAction.route)
+                                return@launch
+                            }
+                            is AppVoiceAction.GoBack -> {
+                                val feedback = appAction.spokenFeedback
+                                aiResponse = feedback
+                                _conversationHistory.add(text to feedback)
+                                voiceState = VoiceState.SPEAKING
+                                ttsManager.speak(feedback) {
+                                    voiceState = VoiceState.IDLE
+                                }
+                                delay(350)
+                                onGoBackAction?.invoke()
+                                return@launch
+                            }
+                        }
+                    }
+                }
+
                 _contextMessages.add(OpenRouterMessage("user", text))
 
                 val teamResponse = getZayaTeamResponse(text)

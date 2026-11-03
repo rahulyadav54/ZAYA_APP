@@ -33,7 +33,13 @@ import androidx.compose.ui.unit.sp
 import com.zayaai.app.ui.theme.*
 
 @Composable
-fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues) {
+fun VoiceAssistantScreen(
+    viewModel: VoiceViewModel,
+    paddingValues: PaddingValues,
+    navController: androidx.navigation.NavController? = null,
+    onNavigate: ((String) -> Unit)? = null,
+    onGoBack: (() -> Unit)? = null
+) {
     val isListening by viewModel.isListening.collectAsState()
     val recognizedText by viewModel.recognizedText.collectAsState()
     val rmsLevel by viewModel.rmsLevel.collectAsState()
@@ -45,10 +51,38 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
 
     val config = remember(voiceState) { VoiceAnimations.configFor(voiceState) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val isBgRunning by viewModel.isBackgroundRunning.collectAsState()
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) viewModel.startListening()
+    }
+
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        viewModel.toggleBackgroundService(context)
+    }
+
+    LaunchedEffect(navController, onNavigate, onGoBack) {
+        viewModel.onNavigateAction = { route ->
+            if (onNavigate != null) {
+                onNavigate(route)
+            } else if (navController != null) {
+                navController.navigate(route) {
+                    launchSingleTop = true
+                }
+            }
+        }
+        viewModel.onGoBackAction = {
+            if (onGoBack != null) {
+                onGoBack()
+            } else if (navController != null) {
+                navController.popBackStack()
+            }
+        }
     }
 
     // ─── Animated Values ───
@@ -196,6 +230,83 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                                 letterSpacing = 1.sp
                             ),
                             color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF1E293B)
+                        )
+                    }
+                }
+            }
+
+            // ── Background Mode Indicator ──
+            AnimatedVisibility(
+                visible = isBgRunning,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Surface(
+                    color = Color(0xFF10B981).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                    modifier = Modifier.padding(top = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .background(Color(0xFF10B981), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "Background Active",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                            color = Color(0xFF10B981)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "Stop",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Black),
+                            color = Color(0xFFEF4444),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { viewModel.toggleBackgroundService(context) }
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            // ── Tools Mode Active Banner ──
+            AnimatedVisibility(
+                visible = viewModel.isToolsControlMode,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Surface(
+                    color = if (isDark) Color(0xFF7C3AED).copy(alpha = 0.15f) else Color(0xFF7C3AED).copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFF7C3AED).copy(alpha = 0.35f)),
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(top = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Rounded.Handyman,
+                            contentDescription = null,
+                            tint = Color(0xFF7C3AED),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "In-App Tools Control Active • Say 'Open AI Chat', 'Calculator', 'Events Hub'...",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Medium),
+                            color = if (isDark) Color(0xFFDDD6FE) else Color(0xFF6D28D9),
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -382,7 +493,7 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                    .padding(horizontal = 8.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -402,6 +513,14 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                     onClick = { viewModel.toggleTeacherMode() }
                 )
 
+                // Tools In-App Control toggle
+                BottomControlButton(
+                    icon = Icons.Rounded.Handyman,
+                    label = if (viewModel.isToolsControlMode) "Tools ON" else "Tools OFF",
+                    isActive = viewModel.isToolsControlMode,
+                    onClick = { viewModel.toggleToolsControlMode() }
+                )
+
                 // Auto-listen toggle
                 BottomControlButton(
                     icon = Icons.Rounded.Loop,
@@ -410,11 +529,18 @@ fun VoiceAssistantScreen(viewModel: VoiceViewModel, paddingValues: PaddingValues
                     onClick = { viewModel.toggleContinuousMode() }
                 )
 
-                // Memory count
+                // Background Service toggle
                 BottomControlButton(
-                    icon = Icons.Rounded.Memory,
-                    label = "${viewModel.contextCount / 2} chats",
-                    onClick = { }
+                    icon = Icons.Rounded.Headphones,
+                    label = if (isBgRunning) "BG ON" else "BG OFF",
+                    isActive = isBgRunning,
+                    onClick = {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            viewModel.toggleBackgroundService(context)
+                        }
+                    }
                 )
             }
 
