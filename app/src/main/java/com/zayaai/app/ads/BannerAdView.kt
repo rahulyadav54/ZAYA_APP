@@ -2,12 +2,10 @@ package com.zayaai.app.ads
 
 import android.content.Context
 import android.util.DisplayMetrics
-import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,8 +25,8 @@ import com.zayaai.app.ui.theme.LightBorder
 import com.zayaai.app.ui.theme.LocalIsDarkTheme
 
 /**
- * Reusable Compose Adaptive Banner Ad Widget.
- * Responsively renders Google AdMob banner ads with proper lifecycle management.
+ * High-performance Compose Adaptive Banner Ad Widget.
+ * Caches and preserves AdView instance to prevent main-thread jank during scrolling.
  */
 @Composable
 fun BannerAdCard(
@@ -41,7 +39,6 @@ fun BannerAdCard(
     val configuration = LocalConfiguration.current
 
     if (isPreview) {
-        // Compose Preview fallback
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -57,12 +54,32 @@ fun BannerAdCard(
     var isAdLoaded by remember { mutableStateOf(false) }
     var isAdFailed by remember { mutableStateOf(false) }
 
-    // If ad failed to load, don't leave empty white gap on screen
     if (isAdFailed) {
         return
     }
 
     val screenWidth = configuration.screenWidthDp
+
+    // Cache the AdView to avoid expensive re-creation and layout churn during LazyColumn scroll
+    val adView = remember(adUnitId) {
+        AdView(context).apply {
+            setAdUnitId(adUnitId)
+            val adSize = getAdaptiveAdSize(context, screenWidth)
+            setAdSize(adSize)
+            adListener = object : AdListener() {
+                override fun onAdLoaded() {
+                    isAdLoaded = true
+                    isAdFailed = false
+                }
+
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    isAdLoaded = false
+                    isAdFailed = true
+                }
+            }
+            loadAd(AdRequest.Builder().build())
+        }
+    }
 
     Box(
         modifier = modifier
@@ -83,7 +100,6 @@ fun BannerAdCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Unobtrusive "Sponsored" attribution tag per Google Policy
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -101,28 +117,7 @@ fun BannerAdCard(
 
             AndroidView(
                 modifier = Modifier.fillMaxWidth(),
-                factory = { ctx ->
-                    AdView(ctx).apply {
-                        setAdUnitId(adUnitId)
-                        val adSize = getAdaptiveAdSize(ctx, screenWidth)
-                        setAdSize(adSize)
-                        adListener = object : AdListener() {
-                            override fun onAdLoaded() {
-                                isAdLoaded = true
-                                isAdFailed = false
-                            }
-
-                            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                                isAdLoaded = false
-                                isAdFailed = true
-                            }
-                        }
-                        loadAd(AdRequest.Builder().build())
-                    }
-                },
-                update = { view ->
-                    // View update if adUnitId changes
-                }
+                factory = { adView }
             )
         }
     }
@@ -141,4 +136,3 @@ private fun getAdaptiveAdSize(context: Context, widthDp: Int): AdSize {
     val adWidth = (adWidthPixels / density).toInt()
     return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, adWidth)
 }
-

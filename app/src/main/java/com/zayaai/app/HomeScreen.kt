@@ -1,28 +1,27 @@
 package com.zayaai.app
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Chat
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -34,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zayaai.app.ads.BannerAdCard
 import com.zayaai.app.ui.theme.*
 
@@ -55,14 +53,15 @@ fun HomeScreen(
     onToolClick: (Tool) -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
-    val studentContentViewModel: StudentContentViewModel = viewModel()
 
     // Clean display name (defaults to "Rahul" if none provided to match mockup)
-    val displayName = if (userName.isBlank() || userName.equals("User", ignoreCase = true)) "Rahul" else userName
+    val displayName = remember(userName) {
+        if (userName.isBlank() || userName.equals("User", ignoreCase = true)) "Rahul" else userName
+    }
 
     // Selected Category Filter Pill
     var selectedCategory by remember { mutableStateOf("All Tools") }
-    val categories = listOf("All Tools", "Student", "Productivity", "Creative")
+    val categories = remember { listOf("All Tools", "Student", "Productivity", "Creative") }
 
     // Master Catalog of Redesigned Tools
     val allTools = remember {
@@ -79,7 +78,7 @@ fun HomeScreen(
             RedesignToolItem("calculator", "Scientific\nCalculator", Icons.Rounded.Calculate, "Student", listOf(Color(0xFF06B6D4), Color(0xFF3B82F6)), Screen.Calculator.route),
             RedesignToolItem("unit_converter", "Unit\nConverter", Icons.Rounded.SwapHoriz, "Student", listOf(Color(0xFF10B981), Color(0xFF059669)), Screen.UnitConverter.route),
             RedesignToolItem("word_counter", "Word\nCounter", Icons.Rounded.TextFields, "Student", listOf(Color(0xFF3B82F6), Color(0xFF2563EB)), Screen.WordCounter.route),
-            RedesignToolItem("dictionary", "Dictionary", Icons.Rounded.MenuBook, "Student", listOf(Color(0xFF8B5CF6), Color(0xFF6366F1)), Screen.Dictionary.route),
+            RedesignToolItem("dictionary", "Dictionary", Icons.AutoMirrored.Rounded.MenuBook, "Student", listOf(Color(0xFF8B5CF6), Color(0xFF6366F1)), Screen.Dictionary.route),
             RedesignToolItem("study_planner", "Study\nPlanner", Icons.Rounded.CalendarMonth, "Student", listOf(Color(0xFFF59E0B), Color(0xFFD97706)), Screen.StudyPlanner.route),
             RedesignToolItem("notes", "Notes", Icons.Rounded.Description, "Student", listOf(Color(0xFFEC4899), Color(0xFFBE185D)), Screen.Notes.route),
 
@@ -93,15 +92,29 @@ fun HomeScreen(
         )
     }
 
+    // Pre-chunked rows for ultra-efficient lazy recycling
+    val aiToolRows = remember(allTools) {
+        allTools.filter { it.category == "AI Tools" }.chunked(3)
+    }
+    val studentToolRows = remember(allTools) {
+        allTools.filter { it.category == "Student" }.chunked(3)
+    }
+    val productivityToolRows = remember(allTools) {
+        allTools.filter { it.category == "Productivity" }.chunked(3)
+    }
+    val creativeToolRows = remember(allTools) {
+        allTools.filter { it.category == "Creative" || it.id in listOf("image_gen", "text_writer", "startup_idea") }.take(6).chunked(3)
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // ─── 1. Greeting Header ───
-        item {
+        item(key = "home_header") {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Hello, $displayName 👋",
@@ -122,8 +135,8 @@ fun HomeScreen(
             )
         }
 
-        // ─── 2. AI Chat Hero Card (Reference Image Hero Banner) ───
-        item {
+        // ─── 2. AI Chat Hero Card ───
+        item(key = "home_hero_card") {
             AIChatHeroCard(
                 onCardClick = {
                     onToolClick(Tool("AI Chat", "Advanced conversational AI", Icons.AutoMirrored.Rounded.Chat, PrimaryPurple))
@@ -132,7 +145,7 @@ fun HomeScreen(
         }
 
         // ─── 3. Category Filter Pills ───
-        item {
+        item(key = "home_category_pills") {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -141,26 +154,9 @@ fun HomeScreen(
             ) {
                 categories.forEach { cat ->
                     val isSelected = cat == selectedCategory
-                    val pillBg by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            PrimaryPurple
-                        } else {
-                            if (isDark) DarkPillInactive else LightPillInactive
-                        },
-                        label = "pill_bg"
-                    )
-                    val textColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            Color.White
-                        } else {
-                            if (isDark) DarkPillInactiveText else LightPillInactiveText
-                        },
-                        label = "pill_text"
-                    )
-
                     Surface(
                         shape = RoundedCornerShape(50.dp),
-                        color = pillBg,
+                        color = if (isSelected) PrimaryPurple else if (isDark) DarkPillInactive else LightPillInactive,
                         border = if (!isSelected) {
                             androidx.compose.foundation.BorderStroke(
                                 1.dp,
@@ -178,16 +174,16 @@ fun HomeScreen(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 fontSize = 13.sp
                             ),
-                            color = textColor
+                            color = if (isSelected) Color.White else if (isDark) DarkPillInactiveText else LightPillInactiveText
                         )
                     }
                 }
             }
         }
 
-        // ─── 4. Tool Sections (Filtered or Comprehensive) ───
+        // ─── 4. Tool Sections (Chunked rows with LazyColumn recycling) ───
         if (selectedCategory == "All Tools" || selectedCategory == "AI Tools") {
-            item {
+            item(key = "sec_header_ai") {
                 SectionHeader(
                     icon = Icons.Rounded.AutoAwesome,
                     title = "AI Tools",
@@ -195,16 +191,18 @@ fun HomeScreen(
                         onToolClick(Tool("AI Chat", "Advanced conversational AI", Icons.AutoMirrored.Rounded.Chat, PrimaryPurple))
                     }
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                ThreeColumnToolGrid(
-                    tools = allTools.filter { it.category == "AI Tools" },
-                    onToolClick = onToolClick
-                )
+            }
+            items(
+                items = aiToolRows,
+                key = { row -> "ai_row_" + row.joinToString("-") { it.id } }
+            ) { rowTools ->
+                ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
         }
 
         if (selectedCategory == "All Tools" || selectedCategory == "Student") {
-            item {
+            item(key = "sec_header_student") {
+                Spacer(modifier = Modifier.height(4.dp))
                 SectionHeader(
                     icon = Icons.Rounded.School,
                     title = "Student Tools",
@@ -212,16 +210,18 @@ fun HomeScreen(
                         onToolClick(Tool("Student Tools", "Academic success toolkit", Icons.Rounded.School, PrimaryPurple))
                     }
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                ThreeColumnToolGrid(
-                    tools = allTools.filter { it.category == "Student" },
-                    onToolClick = onToolClick
-                )
+            }
+            items(
+                items = studentToolRows,
+                key = { row -> "student_row_" + row.joinToString("-") { it.id } }
+            ) { rowTools ->
+                ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
         }
 
         if (selectedCategory == "All Tools" || selectedCategory == "Productivity") {
-            item {
+            item(key = "sec_header_productivity") {
+                Spacer(modifier = Modifier.height(4.dp))
                 SectionHeader(
                     icon = Icons.Rounded.Bolt,
                     title = "Productivity Tools",
@@ -229,16 +229,18 @@ fun HomeScreen(
                         onToolClick(Tool("Prompt Library", "Ready-to-use AI prompts", Icons.Rounded.LibraryBooks, PrimaryPurple))
                     }
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                ThreeColumnToolGrid(
-                    tools = allTools.filter { it.category == "Productivity" },
-                    onToolClick = onToolClick
-                )
+            }
+            items(
+                items = productivityToolRows,
+                key = { row -> "prod_row_" + row.joinToString("-") { it.id } }
+            ) { rowTools ->
+                ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
         }
 
         if (selectedCategory == "All Tools" || selectedCategory == "Creative") {
-            item {
+            item(key = "sec_header_creative") {
+                Spacer(modifier = Modifier.height(4.dp))
                 SectionHeader(
                     icon = Icons.Rounded.Palette,
                     title = "Creative Tools",
@@ -246,22 +248,23 @@ fun HomeScreen(
                         onToolClick(Tool("Image Gen", "Create art from text", Icons.Rounded.Image, PrimaryPurple))
                     }
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                ThreeColumnToolGrid(
-                    tools = allTools.filter { it.category == "Creative" || it.id in listOf("image_gen", "text_writer", "startup_idea") }.take(6),
-                    onToolClick = onToolClick
-                )
+            }
+            items(
+                items = creativeToolRows,
+                key = { row -> "creative_row_" + row.joinToString("-") { it.id } }
+            ) { rowTools ->
+                ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
         }
 
         // ─── 5. Sponsored Banner Ad ───
-        item {
+        item(key = "home_banner_ad") {
             Spacer(modifier = Modifier.height(8.dp))
             BannerAdCard()
         }
 
         // Extra Bottom Spacing for Floating / Elevated Navigation Bar
-        item {
+        item(key = "home_bottom_spacer") {
             Spacer(modifier = Modifier.height(28.dp))
         }
     }
@@ -279,9 +282,8 @@ private fun AIChatHeroCard(onCardClick: () -> Unit) {
             .fillMaxWidth()
             .height(140.dp)
             .shadow(
-                elevation = if (isDark) 0.dp else 6.dp,
-                shape = RoundedCornerShape(22.dp),
-                spotColor = Color(0xFF7C3AED).copy(alpha = 0.25f)
+                elevation = if (isDark) 0.dp else 4.dp,
+                shape = RoundedCornerShape(22.dp)
             )
             .clip(RoundedCornerShape(22.dp))
             .clickable(onClick = onCardClick)
@@ -307,20 +309,6 @@ private fun AIChatHeroCard(onCardClick: () -> Unit) {
                             )
                         )
                     }
-                )
-                .then(
-                    if (isDark) {
-                        Modifier.border(
-                            1.dp,
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFF8B5CF6).copy(alpha = 0.4f),
-                                    Color(0xFF38BDF8).copy(alpha = 0.2f)
-                                )
-                            ),
-                            RoundedCornerShape(22.dp)
-                        )
-                    } else Modifier
                 )
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
@@ -370,7 +358,7 @@ private fun AIChatHeroCard(onCardClick: () -> Unit) {
                 }
             }
 
-            // Right Graphic: Sleek Futuristic 3D Assistant Robot Character
+            // Right Graphic: Sleek Futuristic 3D Assistant Robot Character with Cached Drawing
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -384,93 +372,103 @@ private fun AIChatHeroCard(onCardClick: () -> Unit) {
 }
 
 /**
- * Procedural Vector Graphic representing the cute 3D Robot Assistant shown in the reference image.
+ * Procedural Vector Graphic representing 3D Robot Assistant.
+ * Uses drawWithCache to completely avoid allocations during scrolling.
  */
 @Composable
 private fun FuturisticRobotGraphic() {
-    Canvas(modifier = Modifier.size(100.dp)) {
-        val w = size.width
-        val h = size.height
+    Spacer(
+        modifier = Modifier
+            .size(100.dp)
+            .drawWithCache {
+                val w = size.width
+                val h = size.height
 
-        // Outer Glow Aura
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF38BDF8).copy(alpha = 0.35f), Color.Transparent),
-                center = Offset(w * 0.5f, h * 0.5f),
-                radius = w * 0.5f
-            )
-        )
+                val auraBrush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF38BDF8).copy(alpha = 0.35f), Color.Transparent),
+                    center = Offset(w * 0.5f, h * 0.5f),
+                    radius = w * 0.5f
+                )
+                val headBrush = Brush.verticalGradient(
+                    listOf(Color(0xFFFFFFFF), Color(0xFFCBD5E1), Color(0xFF94A3B8))
+                )
+                val visorBrush = Brush.verticalGradient(
+                    listOf(Color(0xFF0F172A), Color(0xFF1E293B))
+                )
+                val bodyBrush = Brush.verticalGradient(
+                    listOf(Color(0xFFE2E8F0), Color(0xFF94A3B8))
+                )
 
-        // Head Base (Rounded Helmet)
-        drawRoundRect(
-            brush = Brush.verticalGradient(
-                listOf(Color(0xFFFFFFFF), Color(0xFFCBD5E1), Color(0xFF94A3B8))
-            ),
-            topLeft = Offset(w * 0.18f, h * 0.18f),
-            size = Size(w * 0.64f, h * 0.52f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.22f, h * 0.22f)
-        )
+                onDrawBehind {
+                    // Outer Glow Aura
+                    drawCircle(brush = auraBrush, center = Offset(w * 0.5f, h * 0.5f), radius = w * 0.5f)
 
-        // Visor (Glossy Dark Display Screen)
-        drawRoundRect(
-            brush = Brush.verticalGradient(
-                listOf(Color(0xFF0F172A), Color(0xFF1E293B))
-            ),
-            topLeft = Offset(w * 0.25f, h * 0.28f),
-            size = Size(w * 0.50f, h * 0.30f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f, h * 0.12f)
-        )
+                    // Head Base (Rounded Helmet)
+                    drawRoundRect(
+                        brush = headBrush,
+                        topLeft = Offset(w * 0.18f, h * 0.18f),
+                        size = Size(w * 0.64f, h * 0.52f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.22f, h * 0.22f)
+                    )
 
-        // Visor Border Glow
-        drawRoundRect(
-            color = Color(0xFF38BDF8).copy(alpha = 0.5f),
-            topLeft = Offset(w * 0.25f, h * 0.28f),
-            size = Size(w * 0.50f, h * 0.30f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f, h * 0.12f),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
-        )
+                    // Visor (Glossy Dark Display Screen)
+                    drawRoundRect(
+                        brush = visorBrush,
+                        topLeft = Offset(w * 0.25f, h * 0.28f),
+                        size = Size(w * 0.50f, h * 0.30f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f, h * 0.12f)
+                    )
 
-        // Glowing Blue Eyes
-        drawOval(
-            color = Color(0xFF38BDF8),
-            topLeft = Offset(w * 0.35f, h * 0.38f),
-            size = Size(w * 0.08f, h * 0.09f)
-        )
-        drawOval(
-            color = Color(0xFF38BDF8),
-            topLeft = Offset(w * 0.57f, h * 0.38f),
-            size = Size(w * 0.08f, h * 0.09f)
-        )
+                    // Visor Border
+                    drawRoundRect(
+                        color = Color(0xFF38BDF8).copy(alpha = 0.5f),
+                        topLeft = Offset(w * 0.25f, h * 0.28f),
+                        size = Size(w * 0.50f, h * 0.30f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f, h * 0.12f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                    )
 
-        // Headphone Ears (Cyan glowing side caps)
-        drawOval(
-            color = Color(0xFF38BDF8),
-            topLeft = Offset(w * 0.12f, h * 0.35f),
-            size = Size(w * 0.08f, h * 0.16f)
-        )
-        drawOval(
-            color = Color(0xFF38BDF8),
-            topLeft = Offset(w * 0.80f, h * 0.35f),
-            size = Size(w * 0.08f, h * 0.16f)
-        )
+                    // Eyes
+                    drawOval(
+                        color = Color(0xFF38BDF8),
+                        topLeft = Offset(w * 0.35f, h * 0.38f),
+                        size = Size(w * 0.08f, h * 0.09f)
+                    )
+                    drawOval(
+                        color = Color(0xFF38BDF8),
+                        topLeft = Offset(w * 0.57f, h * 0.38f),
+                        size = Size(w * 0.08f, h * 0.09f)
+                    )
 
-        // Body / Chest plate
-        drawRoundRect(
-            brush = Brush.verticalGradient(
-                listOf(Color(0xFFE2E8F0), Color(0xFF94A3B8))
-            ),
-            topLeft = Offset(w * 0.26f, h * 0.72f),
-            size = Size(w * 0.48f, h * 0.26f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f, h * 0.12f)
-        )
+                    // Headphone Ears
+                    drawOval(
+                        color = Color(0xFF38BDF8),
+                        topLeft = Offset(w * 0.12f, h * 0.35f),
+                        size = Size(w * 0.08f, h * 0.16f)
+                    )
+                    drawOval(
+                        color = Color(0xFF38BDF8),
+                        topLeft = Offset(w * 0.80f, h * 0.35f),
+                        size = Size(w * 0.08f, h * 0.16f)
+                    )
 
-        // Center Heart Light
-        drawCircle(
-            color = Color(0xFF38BDF8),
-            radius = w * 0.045f,
-            center = Offset(w * 0.5f, h * 0.82f)
-        )
-    }
+                    // Body
+                    drawRoundRect(
+                        brush = bodyBrush,
+                        topLeft = Offset(w * 0.26f, h * 0.72f),
+                        size = Size(w * 0.48f, h * 0.26f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f, h * 0.12f)
+                    )
+
+                    // Center Heart Light
+                    drawCircle(
+                        color = Color(0xFF38BDF8),
+                        radius = w * 0.045f,
+                        center = Offset(w * 0.5f, h * 0.82f)
+                    )
+                }
+            }
+    )
 }
 
 // ─── Section Header with "See All" ───
@@ -481,7 +479,9 @@ private fun SectionHeader(
     onSeeAll: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -520,53 +520,41 @@ private fun SectionHeader(
     }
 }
 
-// ─── 3-Column Tool Cards Grid (Direct Match to Reference Mockup) ───
+// ─── Single Row of 3 Tools for Lazy Recycling ───
 @Composable
-private fun ThreeColumnToolGrid(
-    tools: List<RedesignToolItem>,
+private fun ToolGridRow(
+    rowTools: List<RedesignToolItem>,
     onToolClick: (Tool) -> Unit
 ) {
-    val rows = tools.chunked(3)
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        rows.forEach { rowTools ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                rowTools.forEach { toolItem ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        RedesignToolCard(
-                            tool = toolItem,
-                            onClick = {
-                                onToolClick(Tool(toolItem.title.replace("\n", " "), "", toolItem.icon, toolItem.gradientColors.first()))
-                            }
-                        )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        rowTools.forEach { toolItem ->
+            Box(modifier = Modifier.weight(1f)) {
+                RedesignToolCard(
+                    tool = toolItem,
+                    onClick = {
+                        onToolClick(Tool(toolItem.title.replace("\n", " "), "", toolItem.icon, toolItem.gradientColors.first()))
                     }
-                }
-                // Fill empty slots if row has less than 3 items
-                if (rowTools.size < 3) {
-                    repeat(3 - rowTools.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
+                )
+            }
+        }
+        if (rowTools.size < 3) {
+            repeat(3 - rowTools.size) {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
-// ─── Single Tool Card (Rounded Card + Icon Container + Clean Typography) ───
+// ─── Single Tool Card (Optimized for 60/120 FPS Scrolling) ───
 @Composable
 private fun RedesignToolCard(
     tool: RedesignToolItem,
     onClick: () -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
-    var isPressed by remember { mutableStateOf(false) }
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1.0f,
-        label = "tool_scale"
-    )
 
     Surface(
         shape = RoundedCornerShape(18.dp),
@@ -575,11 +563,10 @@ private fun RedesignToolCard(
             width = 1.dp,
             color = if (isDark) DarkBorder else LightBorder
         ),
-        shadowElevation = if (isDark) 0.dp else 3.dp,
+        shadowElevation = if (isDark) 0.dp else 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .height(108.dp)
-            .scale(scale)
             .clip(RoundedCornerShape(18.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -598,15 +585,8 @@ private fun RedesignToolCard(
             Box(
                 modifier = Modifier
                     .size(46.dp)
-                    .background(
-                        brush = Brush.linearGradient(tool.gradientColors),
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    .shadow(
-                        elevation = if (isDark) 4.dp else 4.dp,
-                        shape = RoundedCornerShape(14.dp),
-                        spotColor = tool.gradientColors.first().copy(alpha = 0.35f)
-                    ),
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(brush = Brush.linearGradient(tool.gradientColors)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

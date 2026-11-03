@@ -22,45 +22,13 @@ fun NavigationGraph(
     adminViewModel: AdminViewModel,
     authViewModel: AuthViewModel,
     userName: String,
-    userEmail: String, // Re-added userEmail parameter
+    userEmail: String,
     userRole: String,
     viewModelFactory: ViewModelFactory,
     onProfileUpdate: () -> Unit,
     onToolClick: (Tool) -> Unit
 ) {
     val context = LocalContext.current
-    
-    // ViewModels for Main Tools
-    val codeGeneratorViewModel: CodeGeneratorViewModel = viewModel()
-    val quizGeneratorViewModel: QuizGeneratorViewModel = viewModel()
-    val imageGeneratorViewModel: ImageGeneratorViewModel = viewModel()
-    val startupIdeaViewModel: StartupIdeaViewModel = viewModel()
-    val pptGeneratorViewModel: PPTGeneratorViewModel = viewModel()
-    val promptEngineerViewModel: PromptEngineerViewModel = viewModel()
-    val documentAnalyzerViewModel: DocumentAnalyzerViewModel = viewModel()
-
-    // Student Tools ViewModels (Using Factory to provide Repository)
-    val notesViewModel: NotesViewModel = viewModel(factory = viewModelFactory)
-    val flashcardsViewModel: FlashcardsViewModel = viewModel(factory = viewModelFactory)
-    val offlineQuizViewModel: QuizViewModel = viewModel(factory = viewModelFactory)
-    val toDoViewModel: ToDoViewModel = viewModel(factory = viewModelFactory)
-    val studyPlannerViewModel: StudyPlannerViewModel = viewModel(factory = viewModelFactory)
-    val mindMapViewModel: MindMapViewModel = viewModel(factory = viewModelFactory)
-    val formulaViewModel: FormulaViewModel = viewModel(factory = viewModelFactory)
-    val dictionaryViewModel: DictionaryViewModel = viewModel(factory = viewModelFactory)
-    val bookmarkViewModel: BookmarkViewModel = viewModel(factory = viewModelFactory)
-    val articlesViewModel: StudyArticlesViewModel = viewModel(factory = viewModelFactory)
-
-    // Others
-    val pomodoroViewModel: PomodoroViewModel = viewModel()
-    val calculatorViewModel: CalculatorViewModel = viewModel()
-    val unitConverterViewModel: UnitConverterViewModel = viewModel()
-
-    // AI Learning Feature ViewModel
-    val db = remember(context) { AiZayaDatabase.getDatabase(context) }
-    val repo = remember(db) { AiZayaRepository(db) }
-    val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
-    val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
 
     NavHost(
         navController = navController,
@@ -86,7 +54,7 @@ fun NavigationGraph(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 userName = userName,
-                userEmail = userEmail, // Pass userEmail to SettingsScreen
+                userEmail = userEmail,
                 securityViewModel = securityViewModel,
                 onLogout = { authViewModel.signOut() },
                 onProfileUpdate = onProfileUpdate,
@@ -102,33 +70,39 @@ fun NavigationGraph(
             TextWriterScreen(viewModel = textWriterViewModel, paddingValues = paddingValues)
         }
         composable(Screen.CodeGenerator.route) {
+            val codeGeneratorViewModel: CodeGeneratorViewModel = viewModel()
             CodeGeneratorScreen(viewModel = codeGeneratorViewModel, paddingValues = paddingValues)
         }
         composable(Screen.QuizGenerator.route) {
+            val quizGeneratorViewModel: QuizGeneratorViewModel = viewModel()
             QuizGeneratorScreen(viewModel = quizGeneratorViewModel, paddingValues = paddingValues)
         }
         composable(Screen.ImageGenerator.route) {
+            val imageGeneratorViewModel: ImageGeneratorViewModel = viewModel()
             ImageGeneratorScreen(viewModel = imageGeneratorViewModel, paddingValues = paddingValues)
         }
         composable(Screen.PPTGenerator.route) {
+            val pptGeneratorViewModel: PPTGeneratorViewModel = viewModel()
             PPTGeneratorScreen(viewModel = pptGeneratorViewModel, paddingValues = paddingValues)
         }
         composable(Screen.PromptEngineer.route) {
+            val promptEngineerViewModel: PromptEngineerViewModel = viewModel()
             PromptEngineerScreen(viewModel = promptEngineerViewModel, paddingValues = paddingValues)
         }
         composable(Screen.DocumentAnalyzer.route) {
+            val documentAnalyzerViewModel: DocumentAnalyzerViewModel = viewModel()
             DocumentAnalyzerScreen(viewModel = documentAnalyzerViewModel, paddingValues = paddingValues)
         }
 
         // Productivity Tools
         composable(Screen.PromptLibrary.route) {
             PromptLibraryScreen(paddingValues = paddingValues) { prompt ->
-                // Navigate to AI Chat with the selected prompt
                 chatViewModel.sendFromPromptLibrary(prompt)
                 navController.navigate(Screen.AIChat.route)
             }
         }
         composable(Screen.StartupIdea.route) {
+            val startupIdeaViewModel: StartupIdeaViewModel = viewModel()
             StartupIdeaScreen(viewModel = startupIdeaViewModel, paddingValues = paddingValues)
         }
         composable(Screen.ResumeBuilder.route) {
@@ -168,42 +142,55 @@ fun NavigationGraph(
             OfflineAIAssistantScreen(viewModel = offlineAssistantViewModel, paddingValues = paddingValues)
         }
         composable(Screen.Notes.route) {
+            val notesViewModel: NotesViewModel = viewModel(factory = viewModelFactory)
             NotesScreen(viewModel = notesViewModel, paddingValues = paddingValues)
         }
         composable(Screen.Flashcards.route) {
+            val flashcardsViewModel: FlashcardsViewModel = viewModel(factory = viewModelFactory)
             FlashcardsScreen(viewModel = flashcardsViewModel, paddingValues = paddingValues)
         }
         composable(Screen.Pomodoro.route) {
+            val pomodoroViewModel: PomodoroViewModel = viewModel()
             PomodoroTimerScreen(viewModel = pomodoroViewModel, paddingValues = paddingValues)
         }
         composable(Screen.ToDo.route) {
+            val toDoViewModel: ToDoViewModel = viewModel(factory = viewModelFactory)
             ToDoScreen(viewModel = toDoViewModel, paddingValues = paddingValues)
         }
         composable(Screen.Calculator.route) {
+            val calculatorViewModel: CalculatorViewModel = viewModel()
             CalculatorScreen(viewModel = calculatorViewModel, paddingValues = paddingValues)
         }
         composable(Screen.UnitConverter.route) {
+            val unitConverterViewModel: UnitConverterViewModel = viewModel()
             UnitConverterScreen(viewModel = unitConverterViewModel, paddingValues = paddingValues)
         }
         composable(Screen.OfflineQuiz.route) {
+            val offlineQuizViewModel: QuizViewModel = viewModel(factory = viewModelFactory)
             QuizScreen(viewModel = offlineQuizViewModel, paddingValues = paddingValues)
         }
         composable(Screen.FormulaLibrary.route) {
+            val formulaViewModel: FormulaViewModel = viewModel(factory = viewModelFactory)
             FormulaScreen(viewModel = formulaViewModel, paddingValues = paddingValues)
         }
         composable(Screen.MindMap.route) {
+            val mindMapViewModel: MindMapViewModel = viewModel(factory = viewModelFactory)
             MindMapScreen(viewModel = mindMapViewModel, paddingValues = paddingValues)
         }
         composable(Screen.StudyPlanner.route) {
+            val studyPlannerViewModel: StudyPlannerViewModel = viewModel(factory = viewModelFactory)
             PlannerScreen(viewModel = studyPlannerViewModel, paddingValues = paddingValues)
         }
         composable(Screen.Dictionary.route) { 
+            val dictionaryViewModel: DictionaryViewModel = viewModel(factory = viewModelFactory)
             DictionaryScreen(viewModel = dictionaryViewModel, paddingValues = paddingValues) 
         }
         composable(Screen.BookmarkManager.route) { 
+            val bookmarkViewModel: BookmarkViewModel = viewModel(factory = viewModelFactory)
             BookmarkManagerScreen(viewModel = bookmarkViewModel, paddingValues = paddingValues) 
         }
         composable(Screen.StudyArticles.route) {
+            val articlesViewModel: StudyArticlesViewModel = viewModel(factory = viewModelFactory)
             StudyArticlesScreen(viewModel = articlesViewModel, paddingValues = paddingValues)
         }
 
@@ -216,6 +203,10 @@ fun NavigationGraph(
 
         // ─── AI Learning Features ───
         composable(Screen.UploadStudyMaterial.route) {
+            val db = remember(context) { AiZayaDatabase.getDatabase(context) }
+            val repo = remember(db) { AiZayaRepository(db) }
+            val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
+            val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
             LaunchedEffect(Unit) { studyMaterialViewModel.resetForNewUpload() }
             UploadStudyMaterialScreen(
                 viewModel = studyMaterialViewModel,
@@ -227,6 +218,10 @@ fun NavigationGraph(
             )
         }
         composable(Screen.MaterialDetail.route) {
+            val db = remember(context) { AiZayaDatabase.getDatabase(context) }
+            val repo = remember(db) { AiZayaRepository(db) }
+            val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
+            val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
             MaterialDetailScreen(
                 viewModel = studyMaterialViewModel,
                 paddingValues = paddingValues,
@@ -234,18 +229,38 @@ fun NavigationGraph(
             )
         }
         composable(Screen.GeneratedQuestions.route) {
+            val db = remember(context) { AiZayaDatabase.getDatabase(context) }
+            val repo = remember(db) { AiZayaRepository(db) }
+            val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
+            val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
             GeneratedQuestionsScreen(viewModel = studyMaterialViewModel, paddingValues = paddingValues)
         }
         composable(Screen.AIQuiz.route) {
+            val db = remember(context) { AiZayaDatabase.getDatabase(context) }
+            val repo = remember(db) { AiZayaRepository(db) }
+            val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
+            val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
             AIQuizScreen(viewModel = studyMaterialViewModel, paddingValues = paddingValues)
         }
         composable(Screen.AIFlashcards.route) {
+            val db = remember(context) { AiZayaDatabase.getDatabase(context) }
+            val repo = remember(db) { AiZayaRepository(db) }
+            val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
+            val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
             AIFlashcardsScreen(viewModel = studyMaterialViewModel, paddingValues = paddingValues)
         }
         composable(Screen.StudySummary.route) {
+            val db = remember(context) { AiZayaDatabase.getDatabase(context) }
+            val repo = remember(db) { AiZayaRepository(db) }
+            val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
+            val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
             StudySummaryScreen(viewModel = studyMaterialViewModel, paddingValues = paddingValues)
         }
         composable(Screen.AITutor.route) {
+            val db = remember(context) { AiZayaDatabase.getDatabase(context) }
+            val repo = remember(db) { AiZayaRepository(db) }
+            val studyMaterialViewModelFactory = remember(repo, db) { StudyMaterialViewModelFactory(repo, db) }
+            val studyMaterialViewModel: StudyMaterialViewModel = viewModel(factory = studyMaterialViewModelFactory)
             AITutorScreen(viewModel = studyMaterialViewModel, paddingValues = paddingValues)
         }
 
@@ -255,8 +270,6 @@ fun NavigationGraph(
         }
 
         composable(Screen.WebBrowser.route) {
-            // When opened from the main app navigation, we hide the WebView's internal header
-            // so the main top app bar remains and the drawer controls work as expected.
             WebBrowserScreen(url = "http://www.zayacodehub.online/", modifier = Modifier.fillMaxSize(), showHeader = false)
         }
 
