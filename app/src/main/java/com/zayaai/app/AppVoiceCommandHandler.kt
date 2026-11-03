@@ -155,3 +155,4 @@ object AppVoiceCommandHandler {
         return null
     }
 }
+
