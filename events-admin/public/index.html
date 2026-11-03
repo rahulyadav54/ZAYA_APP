@@ -1752,7 +1752,13 @@
 
       teams.forEach(t => {
         const domain = t.domain || t.customDomain || 'General Track';
-        const membersCount = t.teamMembersDetails ? (1 + t.teamMembersDetails.length) : (t.teamMembers ? t.teamMembers.length : 1);
+        const leaderEmail = (t.userEmail || '').trim().toLowerCase();
+        const otherMembers = (t.teamMembersDetails || []).filter(m => {
+          const isLeaderRole = (m.role || '').toLowerCase() === 'leader';
+          const isSameEmail = m.email && m.email.trim().toLowerCase() === leaderEmail;
+          return !isLeaderRole && !isSameEmail;
+        });
+        const membersCount = t.teamMembersDetails ? (1 + otherMembers.length) : (t.teamMembers ? t.teamMembers.length : 1);
         const isCheckedIn = t.attended === true;
 
         grid.innerHTML += `
@@ -1807,7 +1813,13 @@
       document.getElementById('dossier-status').innerText = t.attended ? 'Checked In' : (t.status || 'Approved');
       document.getElementById('dossier-status').className = `px-3 py-1 rounded-full text-xs font-bold ${t.attended ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`;
       
-      const count = t.teamMembersDetails ? (1 + t.teamMembersDetails.length) : 1;
+      const lEmail = (t.userEmail || '').trim().toLowerCase();
+      const dossierOtherMembers = (t.teamMembersDetails || []).filter(m => {
+        const isLeaderRole = (m.role || '').toLowerCase() === 'leader';
+        const isSameEmail = m.email && m.email.trim().toLowerCase() === lEmail;
+        return !isLeaderRole && !isSameEmail;
+      });
+      const count = 1 + dossierOtherMembers.length;
       document.getElementById('dossier-size').innerText = `${count} Total Members`;
 
       // Project Concept
@@ -1847,8 +1859,8 @@
       `;
 
       // Other Members
-      if (t.teamMembersDetails && t.teamMembersDetails.length > 0) {
-        t.teamMembersDetails.forEach((m, idx) => {
+      if (dossierOtherMembers && dossierOtherMembers.length > 0) {
+        dossierOtherMembers.forEach((m, idx) => {
           mList.innerHTML += `
             <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
               <div class="flex items-center justify-between">
@@ -1887,8 +1899,15 @@
         const year = t.yearOfStudy || '';
         const proj = (t.projectTitle || '').replace(/"/g, '""');
         const stack = (t.techStack || '').replace(/"/g, '""');
-        const mCount = t.teamMembersDetails ? (1 + t.teamMembersDetails.length) : (t.teamMembers ? t.teamMembers.length : 1);
-        const membersList = (t.teamMembers || []).join('; ').replace(/"/g, '""');
+        const csvLeaderEmail = (t.userEmail || '').trim().toLowerCase();
+        const csvOtherMembers = (t.teamMembersDetails || []).filter(m => {
+          const isLeaderRole = (m.role || '').toLowerCase() === 'leader';
+          const isSameEmail = m.email && m.email.trim().toLowerCase() === csvLeaderEmail;
+          return !isLeaderRole && !isSameEmail;
+        });
+        const mCount = 1 + csvOtherMembers.length;
+        const distinctNames = [t.userName, ...csvOtherMembers.map(m => m.name)].filter(Boolean);
+        const membersList = distinctNames.join('; ').replace(/"/g, '""');
         const status = t.attended ? 'Checked In' : (t.status || 'Approved');
         csv += `"${t.teamName || ''}","${t.teamCode || ''}","${t.eventTitle}","${dom}","${leader}","${email}","${phone}","${col}","${dept}","${year}","${proj}","${stack}","${mCount}","${membersList}","${status}"\n`;
       });
