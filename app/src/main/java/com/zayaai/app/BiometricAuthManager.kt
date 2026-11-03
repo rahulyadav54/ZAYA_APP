@@ -1,15 +1,30 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.content.Context
+import android.content.ContextWrapper
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
+/**
+ * Extension to safely resolve FragmentActivity from Compose Context
+ */
+fun Context.findFragmentActivity(): FragmentActivity? {
+    var ctx: Context? = this
+    while (ctx is ContextWrapper) {
+        if (ctx is FragmentActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
 class BiometricAuthManager(private val context: Context) {
 
-    // The authenticators we want: fingerprint/face + device PIN/pattern/password
-    private val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or
+    private val strongWithCredential = BiometricManager.Authenticators.BIOMETRIC_STRONG or
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
+    private val weakWithCredential = BiometricManager.Authenticators.BIOMETRIC_WEAK or
             BiometricManager.Authenticators.DEVICE_CREDENTIAL
 
     /**
@@ -17,8 +32,11 @@ class BiometricAuthManager(private val context: Context) {
      */
     fun isBiometricAvailable(): Boolean {
         val biometricManager = BiometricManager.from(context)
-        val result = biometricManager.canAuthenticate(authenticators)
-        return result == BiometricManager.BIOMETRIC_SUCCESS
+        if (biometricManager.canAuthenticate(strongWithCredential) == BiometricManager.BIOMETRIC_SUCCESS) return true
+        if (biometricManager.canAuthenticate(weakWithCredential) == BiometricManager.BIOMETRIC_SUCCESS) return true
+        if (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS) return true
+        if (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS) return true
+        return false
     }
 
     /**
@@ -26,12 +44,12 @@ class BiometricAuthManager(private val context: Context) {
      */
     fun hasBiometricEnrolled(): Boolean {
         val biometricManager = BiometricManager.from(context)
-        return biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
+        return biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS ||
+               biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
     }
 
     /**
-     * Show the system biometric prompt. Falls back to device credential (PIN/pattern/password)
-     * which is the same as the mobile lock screen.
+     * Show the system biometric prompt.
      */
     fun showBiometricPrompt(
         activity: FragmentActivity,
@@ -39,6 +57,7 @@ class BiometricAuthManager(private val context: Context) {
         onError: (String) -> Unit
     ) {
         val executor = ContextCompat.getMainExecutor(context)
+        val biometricManager = BiometricManager.from(context)
 
         val callback = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -65,15 +84,24 @@ class BiometricAuthManager(private val context: Context) {
 
         val biometricPrompt = BiometricPrompt(activity, executor, callback)
 
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+        val builder = BiometricPrompt.PromptInfo.Builder()
             .setTitle("AI ZAYA Secure Access")
             .setSubtitle("Verify your identity to unlock")
-            .setAllowedAuthenticators(authenticators)
-            // NOTE: Do NOT set setNegativeButtonText() when DEVICE_CREDENTIAL is included.
-            // The system automatically provides a "Use PIN" / "Use password" fallback.
-            .build()
 
-        biometricPrompt.authenticate(promptInfo)
+        // Determine best supported authenticators
+        if (biometricManager.canAuthenticate(strongWithCredential) == BiometricManager.BIOMETRIC_SUCCESS) {
+            builder.setAllowedAuthenticators(strongWithCredential)
+        } else if (biometricManager.canAuthenticate(weakWithCredential) == BiometricManager.BIOMETRIC_SUCCESS) {
+            builder.setAllowedAuthenticators(weakWithCredential)
+        } else {
+            builder.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            builder.setNegativeButtonText("Cancel")
+        }
+
+        try {
+            biometricPrompt.authenticate(builder.build())
+        } catch (e: Exception) {
+            onError(e.localizedMessage ?: "Authentication failed to start")
+        }
     }
 }
-

@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -48,7 +48,7 @@ fun AppLockScreen(
     // Auto-launch fingerprint — keyed on lockType so it fires when settings actually load
     LaunchedEffect(settings.lockType) {
         if (isBiometricAvailable && isFingerprintMode) {
-            val activity = context as? FragmentActivity
+            val activity = context.findFragmentActivity()
             if (activity != null) {
                 biometricManager.showBiometricPrompt(
                     activity = activity,
@@ -127,7 +127,7 @@ fun AppLockScreen(
                 if (isFingerprintOnly && isBiometricAvailable) {
                     Button(
                         onClick = {
-                            val activity = context as? FragmentActivity
+                            val activity = context.findFragmentActivity()
                             if (activity != null) {
                                 biometricManager.showBiometricPrompt(
                                     activity = activity,
@@ -259,7 +259,7 @@ fun AppLockScreen(
 
                         OutlinedButton(
                             onClick = {
-                                val activity = context as? FragmentActivity
+                                val activity = context.findFragmentActivity()
                                 if (activity != null) {
                                     biometricManager.showBiometricPrompt(
                                         activity = activity,
