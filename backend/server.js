@@ -32,6 +32,9 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(cors());
 
+// Serve Events Hub Organizer Web Portal
+app.use('/events-admin', express.static(path.join(__dirname, '../events-admin')));
+
 // In-memory rate limiting fallback
 const memoryUserLimits = new Map();
 

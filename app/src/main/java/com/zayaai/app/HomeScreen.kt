@@ -37,13 +37,15 @@ import com.zayaai.app.ads.BannerAdCard
 import com.zayaai.app.ui.theme.*
 
 // ─── Tool Item Model for 3-Column Grid ───
+@Immutable
 data class RedesignToolItem(
     val id: String,
     val title: String,
     val icon: ImageVector,
     val category: String,
     val gradientColors: List<Color>,
-    val route: String
+    val route: String,
+    val brush: Brush = Brush.linearGradient(gradientColors)
 )
 
 @Composable
@@ -195,7 +197,8 @@ fun HomeScreen(
             }
             items(
                 items = aiToolRows,
-                key = { row -> "ai_row_" + row.joinToString("-") { it.id } }
+                key = { row -> "ai_row_" + row.joinToString("-") { it.id } },
+                contentType = { "tool_row" }
             ) { rowTools ->
                 ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
@@ -214,7 +217,8 @@ fun HomeScreen(
             }
             items(
                 items = studentToolRows,
-                key = { row -> "student_row_" + row.joinToString("-") { it.id } }
+                key = { row -> "student_row_" + row.joinToString("-") { it.id } },
+                contentType = { "tool_row" }
             ) { rowTools ->
                 ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
@@ -233,7 +237,8 @@ fun HomeScreen(
             }
             items(
                 items = productivityToolRows,
-                key = { row -> "prod_row_" + row.joinToString("-") { it.id } }
+                key = { row -> "prod_row_" + row.joinToString("-") { it.id } },
+                contentType = { "tool_row" }
             ) { rowTools ->
                 ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
@@ -252,7 +257,8 @@ fun HomeScreen(
             }
             items(
                 items = creativeToolRows,
-                key = { row -> "creative_row_" + row.joinToString("-") { it.id } }
+                key = { row -> "creative_row_" + row.joinToString("-") { it.id } },
+                contentType = { "tool_row" }
             ) { rowTools ->
                 ToolGridRow(rowTools = rowTools, onToolClick = onToolClick)
             }
@@ -564,16 +570,12 @@ private fun RedesignToolCard(
             width = 1.dp,
             color = if (isDark) DarkBorder else LightBorder
         ),
-        shadowElevation = if (isDark) 0.dp else 2.dp,
+        shadowElevation = if (isDark) 0.dp else 1.5.dp,
         modifier = Modifier
             .fillMaxWidth()
             .height(108.dp)
             .clip(RoundedCornerShape(18.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(),
-                onClick = onClick
-            )
+            .clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier
@@ -582,12 +584,12 @@ private fun RedesignToolCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Icon Container (46dp x 46dp Rounded Square with Gradient)
+            // Icon Container (46dp x 46dp Rounded Square with Precomputed Gradient Brush)
             Box(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(brush = Brush.linearGradient(tool.gradientColors)),
+                    .background(brush = tool.brush),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
