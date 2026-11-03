@@ -8,7 +8,7 @@ import androidx.compose.ui.res.painterResource
 
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -49,13 +49,13 @@ import com.zayaai.app.ads.AdMobManager
 import com.zayaai.app.ads.AppOpenAdManager
 import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        try {
+            enableEdgeToEdge()
+        } catch (_: Exception) {}
         super.onCreate(savedInstanceState)
-        FirebaseApp.initializeApp(this)
-        AdMobManager.initializeWithConsent(this)
-        enableEdgeToEdge()
         setContent {
             val context = LocalContext.current
 
@@ -146,8 +146,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        window.decorView.post {
+            try {
+                AdMobManager.initializeWithConsent(this)
+            } catch (e: Exception) {
+                android.util.Log.w("MainActivity", "AdMob consent init error", e)
+            }
+        }
     }
 }
+
 
 @Composable
 fun MainAppScaffold(
