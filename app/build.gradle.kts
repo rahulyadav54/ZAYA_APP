@@ -34,9 +34,9 @@ android {
         applicationId = "com.zayaai.app"
         minSdk = 25
         targetSdk = 36
-        // Bump versionCode for Play Store uploads (Submission 11 was 2.2.4).
-        versionCode = 16
-        versionName = "2.3.0"
+        // Bump versionCode for Play Store updates
+        versionCode = 17
+        versionName = "2.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
