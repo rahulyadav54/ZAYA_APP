@@ -837,7 +837,9 @@ fun SettingsScreen(
                         "3. Hackathons & Events Data:\n" +
                         "Event registrations, team rosters, and certificate verifications are synchronized via Cloud Firestore rules enforcing ownership and administrative access checks.\n\n" +
                         "4. Device Permissions:\n" +
-                        "Microphone access is used solely for voice assistant interaction with your active initiation. Camera access is used solely for document analysis and QR attendance scanning.",
+                        "Microphone access is used solely for voice assistant interaction with your active initiation. Camera access is used solely for document analysis and QR attendance scanning.\n\n" +
+                        "5. AI Content Safety & In-App Reporting:\n" +
+                        "AI ZAYA adheres strictly to Google Play policies on AI-Generated Content and User Safety. All prompts and outputs are screened against multi-layered safety guardrails. Generation or solicitation of sexually explicit content, nudity, clothing removal/nudification, sexual deepfakes, or harassment is strictly prohibited. Every AI chat response and generated image provides a direct in-app Report button for immediate reporting, automated removal, and human review.",
                         style = MaterialTheme.typography.bodySmall,
                         lineHeight = 18.sp
                     )
@@ -862,10 +864,12 @@ fun SettingsScreen(
                         "AI ZAYA Terms of Service\n\n" +
                         "1. Acceptable Use:\n" +
                         "Users agree to use AI ZAYA for legitimate educational, productivity, and hackathon participation purposes.\n\n" +
-                        "2. Team & Event Registrations:\n" +
+                        "2. AI Content Policy & Prohibited Conduct:\n" +
+                        "Users may NOT use AI ZAYA to generate, request, or distribute sexually explicit material, non-consensual nudity, sexualized deepfakes, depictions of sexual violence, or illegal content. Violations result in immediate access termination.\n\n" +
+                        "3. Team & Event Registrations:\n" +
                         "All details submitted during hackathon and event registrations must be truthful and accurate. Misrepresentation of team members is prohibited.\n\n" +
-                        "3. AI Generation Content:\n" +
-                        "AI ZAYA assists in study planning, coding, and document analysis. Users should verify technical solutions before submitting for academic evaluations.",
+                        "4. AI Generation Disclaimers & Moderation:\n" +
+                        "AI ZAYA assists in study planning, coding, and creative design. Content is subject to automated moderation. Users can flag and report inappropriate outputs directly in the interface.",
                         style = MaterialTheme.typography.bodySmall,
                         lineHeight = 18.sp
                     )

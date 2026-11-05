@@ -299,7 +299,7 @@ fun NavigationGraph(
         }
 
         composable(Screen.WebBrowser.route) {
-            WebBrowserScreen(url = "http://www.zayacodehub.online/", modifier = Modifier.fillMaxSize(), showHeader = false)
+            WebBrowserScreen(url = "https://www.zayacodehub.online/", modifier = Modifier.fillMaxSize(), showHeader = false)
         }
 
         // ——— Brain Games ———

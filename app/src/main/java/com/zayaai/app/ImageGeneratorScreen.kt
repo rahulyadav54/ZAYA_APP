@@ -1,7 +1,8 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.graphics.BitmapFactory
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,9 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +32,7 @@ import com.zayaai.app.ui.theme.NeonPurple
 fun ImageGeneratorScreen(viewModel: ImageGeneratorViewModel, paddingValues: PaddingValues) {
     val context = LocalContext.current
     var prompt by remember { mutableStateOf("") }
+    var showReportDialog by remember { mutableStateOf(false) }
     val isDark = LocalIsDarkTheme.current
 
     // Convert raw bytes to ImageBitmap for display
@@ -42,6 +42,19 @@ fun ImageGeneratorScreen(viewModel: ImageGeneratorViewModel, paddingValues: Padd
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
             } catch (_: Exception) { null }
         }
+    }
+
+    // In-App Reporting Dialog (Mandated by Google Play AI Policy)
+    if (showReportDialog) {
+        ReportContentDialog(
+            contentSnippet = viewModel.lastPrompt,
+            contentType = "Image",
+            onDismiss = { showReportDialog = false },
+            onSubmitReport = { reason, details ->
+                viewModel.submitReport(reason, details)
+                showReportDialog = false
+            }
+        )
     }
 
     Column(
@@ -63,7 +76,7 @@ fun ImageGeneratorScreen(viewModel: ImageGeneratorViewModel, paddingValues: Padd
             onValueChange = { prompt = it },
             placeholder = {
                 Text(
-                    "Describe the image (e.g. A sunset over mountains, cinematic lighting...)",
+                    "Describe the image (e.g. A sunset over mountains, futuristic city...)",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
@@ -81,7 +94,16 @@ fun ImageGeneratorScreen(viewModel: ImageGeneratorViewModel, paddingValues: Padd
             )
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Community Policy Note
+        Text(
+            "Family-friendly & educational. Sexually explicit content and nudity are strictly prohibited.",
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+        )
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         // Generate / Cancel buttons
         if (viewModel.isImageLoading) {
@@ -122,20 +144,24 @@ fun ImageGeneratorScreen(viewModel: ImageGeneratorViewModel, paddingValues: Padd
             ImageLoadingCard(status = viewModel.loadingStatus)
         }
 
-        // Error message
+        // Error message (Safety rejection / connection error)
         if (viewModel.errorMessage.isNotBlank() && !viewModel.isImageLoading) {
             Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0x33FF5252), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
+                    .padding(14.dp)
             ) {
-                Text(
-                    viewModel.errorMessage,
-                    color = Color(0xFFFF5252),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Warning, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        viewModel.errorMessage,
+                        color = Color(0xFFFF5252),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
@@ -149,17 +175,67 @@ fun ImageGeneratorScreen(viewModel: ImageGeneratorViewModel, paddingValues: Padd
             }
         }
 
+        // Report feedback notice
+        if (viewModel.isReported) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Surface(
+                color = Color(0xFF10B981).copy(alpha = 0.15f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        viewModel.reportFeedback,
+                        color = Color(0xFF10B981),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
         // Generated image display
         if (imageBitmap != null && !viewModel.isImageLoading) {
             Spacer(modifier = Modifier.height(28.dp))
-            Text(
-                "Generated Image",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (isDark) NeonCyan else MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Generated Image",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) NeonCyan else MaterialTheme.colorScheme.primary
+                )
 
-            // Display the image directly from bytes — no network loading needed
+                // Visible In-App Report Button (Google Play Policy Compliance)
+                TextButton(
+                    onClick = { showReportDialog = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Flag,
+                        contentDescription = "Report Image",
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Report",
+                        color = Color(0xFFEF4444),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Display the image directly from bytes
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -264,34 +340,29 @@ private fun ImageLoadingCard(status: String) {
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CircularProgressIndicator(
                 color = NeonCyan,
                 strokeWidth = 3.dp,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(36.dp)
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${status.ifBlank { "Generating image" }}$dots",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = if (elapsedSeconds < 5) "This usually takes 10-30 seconds"
-                           else "${elapsedSeconds}s elapsed",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "$status$dots",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "${elapsedSeconds}s elapsed",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
-

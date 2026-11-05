@@ -49,6 +49,21 @@ fun ChatScreen(viewModel: ChatViewModel, paddingValues: PaddingValues) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    var messageToReport by remember { mutableStateOf<Message?>(null) }
+
+    if (messageToReport != null) {
+        val msg = messageToReport!!
+        ReportContentDialog(
+            contentSnippet = msg.text,
+            contentType = "AI Message",
+            onDismiss = { messageToReport = null },
+            onSubmitReport = { reason, details ->
+                viewModel.reportMessage(msg, reason, details)
+                android.widget.Toast.makeText(context, "Thank you. Report submitted for safety review.", android.widget.Toast.LENGTH_SHORT).show()
+                messageToReport = null
+            }
+        )
+    }
 
     // ─── Attachment State ───
     var pendingAttachmentUri by remember { mutableStateOf<Uri?>(null) }
@@ -171,7 +186,8 @@ fun ChatScreen(viewModel: ChatViewModel, paddingValues: PaddingValues) {
                             type = "text/plain"
                         }
                         context.startActivity(android.content.Intent.createChooser(shareIntent, "Share AI ZAYA Response"))
-                    }
+                    },
+                    onReportMessage = { msg -> messageToReport = msg }
                 )
             }
 
@@ -454,7 +470,8 @@ fun ChatMessageBubble(
     onSpeakMessage: (String) -> Unit = {},
     onStopSpeaking: () -> Unit = {},
     onRegenerate: () -> Unit = {},
-    onShareMessage: (String) -> Unit = {}
+    onShareMessage: (String) -> Unit = {},
+    onReportMessage: ((Message) -> Unit)? = null
 ) {
     val isUser = message.isUser
     val context = LocalContext.current
@@ -681,6 +698,21 @@ fun ChatMessageBubble(
                                         tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                         modifier = Modifier.size(16.dp)
                                     )
+                                }
+
+                                // 5. Report Inappropriate Content (Google Play AI Policy Mandate)
+                                if (onReportMessage != null) {
+                                    IconButton(
+                                        onClick = { onReportMessage(message) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Flag,
+                                            contentDescription = "Report Inappropriate Response",
+                                            tint = if (isDark) Color(0xFFF87171) else Color(0xFFEF4444),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 }
                             }
 

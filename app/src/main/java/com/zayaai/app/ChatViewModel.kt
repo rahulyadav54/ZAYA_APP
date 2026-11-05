@@ -2,6 +2,7 @@ package com.zayaai.app
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -511,5 +512,29 @@ Together, they drive the vision, development, and operations of ZAYA CODE HUB!""
         stopGeneration()
         _messages.clear()
         startNewChat()
+    }
+
+    /**
+     * Submit an in-app report for inappropriate or offensive AI-generated content.
+     * Complies with Google Play AI-Generated Content Policy.
+     */
+    fun reportMessage(message: Message, reason: String, details: String) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val msgId = "msg_${message.timestamp}"
+                    AIService.submitReport(
+                        contentId = msgId,
+                        contentType = "text",
+                        snippet = message.text.take(300),
+                        reason = reason,
+                        details = details,
+                        userId = auth.currentUser?.uid ?: "anonymous"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("ChatViewModel", "Report submit error: ${e.message}")
+            }
+        }
     }
 }
