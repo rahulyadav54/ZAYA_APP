@@ -35,8 +35,8 @@ android {
         minSdk = 25
         targetSdk = 36
         // Bump versionCode for Play Store updates
-        versionCode = 18
-        versionName = "2.4.1"
+        versionCode = 20
+        versionName = "2.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
