@@ -52,18 +52,11 @@ fun VoiceAssistantScreen(
     val config = remember(voiceState) { VoiceAnimations.configFor(voiceState) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    val isBgRunning by viewModel.isBackgroundRunning.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) viewModel.startListening()
-    }
-
-    val notifPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        viewModel.toggleBackgroundService(context)
     }
 
     LaunchedEffect(navController, onNavigate, onGoBack) {
@@ -230,47 +223,6 @@ fun VoiceAssistantScreen(
                                 letterSpacing = 1.sp
                             ),
                             color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF1E293B)
-                        )
-                    }
-                }
-            }
-
-            // ── Background Mode Indicator ──
-            AnimatedVisibility(
-                visible = isBgRunning,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Surface(
-                    color = Color(0xFF10B981).copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
-                    modifier = Modifier.padding(top = 6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .background(Color(0xFF10B981), CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "Background Active",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
-                            color = Color(0xFF10B981)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            "Stop",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Black),
-                            color = Color(0xFFEF4444),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .clickable { viewModel.toggleBackgroundService(context) }
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -527,20 +479,6 @@ fun VoiceAssistantScreen(
                     label = if (viewModel.isContinuousMode) "Auto ON" else "Auto OFF",
                     isActive = viewModel.isContinuousMode,
                     onClick = { viewModel.toggleContinuousMode() }
-                )
-
-                // Background Service toggle
-                BottomControlButton(
-                    icon = Icons.Rounded.Headphones,
-                    label = if (isBgRunning) "BG ON" else "BG OFF",
-                    isActive = isBgRunning,
-                    onClick = {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            viewModel.toggleBackgroundService(context)
-                        }
-                    }
                 )
             }
 

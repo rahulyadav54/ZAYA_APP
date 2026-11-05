@@ -49,17 +49,6 @@ class VoiceViewModel(context: Context, private val repository: AiZayaRepository)
         isToolsControlMode = !isToolsControlMode
     }
 
-    // Background service status
-    val isBackgroundRunning: StateFlow<Boolean> = VoiceAssistantService.isRunning
-
-    fun toggleBackgroundService(context: Context) {
-        if (isBackgroundRunning.value) {
-            VoiceAssistantService.stop(context)
-        } else {
-            VoiceAssistantService.start(context)
-        }
-    }
-
     // Navigation callbacks to control in-app screens
     var onNavigateAction: ((String) -> Unit)? = null
     var onGoBackAction: (() -> Unit)? = null
