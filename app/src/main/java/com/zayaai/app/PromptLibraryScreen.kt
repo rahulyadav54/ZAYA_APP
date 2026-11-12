@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -98,7 +98,7 @@ private fun getPromptCategories(): List<PromptCategory> = listOf(
         icon = Icons.Rounded.Palette,
         color = Color(0xFFE040FB),
         prompts = listOf(
-            PromptItem("Image Prompt", "Create a detailed image generation prompt for: [DESCRIPTION]. Include art style, lighting, mood, color palette, composition, and technical specifications. Make it vivid and specific.", "AI image prompts"),
+            PromptItem("Creative Concept", "Help me brainstorm a vivid visual concept and artistic theme for: [TOPIC]. Include color palette, mood, composition ideas, and creative direction.", "Visual & creative concepts"),
             PromptItem("Brainstorm Ideas", "Generate 20 creative and unique ideas for [PROJECT/TOPIC]. Think outside the box. For each idea, provide a brief description and potential impact. Rank them by feasibility.", "Creative brainstorming"),
             PromptItem("Song Lyrics", "Write original song lyrics about [THEME] in the style of [GENRE]. Include verse, chorus, bridge structure. Use vivid imagery, metaphors, and emotional resonance.", "Songwriting assistance"),
             PromptItem("Video Script", "Write a compelling video script for a [DURATION]-minute video about [TOPIC]. Include hook, intro, main content sections, transitions, call-to-action, and visual/audio cues.", "Video content creation"),

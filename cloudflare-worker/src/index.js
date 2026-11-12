@@ -370,8 +370,8 @@ export default {
       });
     }
 
-    // ─── 8. Server-Side Moderated Image Generation Gateway ───
-    if (url.pathname === '/api/image-generate' && request.method === 'POST') {
+    // ─── 8. Image Generation Gateway (TEMPORARILY DISABLED) ───
+    if (url.pathname.startsWith('/api/image')) {
       return handleImageGenerate(request);
     }
 
@@ -450,57 +450,24 @@ async function handleReportSubmission(request) {
 }
 
 /**
- * Handle Server-Side Moderated Image Generation.
- * Strictly checks prompts against sexual content, nudity, and clothing removal.
+ * Handle Server-Side Image Generation Gateway.
+ * TEMPORARILY DISABLED: All image generation, regeneration, editing, and fallback routes
+ * are completely deactivated while comprehensive safety and moderation systems are upgraded.
+ * Returns HTTP 503 Feature Disabled.
  */
 async function handleImageGenerate(request) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON request format.' }), {
-      status: 400,
-      headers: JSON_HEADERS
-    });
-  }
-
-  const prompt = (body.prompt || '').trim();
-  if (!prompt) {
-    return new Response(JSON.stringify({ error: 'Image prompt is required.' }), {
-      status: 400,
-      headers: JSON_HEADERS
-    });
-  }
-
-  // 1. Run Content Moderation Check on Prompt
-  const moderation = moderateContent(prompt);
-  if (!moderation.safe) {
-    return new Response(JSON.stringify({
-      error: `Safety Policy Violation: Cannot generate image. ${moderation.message}`,
-      category: moderation.category,
-      safe: false
-    }), {
-      status: 400,
-      headers: JSON_HEADERS
-    });
-  }
-
-  // 2. Build Safe Sanitized Image URL with Negative Prompting & Family-Friendly Constraints
-  const sanitizedPrompt = encodeURIComponent(prompt);
-  const seed = Math.floor(Math.random() * 1000000);
-  const ts = Date.now();
-
-  // Enforce safe search parameters
-  const safeImageUrl = `https://image.pollinations.ai/prompt/${sanitizedPrompt}?width=512&height=512&nologo=true&seed=${seed}&t=${ts}&safe=true`;
-
   return new Response(JSON.stringify({
-    success: true,
-    imageUrl: safeImageUrl,
-    prompt,
-    safe: true,
-    moderationStatus: 'APPROVED'
+    success: false,
+    disabled: true,
+    code: 'FEATURE_TEMPORARILY_DISABLED',
+    error: 'Image creation is temporarily disabled in AI ZAYA while we upgrade our safety and moderation systems. This feature will be available in a future update.',
+    message: 'We are working on a safer and more powerful image creation experience.'
   }), {
-    headers: JSON_HEADERS
+    status: 503,
+    headers: {
+      ...JSON_HEADERS,
+      'Retry-After': '86400'
+    }
   });
 }
 

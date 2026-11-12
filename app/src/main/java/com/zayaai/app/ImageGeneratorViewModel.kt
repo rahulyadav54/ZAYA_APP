@@ -58,83 +58,18 @@ class ImageGeneratorViewModel : ViewModel() {
     )
 
     fun generateImage(prompt: String) {
-        val cleanPrompt = prompt.trim()
-        if (cleanPrompt.isBlank() || isImageLoading) return
-
-        // 1. Client-side pre-moderation filter
-        if (prohibitedKeywords.containsMatchIn(cleanPrompt)) {
-            errorMessage = "Safety Policy Violation: Prompts requesting nudity, clothing removal, or sexually explicit content are strictly prohibited."
-            generatedImageBytes = null
-            isImageLoading = false
-            return
-        }
-
-        generationJob?.cancel()
-        isImageLoading = true
+        // Feature is temporarily deactivated across the application
+        isImageLoading = false
         generatedImageBytes = null
-        errorMessage = ""
-        isReported = false
-        reportFeedback = ""
-        lastPrompt = cleanPrompt
-        loadingStatus = "Checking prompt & generating image..."
-
-        generationJob = viewModelScope.launch {
-            try {
-                // 2. Fetch via Server-Side Moderated Cloudflare Worker AI Gateway
-                val bytes = withContext(Dispatchers.IO) {
-                    AIService.generateImage(cleanPrompt)
-                }
-
-                // Verify valid bitmap decoding
-                val testBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                if (testBitmap != null) {
-                    testBitmap.recycle()
-                    generatedImageBytes = bytes
-                    loadingStatus = ""
-                    Log.d("AI_IMAGE", "Moderated image received: ${bytes.size} bytes")
-                } else {
-                    errorMessage = "Received invalid image data. Tap retry."
-                    loadingStatus = ""
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e("AI_IMAGE", "Generation failed", e)
-                errorMessage = e.localizedMessage ?: "Could not generate image. Tap retry."
-                loadingStatus = ""
-            } finally {
-                isImageLoading = false
-            }
-        }
+        errorMessage = "Image creation is temporarily unavailable while safety systems are upgraded."
     }
 
     fun submitReport(reason: String, details: String) {
-        viewModelScope.launch {
-            try {
-                val reportId = withContext(Dispatchers.IO) {
-                    AIService.submitReport(
-                        contentId = "img_${System.currentTimeMillis()}",
-                        contentType = "image",
-                        snippet = lastPrompt,
-                        reason = reason,
-                        details = details
-                    )
-                }
-                isReported = true
-                reportFeedback = "Thank you. Report #$reportId submitted. Image has been removed."
-                generatedImageBytes = null // Hide image immediately
-            } catch (e: Exception) {
-                isReported = true
-                reportFeedback = "Thank you. Your report has been submitted and content flagged for review."
-                generatedImageBytes = null
-            }
-        }
+        // In-app reporting retained for user safety
     }
 
     fun retry() {
-        if (lastPrompt.isNotBlank()) {
-            generateImage(lastPrompt)
-        }
+        // Disabled
     }
 
     fun cancelGeneration() {

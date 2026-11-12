@@ -513,55 +513,11 @@ object AIService {
     }
 
     /**
-     * Request a server-side moderated AI image.
-     * Enforces strict Google Play safety policies against sexual content, nudity, and clothing removal.
+     * Request an AI image.
+     * TEMPORARILY DISABLED: Feature is deactivated across the application while comprehensive safety and moderation systems are upgraded.
      */
     suspend fun generateImage(prompt: String): ByteArray = withContext(Dispatchers.IO) {
-        val url = "${backendBaseUrl}api/image-generate"
-        val payload = JSONObject().apply {
-            put("prompt", prompt.trim())
-        }
-        val requestBody = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-        val request = Request.Builder()
-            .url(url)
-            .post(requestBody)
-            .header("Accept", "application/json")
-            .build()
-
-        val response = okHttpClient.newCall(request).execute()
-        response.use { resp ->
-            val bodyString = resp.body?.string() ?: ""
-            if (!resp.isSuccessful) {
-                val errorJson = try { JSONObject(bodyString) } catch (_: Exception) { null }
-                val errorMsg = errorJson?.optString("error") ?: "Image generation rejected (HTTP ${resp.code})"
-                throw IOException(errorMsg)
-            }
-
-            val json = JSONObject(bodyString)
-            val imageUrl = json.optString("imageUrl")
-            if (imageUrl.isBlank()) {
-                throw IOException("Server did not return a valid image URL")
-            }
-
-            // Fetch the image bytes from the verified safe URL
-            val imgReq = Request.Builder()
-                .url(imageUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AI_ZAYA_App")
-                .header("Accept", "image/*")
-                .build()
-
-            val imgResp = okHttpClient.newCall(imgReq).execute()
-            imgResp.use { iResp ->
-                if (!iResp.isSuccessful || iResp.body == null) {
-                    throw IOException("Failed to download generated image (HTTP ${iResp.code})")
-                }
-                val bytes = iResp.body!!.bytes()
-                if (bytes.size < 500) {
-                    throw IOException("Received invalid image data from server")
-                }
-                return@withContext bytes
-            }
-        }
+        throw IOException("Image creation is temporarily disabled in AI ZAYA while safety systems are upgraded.")
     }
 
     /**
