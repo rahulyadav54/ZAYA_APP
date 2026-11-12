@@ -106,74 +106,90 @@ fun BrandHeader(isDark: Boolean) {
 }
 
 /**
- * Diagnostic dialog shown if Google Sign-In needs SHA-1 added to Firebase Console
+ * Professional User-Facing Dialog displayed when Google Sign-In is unavailable.
+ * Completely free of any internal SHA fingerprints, Firebase project IDs, or developer instructions.
  */
 @Composable
-fun GoogleSignInConfigDialog(
-    onDismiss: () -> Unit
+fun GoogleSignInUnavailableDialog(
+    onDismiss: () -> Unit,
+    onTryAgain: () -> Unit,
+    onUseEmailLogin: () -> Unit
 ) {
-    val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
-    val sha1 = "1C:61:6C:8F:7A:AF:B0:2D:4D:B7:A5:63:BA:64:49:80:45:DE:DC:B9"
-
+    val isDark = LocalIsDarkTheme.current
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(20.dp),
+        containerColor = if (isDark) Color(0xFF141527) else Color.White,
         title = {
-            Text(
-                text = "Google Sign-In Setup Required",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color(0xFF0F172A)
-            )
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Firebase requires your app's SHA-1 signing fingerprint to be registered for Google OAuth:",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    color = Color(0xFF475569)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(
-                    color = Color(0xFFF1F5F9),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF7C3AED).copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = sha1,
-                        modifier = Modifier.padding(10.dp),
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        ),
-                        color = Color(0xFF6D28D9)
+                    Icon(
+                        imageVector = Icons.Rounded.Info,
+                        contentDescription = null,
+                        tint = Color(0xFF7C3AED),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "How to enable:\n1. Open Firebase Console (techeagle-5f574)\n2. Project Settings → com.zayaai.app\n3. Click 'Add fingerprint' and paste this SHA-1\n4. Re-open the app — Google Sign-In will connect!",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
-                    color = Color(0xFF64748B)
+                    text = "Google Sign-In temporarily unavailable",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
+        },
+        text = {
+            Text(
+                text = "We're experiencing a configuration issue with Google Sign-In. Please try again later or sign in using your email and password.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 13.5.sp,
+                    lineHeight = 20.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         },
         confirmButton = {
             Button(
                 onClick = {
-                    clipboardManager.setText(AnnotatedString(sha1))
-                    Toast.makeText(context, "SHA-1 fingerprint copied to clipboard!", Toast.LENGTH_SHORT).show()
                     onDismiss()
+                    onTryAgain()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
-                Text("Copy SHA-1", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Try Again",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Dismiss", color = Color(0xFF64748B))
+            OutlinedButton(
+                onClick = {
+                    onDismiss()
+                    onUseEmailLogin()
+                },
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF7C3AED).copy(alpha = 0.4f))
+            ) {
+                Text(
+                    text = "Use Email Login",
+                    color = Color(0xFF7C3AED),
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     )
@@ -332,11 +348,14 @@ fun AuthCapsuleButton(
 @Composable
 fun GoogleSignInButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isLoading: Boolean = false
 ) {
     val isDark = LocalIsDarkTheme.current
     Surface(
-        onClick = onClick,
+        onClick = { if (enabled && !isLoading) onClick() },
+        enabled = enabled && !isLoading,
         shape = RoundedCornerShape(12.dp),
         color = if (isDark) Color(0xFF1A162B) else Color.White,
         border = androidx.compose.foundation.BorderStroke(
@@ -353,20 +372,37 @@ fun GoogleSignInButton(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_google_g),
-                contentDescription = "Google Logo",
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Continue with Google",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                ),
-                color = if (isDark) Color.White else Color(0xFF1E293B)
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color(0xFF7C3AED),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Signing in with Google...",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    ),
+                    color = if (isDark) Color.White else Color(0xFF1E293B)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_google_g),
+                    contentDescription = "Google Logo",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Continue with Google",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    ),
+                    color = if (isDark) Color.White else Color(0xFF1E293B)
+                )
+            }
         }
     }
 }
@@ -388,7 +424,7 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(true) }
-    var showSha1Dialog by remember { mutableStateOf(false) }
+    var showUnavailableDialog by remember { mutableStateOf(false) }
 
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
@@ -416,8 +452,9 @@ fun LoginScreen(
                 }
             } catch (e: ApiException) {
                 when (e.statusCode) {
-                    10 -> { // DEVELOPER_ERROR (SHA-1 fingerprint not in Firebase Console)
-                        showSha1Dialog = true
+                    10, 12500 -> { // DEVELOPER_ERROR / CONFIG_ERROR
+                        android.util.Log.e("AuthScreens", "Google Sign-In configuration error (${e.statusCode}): ${e.message}")
+                        showUnavailableDialog = true
                     }
                     12501 -> { // SIGN_IN_CANCELLED by user
                         Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
@@ -425,14 +462,13 @@ fun LoginScreen(
                     7 -> { // NETWORK_ERROR
                         Toast.makeText(context, "Network error. Please check your internet connection.", Toast.LENGTH_LONG).show()
                     }
-                    12500 -> { // SIGN_IN_FAILED
-                        Toast.makeText(context, "Google Sign-In failed (Code 12500). Please check Firebase support email & configuration.", Toast.LENGTH_LONG).show()
-                    }
                     else -> {
+                        android.util.Log.e("AuthScreens", "Google Sign-In error (${e.statusCode}): ${e.message}")
                         Toast.makeText(context, "Google Sign-In (${e.statusCode}): ${e.localizedMessage ?: "Please try again"}", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("AuthScreens", "Google Sign-In exception: ${e.message}")
                 Toast.makeText(context, "Google Sign-In error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         } else {
@@ -440,8 +476,23 @@ fun LoginScreen(
         }
     }
 
-    if (showSha1Dialog) {
-        GoogleSignInConfigDialog(onDismiss = { showSha1Dialog = false })
+    if (showUnavailableDialog) {
+        GoogleSignInUnavailableDialog(
+            onDismiss = { showUnavailableDialog = false },
+            onTryAgain = {
+                if (!authViewModel.isLoading) {
+                    try {
+                        val intent = authViewModel.getGoogleSignInIntent()
+                        googleSignInLauncher.launch(intent)
+                    } catch (ex: Exception) {
+                        Toast.makeText(context, "Google Sign-In: ${ex.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onUseEmailLogin = {
+                emailFocus.requestFocus()
+            }
+        )
     }
 
     Box(
@@ -618,13 +669,16 @@ fun LoginScreen(
             // Google Sign-In Button
             GoogleSignInButton(
                 onClick = {
+                    if (authViewModel.isLoading) return@GoogleSignInButton
                     try {
                         val intent = authViewModel.getGoogleSignInIntent()
                         googleSignInLauncher.launch(intent)
                     } catch (e: Exception) {
                         Toast.makeText(context, "Google Sign-In: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
-                }
+                },
+                enabled = !authViewModel.isLoading,
+                isLoading = authViewModel.isLoading
             )
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -686,7 +740,7 @@ fun RegistrationScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var showSha1Dialog by remember { mutableStateOf(false) }
+    var showUnavailableDialog by remember { mutableStateOf(false) }
 
     val nameFocus = remember { FocusRequester() }
     val emailFocus = remember { FocusRequester() }
@@ -716,8 +770,9 @@ fun RegistrationScreen(
                 }
             } catch (e: ApiException) {
                 when (e.statusCode) {
-                    10 -> { // DEVELOPER_ERROR
-                        showSha1Dialog = true
+                    10, 12500 -> { // DEVELOPER_ERROR / CONFIG_ERROR
+                        android.util.Log.e("AuthScreens", "Google Sign-In configuration error (${e.statusCode}): ${e.message}")
+                        showUnavailableDialog = true
                     }
                     12501 -> { // SIGN_IN_CANCELLED by user
                         Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
@@ -725,14 +780,13 @@ fun RegistrationScreen(
                     7 -> { // NETWORK_ERROR
                         Toast.makeText(context, "Network error. Please check your internet connection.", Toast.LENGTH_LONG).show()
                     }
-                    12500 -> { // SIGN_IN_FAILED
-                        Toast.makeText(context, "Google Sign-In failed (Code 12500). Please check Firebase configuration.", Toast.LENGTH_LONG).show()
-                    }
                     else -> {
+                        android.util.Log.e("AuthScreens", "Google Sign-In error (${e.statusCode}): ${e.message}")
                         Toast.makeText(context, "Google Sign-In (${e.statusCode}): ${e.localizedMessage ?: "Please try again"}", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("AuthScreens", "Google Sign-In exception: ${e.message}")
                 Toast.makeText(context, "Google Sign-In error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         } else {
@@ -740,8 +794,23 @@ fun RegistrationScreen(
         }
     }
 
-    if (showSha1Dialog) {
-        GoogleSignInConfigDialog(onDismiss = { showSha1Dialog = false })
+    if (showUnavailableDialog) {
+        GoogleSignInUnavailableDialog(
+            onDismiss = { showUnavailableDialog = false },
+            onTryAgain = {
+                if (!authViewModel.isLoading) {
+                    try {
+                        val intent = authViewModel.getGoogleSignInIntent()
+                        googleSignInLauncher.launch(intent)
+                    } catch (ex: Exception) {
+                        Toast.makeText(context, "Google Sign-In: ${ex.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onUseEmailLogin = {
+                nameFocus.requestFocus()
+            }
+        )
     }
 
     // Password criteria evaluation
@@ -1038,13 +1107,16 @@ fun RegistrationScreen(
             // Google Sign-In Button on Registration
             GoogleSignInButton(
                 onClick = {
+                    if (authViewModel.isLoading) return@GoogleSignInButton
                     try {
                         val intent = authViewModel.getGoogleSignInIntent()
                         googleSignInLauncher.launch(intent)
                     } catch (e: Exception) {
                         Toast.makeText(context, "Google Sign-In: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
-                }
+                },
+                enabled = !authViewModel.isLoading,
+                isLoading = authViewModel.isLoading
             )
 
             Spacer(modifier = Modifier.height(24.dp))

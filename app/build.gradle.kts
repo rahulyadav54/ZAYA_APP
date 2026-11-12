@@ -46,6 +46,7 @@ android {
 
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("release")
             // Development/Debug: Production worker default
             buildConfigField("String", "BACKEND_URL", "\"${localProperty("BACKEND_URL", "https://aizaya-api.zayacodehub-aizaya.workers.dev/")}\"")
             buildConfigField("String", "OPENROUTER_API_KEY", "\"${localProperty("OPENROUTER_API_KEY")}\"")

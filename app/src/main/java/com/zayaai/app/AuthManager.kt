@@ -1,4 +1,4 @@
-﻿package com.zayaai.app
+package com.zayaai.app
 
 import android.content.Context
 import android.content.Intent
@@ -15,13 +15,11 @@ class AuthManager(private val context: Context) {
     private val auth: FirebaseAuth = Firebase.auth
 
     fun getSignInIntent(): Intent {
-        // We will try to get the string resource, and if it fails (not yet generated),
-        // we use a placeholder to allow compilation.
         val defaultClientId = "493304702545-6fhbfpd1t3fbiln9fqgvi19rp8uugtk2.apps.googleusercontent.com"
         val webClientId = try {
             val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
             if (resId != 0) context.getString(resId) else defaultClientId
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             defaultClientId
         }
 
@@ -30,6 +28,10 @@ class AuthManager(private val context: Context) {
             .requestEmail()
             .build()
         val googleSignInClient = GoogleSignIn.getClient(context, gso)
+        // Clear previous account selection state so the account chooser dialog prompts cleanly
+        try {
+            googleSignInClient.signOut()
+        } catch (_: Exception) {}
         return googleSignInClient.signInIntent
     }
 
